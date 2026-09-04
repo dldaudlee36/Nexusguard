@@ -1,7 +1,7 @@
-# Byte-compiled / optimized / DLL files
+﻿# Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
-*$py.class
+*.class
 
 # Virtual Environments
 .venv/
@@ -18,3 +18,9 @@ env/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Exclude README & walkthroughs per user request
+README.md
+walkthroughs/
+*.bat
+*.ps1
