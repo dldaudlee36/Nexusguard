@@ -1,4 +1,4 @@
-﻿# Byte-compiled / optimized / DLL files
+# Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *.class
@@ -24,3 +24,5 @@ README.md
 walkthroughs/
 *.bat
 *.ps1
+*.png
+*_backup*.py

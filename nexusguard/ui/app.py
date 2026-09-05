@@ -349,6 +349,76 @@ st.markdown("""
         color: #ffffff !important;
         margin: 0 !important;
     }
+
+    /* =================================================== */
+    /* 🌟 섀도우 AI 거버넌스 액션 버튼 스타일 (균등 높이 & 시인성 최적화 컬러링) */
+    /* =================================================== */
+    div[class*="st-key-app_"] button,
+    div[class*="st-key-guide_"] button,
+    div[class*="st-key-blk_"] button {
+        height: 44px !important;
+        min-height: 44px !important;
+        border-radius: 9px !important;
+        font-size: 13.5px !important;
+        font-weight: 700 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        transition: all 0.2s ease-in-out !important;
+        box-sizing: border-box !important;
+    }
+    /* 정식 승인(양성화): 문구 시인성을 완벽히 유지하는 세련된 에메랄드 그린 배경 */
+    div[class*="st-key-app_"] button {
+        background: linear-gradient(135deg, rgba(16, 185, 129, 0.28) 0%, rgba(5, 150, 105, 0.42) 100%) !important;
+        border: 1.5px solid #10b981 !important;
+        color: #ffffff !important;
+        box-shadow: 0 2px 10px rgba(16, 185, 129, 0.22) !important;
+    }
+    div[class*="st-key-app_"] button:hover {
+        background: linear-gradient(135deg, rgba(16, 185, 129, 0.50) 0%, rgba(5, 150, 105, 0.68) 100%) !important;
+        border-color: #34d399 !important;
+        box-shadow: 0 4px 16px rgba(16, 185, 129, 0.45) !important;
+        transform: translateY(-2px) !important;
+    }
+    div[class*="st-key-app_"] button p {
+        color: #ffffff !important;
+        font-weight: 700 !important;
+    }
+    /* 사내 프라이빗 도구 안내(Slack) */
+    div[class*="st-key-guide_"] button {
+        background: #111e33 !important;
+        border: 1px solid #2a4365 !important;
+        color: #f1f5f9 !important;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+    }
+    div[class*="st-key-guide_"] button:hover {
+        background: #1a3154 !important;
+        border-color: #38bdf8 !important;
+        color: #38bdf8 !important;
+        box-shadow: 0 4px 14px rgba(56, 189, 248, 0.3) !important;
+        transform: translateY(-2px) !important;
+    }
+    div[class*="st-key-guide_"] button p {
+        color: #f1f5f9 !important;
+        font-weight: 600 !important;
+    }
+    /* 도메인 차단 룰 생성: 문구 시인성을 완벽히 유지하는 세련된 크림슨 레드 배경 */
+    div[class*="st-key-blk_"] button {
+        background: linear-gradient(135deg, rgba(239, 68, 68, 0.28) 0%, rgba(185, 28, 28, 0.42) 100%) !important;
+        border: 1.5px solid #ef4444 !important;
+        color: #ffffff !important;
+        box-shadow: 0 2px 10px rgba(239, 68, 68, 0.22) !important;
+    }
+    div[class*="st-key-blk_"] button:hover {
+        background: linear-gradient(135deg, rgba(239, 68, 68, 0.50) 0%, rgba(185, 28, 28, 0.68) 100%) !important;
+        border-color: #f87171 !important;
+        box-shadow: 0 4px 16px rgba(239, 68, 68, 0.45) !important;
+        transform: translateY(-2px) !important;
+    }
+    div[class*="st-key-blk_"] button p {
+        color: #ffffff !important;
+        font-weight: 700 !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -1106,46 +1176,68 @@ if menu == "대시보드 종합 관제":
     if "selected_incident_id" not in st.session_state or st.session_state.selected_incident_id not in all_incident_ids:
         st.session_state.selected_incident_id = all_incident_ids[0]
 
-    # 3대 위험도별 드롭다운 콜백 함수
+    # 3대 위험도별 드롭다운 콜백 함수 (다른 그룹의 드롭다운 값은 리셋하여 재선택 가능하도록 처리)
     def on_select_crit_high():
-        st.session_state.selected_incident_id = st.session_state.sel_crit_high_dropdown
+        val = st.session_state.sel_crit_high_dropdown
+        if val:
+            st.session_state.selected_incident_id = val
+            st.session_state.sel_med_dropdown = None
+            st.session_state.sel_low_dropdown = None
 
     def on_select_med():
-        st.session_state.selected_incident_id = st.session_state.sel_med_dropdown
+        val = st.session_state.sel_med_dropdown
+        if val:
+            st.session_state.selected_incident_id = val
+            st.session_state.sel_crit_high_dropdown = None
+            st.session_state.sel_low_dropdown = None
 
     def on_select_low():
-        st.session_state.selected_incident_id = st.session_state.sel_low_dropdown
+        val = st.session_state.sel_low_dropdown
+        if val:
+            st.session_state.selected_incident_id = val
+            st.session_state.sel_crit_high_dropdown = None
+            st.session_state.sel_med_dropdown = None
 
     # 드롭다운 옵션 레이블 포맷터
-    def format_inc_card_dropdown(inc_id: str) -> str:
+    # 🔴 사용자 요청: 긴급 인시던트 드롭다운 메뉴 안의 모든 항목 앞 위험도 색상을 '빨강(🔴)'으로 통일
+    def format_crit_high_dropdown(inc_id: str) -> str:
         inc = ctx.correlation_engine.get_incident(inc_id)
         if not inc:
             return inc_id
-        sev_emoji = {
-            Severity.CRITICAL: "🔴",
-            Severity.HIGH: "🟠",
-            Severity.MEDIUM: "🟡",
-            Severity.LOW: "🟢"
-        }.get(inc.severity, "⚪")
-        return f"{sev_emoji} {inc.incident_id} | {inc.title}"
+        return f"🔴 {inc.incident_id} | {inc.title}"
 
-    # 세션 상태 안전 동기화 (각 드롭다운 렌더링 전)
+    def format_med_dropdown(inc_id: str) -> str:
+        inc = ctx.correlation_engine.get_incident(inc_id)
+        if not inc:
+            return inc_id
+        return f"🟡 {inc.incident_id} | {inc.title}"
+
+    def format_low_dropdown(inc_id: str) -> str:
+        inc = ctx.correlation_engine.get_incident(inc_id)
+        if not inc:
+            return inc_id
+        return f"🟢 {inc.incident_id} | {inc.title}"
+
+    # 세션 상태 안전 동기화 (현재 선택된 인시던트가 속한 그룹만 활성화하고, 나머지는 None으로 설정하여 변경 감지 보장)
     cur_sel = st.session_state.selected_incident_id
 
     if cur_sel in crit_high_ids:
         st.session_state.sel_crit_high_dropdown = cur_sel
-    elif "sel_crit_high_dropdown" not in st.session_state or st.session_state.sel_crit_high_dropdown not in crit_high_ids:
-        st.session_state.sel_crit_high_dropdown = crit_high_ids[0]
-
-    if cur_sel in med_ids:
+        st.session_state.sel_med_dropdown = None
+        st.session_state.sel_low_dropdown = None
+    elif cur_sel in med_ids:
         st.session_state.sel_med_dropdown = cur_sel
-    elif "sel_med_dropdown" not in st.session_state or st.session_state.sel_med_dropdown not in med_ids:
-        st.session_state.sel_med_dropdown = med_ids[0]
-
-    if cur_sel in low_ids:
+        st.session_state.sel_crit_high_dropdown = None
+        st.session_state.sel_low_dropdown = None
+    elif cur_sel in low_ids:
         st.session_state.sel_low_dropdown = cur_sel
-    elif "sel_low_dropdown" not in st.session_state or st.session_state.sel_low_dropdown not in low_ids:
-        st.session_state.sel_low_dropdown = low_ids[0]
+        st.session_state.sel_crit_high_dropdown = None
+        st.session_state.sel_med_dropdown = None
+
+    # 각 드롭다운의 초기 인덱스 계산
+    crit_high_idx = crit_high_ids.index(cur_sel) if cur_sel in crit_high_ids else None
+    med_idx = med_ids.index(cur_sel) if cur_sel in med_ids else None
+    low_idx = low_ids.index(cur_sel) if cur_sel in low_ids else None
 
     # 3대 위험도별 KPI 카드 및 드롭다운 메뉴 (CRITICAL/HIGH, MEDIUM, LOW로 3분할 균등 확장)
     kpi1, kpi2, kpi3 = st.columns(3)
@@ -1164,7 +1256,9 @@ if menu == "대시보드 종합 관제":
         st.selectbox(
             "🔴 긴급 인시던트 선택 (7건)",
             options=crit_high_ids,
-            format_func=format_inc_card_dropdown,
+            index=crit_high_idx,
+            placeholder="🔴 긴급 인시던트 선택 (7건)...",
+            format_func=format_crit_high_dropdown,
             key="sel_crit_high_dropdown",
             on_change=on_select_crit_high,
             help="치명(Critical) 및 고위험(High) 긴급 대응 인시던트 목록입니다."
@@ -1184,7 +1278,9 @@ if menu == "대시보드 종합 관제":
         st.selectbox(
             "🟡 주의 인시던트 선택 (2건)",
             options=med_ids,
-            format_func=format_inc_card_dropdown,
+            index=med_idx,
+            placeholder="🟡 주의 인시던트 선택 (2건)...",
+            format_func=format_med_dropdown,
             key="sel_med_dropdown",
             on_change=on_select_med,
             help="주의(Medium) 단계 인시던트 목록입니다."
@@ -1204,7 +1300,9 @@ if menu == "대시보드 종합 관제":
         st.selectbox(
             "🟢 경미 인시던트 선택 (1건)",
             options=low_ids,
-            format_func=format_inc_card_dropdown,
+            index=low_idx,
+            placeholder="🟢 경미 인시던트 선택 (1건)...",
+            format_func=format_low_dropdown,
             key="sel_low_dropdown",
             on_change=on_select_low,
             help="경미(Low) 단계 인시던트 목록입니다."
@@ -1450,17 +1548,17 @@ elif menu == "섀도우 AI·IT 거버넌스":
         </div>
         """, unsafe_allow_html=True)
 
-        act_col1, act_col2, act_col3 = st.columns([2, 3, 2])
+        act_col1, act_col2, act_col3 = st.columns([1, 1, 1])
         with act_col1:
-            if st.button(f"✅ 정식 승인(양성화)", key=f"app_{asset.domain}", help="해당 SaaS를 회사 승인 소프트웨어 목록에 등록하고 정식 라이선스 계약을 추진합니다."):
+            if st.button(f"✅ 정식 승인(양성화)", key=f"app_{asset.domain}", use_container_width=True, help="해당 SaaS를 회사 승인 소프트웨어 목록에 등록하고 정식 라이선스 계약을 추진합니다."):
                 ctx.governance_engine.update_sanction_status(asset.domain, SanctionStatus.APPROVED)
                 st.success(f"'{asset.domain}' 서비스가 사내 승인 목록으로 전환되었습니다.")
                 st.rerun()
         with act_col2:
-            if st.button(f"💬 사내 프라이빗 도구 안내(Slack)", key=f"guide_{asset.domain}", help="사용자에게 사내 승인 대체 보안 도구 사용 가이드를 DM으로 발송합니다."):
+            if st.button(f"💬 사내 프라이빗 도구 안내(Slack)", key=f"guide_{asset.domain}", use_container_width=True, help="사용자에게 사내 승인 대체 보안 도구 사용 가이드를 DM으로 발송합니다."):
                 st.info(f"해당 사용자 그룹에게 '{asset.recommended_alternative}' 사용 가이드가 발송되었습니다.")
         with act_col3:
-            if st.button(f"⛔ 도메인 차단 룰 생성", key=f"blk_{asset.domain}", help="DNS 싱크홀 및 방화벽 차단 정책에 등록하여 접근을 차단합니다."):
+            if st.button(f"⛔ 도메인 차단 룰 생성", key=f"blk_{asset.domain}", use_container_width=True, help="DNS 싱크홀 및 방화벽 차단 정책에 등록하여 접근을 차단합니다."):
                 ctx.governance_engine.update_sanction_status(asset.domain, SanctionStatus.BLOCKED)
                 st.warning(f"'{asset.domain}' DNS 싱크홀 및 방화벽 차단 룰이 등록되었습니다.")
                 st.rerun()
