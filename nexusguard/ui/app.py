@@ -41,10 +41,22 @@ st.markdown("""
     /* 사이드바 */
     section[data-testid="stSidebar"] {
         background-color: #0c1727 !important;
-        border-right: 1px solid #1c2b42;
-        min-width: 290px !important;
+        border-right: 1px solid #1c2b42 !important;
+        width: clamp(280px, 20vw, 380px) !important;
+        min-width: 260px !important;
+        max-width: 420px !important;
+        transition: width 0.2s ease-in-out !important;
     }
 
+    /* 🌟 사이드바 라디오 네비게이션 가로 100% 꽉 채우기 및 창 크기 반응형 */
+    section[data-testid="stSidebar"] .st-key-nav_radio,
+    section[data-testid="stSidebar"] div[data-testid="stRadio"],
+    section[data-testid="stSidebar"] div[data-testid="stRadio"] > div,
+    section[data-testid="stSidebar"] div[data-testid="stRadio"] div[role="radiogroup"] {
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+    }
     /* 🌟 사이드바 라디오 네비게이션 헤더 라벨 */
     section[data-testid="stSidebar"] div[data-testid="stRadio"] > label {
         background: transparent !important;
@@ -63,12 +75,12 @@ st.markdown("""
         flex-direction: column !important;
         width: 100% !important;
     }
-    /* 각 옵션 항목 박스 카드 */
+    /* 각 옵션 항목 박스 카드 - 가로 100% 완벽 확장 */
     section[data-testid="stSidebar"] div[data-testid="stRadio"] div[role="radiogroup"] label {
         background-color: #111e33 !important;
         border: 1px solid #1c2e47 !important;
         border-radius: 10px !important;
-        padding: 11px 14px !important;
+        padding: 11px 16px !important;
         margin: 0 !important;
         transition: all 0.2s ease-in-out !important;
         cursor: pointer !important;
@@ -76,6 +88,7 @@ st.markdown("""
         display: flex !important;
         align-items: center !important;
         width: 100% !important;
+        max-width: 100% !important;
         box-sizing: border-box !important;
     }
     section[data-testid="stSidebar"] div[data-testid="stRadio"] div[role="radiogroup"] label:hover {
@@ -96,6 +109,7 @@ st.markdown("""
         font-size: 14px !important;
         font-weight: 600 !important;
         color: #f1f5f9 !important;
+        white-space: nowrap !important;
     }
 
     /* 사이드바 시뮬레이터 버튼 균일 크기 고정 및 줄바꿈 방지 */
@@ -516,15 +530,12 @@ st.markdown("""
         font-weight: 700 !important;
     }
 
-    /* 🌟 SOAR 긴급 대응 액션 버튼 시인성 극대화 (세로 높이 대폭 확장: 64px) */
-    div[class*="st-key-btn_fw"] button,
-    div[class*="st-key-btn_revoke"] button,
-    div[class*="st-key-btn_slack"] button,
+    /* 🌟 킬체인 심층 분석 바로가기 액션 버튼 스타일 */
     div[class*="st-key-btn_jump_kc"] button {
-        min-height: 64px !important;
-        height: 64px !important;
-        padding: 16px 14px !important;
-        font-size: 14.5px !important;
+        min-height: 52px !important;
+        height: 52px !important;
+        padding: 12px 18px !important;
+        font-size: 15px !important;
         font-weight: 700 !important;
         border-radius: 10px !important;
         line-height: 1.4 !important;
@@ -533,9 +544,6 @@ st.markdown("""
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35) !important;
         transition: all 0.2s ease-in-out !important;
     }
-    div[class*="st-key-btn_fw"] button:hover,
-    div[class*="st-key-btn_revoke"] button:hover,
-    div[class*="st-key-btn_slack"] button:hover,
     div[class*="st-key-btn_jump_kc"] button:hover {
         transform: translateY(-2px) !important;
         border-color: #38bdf8 !important;
@@ -1852,36 +1860,16 @@ if menu == "종합 관제":
     </div>
     """, unsafe_allow_html=True)
 
-    # ⚡ SOAR 원클릭 긴급 보안 조치 및 관제 대응
-    st.markdown("<hr style='border:none; border-top:1.5px solid #1e3a5f; margin:20px 0 16px 0;'>", unsafe_allow_html=True)
-    
-    soar_header = f"""
-    <div class="box-title" style="display:flex; justify-content:space-between; align-items:center;">
-        <span>{tooltip("⚡", "SOAR 원클릭 자동 대응", "보안관제 요원이 클릭 한 번으로 방화벽 차단 룰 배포 및 세션 격리를 수행할 수 있는 자동화 조치입니다.")} ⚡ SOAR 원클릭 긴급 보안 조치 및 관제 대응</span>
-        <span style="font-size:12px; font-weight:normal; color:#94a3b8;">분석 대상: <b style="color:#38bdf8;">{selected_inc.incident_id}</b> ({selected_inc.severity.value}) · 신뢰 점수: <b style="color:#ff5b6b;">{selected_inc.score}점</b></span>
-    </div>
-    """
-    st.markdown(soar_header, unsafe_allow_html=True)
-
-    soar_col1, soar_col2, soar_col3, soar_col4 = st.columns(4)
-    with soar_col1:
-        if st.button("🚨 방화벽 차단 룰 즉시 배포", key="btn_fw", use_container_width=True, help="해당 공격 발원지 IP 및 C2 목적지를 경계 방화벽 차단 목록에 영구 추가합니다."):
-            st.success("✅ iptables / 방화벽 차단 정책이 즉시 배포되었습니다.")
-    with soar_col2:
-        if st.button("🔒 활성 계정 세션 즉시 만료", key="btn_revoke", use_container_width=True, help="침해된 계정의 모든 SSO 세션 및 토큰을 무효화합니다."):
-            st.success("✅ 해당 계정의 모든 SSO 세션이 강제 종료되었습니다.")
-    with soar_col3:
-        if st.button("📢 Slack 보안팀 긴급 전파", key="btn_slack", use_container_width=True, help="Slack #incident-critical 채널로 경보 웹훅을 전파합니다."):
-            st.info("📨 Slack #incident-alert 채널로 웹훅 전파 완료!")
-    with soar_col4:
-        st.button(
-            "🔍 킬체인 심층 분석 바로가기 ➔",
-            key="btn_jump_kc",
-            on_click=navigate_to,
-            args=("킬체인 분석", selected_inc.incident_id),
-            use_container_width=True,
-            help="해당 인시던트의 네트워크 토폴로지 맵 및 상세 킬체인 분석 탭으로 이동합니다."
-        )
+    # 🔍 킬체인 심층 분석 바로가기
+    st.markdown("<div style='margin-top: 14px;'></div>", unsafe_allow_html=True)
+    st.button(
+        "🔍 선택한 인시던트 킬체인 심층 분석 바로가기 ➔",
+        key="btn_jump_kc",
+        on_click=navigate_to,
+        args=("킬체인 분석", selected_inc.incident_id),
+        use_container_width=True,
+        help="해당 인시던트의 네트워크 토폴로지 맵 및 상세 킬체인 분석 탭으로 이동합니다."
+    )
 
 
 # ==========================================
