@@ -22,7 +22,7 @@ from nexusguard.schemas.event import SecurityEvent, LogSource, EventAction, Acto
 
 # 1. 페이지 기본 설정
 st.set_page_config(
-    page_title="Dashboard | NexusGuard",
+    page_title="NexusGuard | 통합 보안 관제",
     page_icon="🛡️",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -36,6 +36,24 @@ st.markdown("""
         background-color: #07111f;
         color: #f5f7fb;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        font-size: 15px;
+        line-height: 1.55;
+    }
+
+    /* 본문·보조 문구·표의 최소 가독성 기준 */
+    .stApp p,
+    .stApp li,
+    .stApp label {
+        line-height: 1.55;
+    }
+    div[data-testid="stCaptionContainer"],
+    div[data-testid="stCaptionContainer"] p {
+        color: #a9b8cb !important;
+        font-size: 13.5px !important;
+        line-height: 1.55 !important;
+    }
+    div[data-testid="stDataFrame"] {
+        font-size: 13.5px !important;
     }
     
     /* 사이드바 기본 및 드래그 조절 반응형 스타일 */
@@ -184,7 +202,7 @@ st.markdown("""
         box-sizing: border-box;
     }
     .kpi-title {
-        font-size: 13px;
+        font-size: 14px;
         font-weight: 600;
         color: #9fb0c8;
         margin-bottom: 6px;
@@ -197,8 +215,8 @@ st.markdown("""
         line-height: 1.2;
     }
     .kpi-sub {
-        font-size: 12px;
-        color: #6c7f99;
+        font-size: 13.5px;
+        color: #a3b2c7;
         margin-top: 4px;
     }
     
@@ -223,7 +241,7 @@ st.markdown("""
     .badge {
         padding: 4px 10px;
         border-radius: 6px;
-        font-size: 12px;
+        font-size: 13px;
         font-weight: 700;
         display: inline-block;
     }
@@ -594,15 +612,15 @@ st.markdown("""
         box-shadow: 0 4px 14px rgba(56, 189, 248, 0.3) !important;
         transform: translateY(-2px) !important;
     }
-    /* 도메인 차단 룰 생성 */
+    /* 위험 작업: 평상시에는 절제된 외곽선, 확인 단계에서만 강한 적색 사용 */
     div[class*="st-key-blk_"] button {
-        background: linear-gradient(135deg, rgba(239, 68, 68, 0.28) 0%, rgba(185, 28, 28, 0.42) 100%) !important;
+        background: rgba(127, 29, 29, 0.12) !important;
         border: 1.5px solid #ef4444 !important;
-        color: #ffffff !important;
-        box-shadow: 0 2px 10px rgba(239, 68, 68, 0.22) !important;
+        color: #fecaca !important;
+        box-shadow: none !important;
     }
     div[class*="st-key-blk_"] button:hover {
-        background: linear-gradient(135deg, rgba(239, 68, 68, 0.50) 0%, rgba(185, 28, 28, 0.68) 100%) !important;
+        background: rgba(185, 28, 28, 0.35) !important;
         border-color: #f87171 !important;
         box-shadow: 0 4px 16px rgba(239, 68, 68, 0.45) !important;
         transform: translateY(-2px) !important;
@@ -614,6 +632,40 @@ st.markdown("""
         white-space: nowrap !important;
         letter-spacing: -0.3px !important;
         color: #ffffff !important;
+    }
+    div[class*="st-key-blk_"] button p {
+        color: #fecaca !important;
+    }
+
+    div[class*="st-key-confirm_blk_"] button {
+        background: #b91c1c !important;
+        border: 1.5px solid #f87171 !important;
+        color: #ffffff !important;
+        font-weight: 800 !important;
+    }
+    div[class*="st-key-cancel_blk_"] button {
+        background: #111e33 !important;
+        border: 1px solid #475569 !important;
+        color: #e2e8f0 !important;
+        font-weight: 700 !important;
+    }
+
+    @media (max-width: 640px) {
+        .block-container {
+            padding-left: 16px !important;
+            padding-right: 16px !important;
+        }
+        .nexus-page-title {
+            font-size: 23px !important;
+        }
+        .kpi-card {
+            min-height: 96px;
+            height: auto;
+            padding: 14px 16px;
+        }
+        .kpi-value {
+            font-size: 27px;
+        }
     }
     div[class*="st-key-app_"] button,
     div[class*="st-key-guide_"] button,
@@ -944,7 +996,7 @@ with st.sidebar:
     </div>
     """, unsafe_allow_html=True)
 
-    menu_options = ["종합 관제", "킬체인 분석", "AI·IT 거버넌스", "중앙 서버 파이프 라인"]
+    menu_options = ["종합 관제", "킬체인 분석", "AI·IT 거버넌스", "중앙 서버 파이프라인"]
     if "nav_radio" not in st.session_state or st.session_state.nav_radio not in menu_options:
         st.session_state.nav_radio = "종합 관제"
 
@@ -980,8 +1032,8 @@ with st.sidebar:
         if "view_railway_collection_toggle" not in st.session_state:
             st.session_state["view_railway_collection_toggle"] = st.session_state["railway_collection_active"]
 
-        # 🌟 현재 '중앙 서버 파이프 라인' 페이지가 아닐 때만 사이드바 수집 제어 박스 표시
-        if menu != "중앙 서버 파이프 라인":
+        # 현재 '중앙 서버 파이프라인' 페이지가 아닐 때만 사이드바 수집 제어 박스 표시
+        if menu != "중앙 서버 파이프라인":
             st.markdown("<div style='height:6px;'></div>", unsafe_allow_html=True)
             with st.container(border=True):
                 st.markdown("<div style='font-size:12px; font-weight:700; color:#38bdf8; margin-bottom:4px;'>🌐 Railway 실시간 수집</div>", unsafe_allow_html=True)
@@ -1906,7 +1958,7 @@ if menu == "종합 관제":
     st.markdown("""
     <div class="nexus-page-title-box">
         <h1 class="nexus-page-title">
-            🛡️ 종합 관제 (Dashboard) <span class="dashboard-info-icon" title="마우스를 올리면 시스템 설명이 표시됩니다">ℹ️</span>
+            🛡️ 종합 관제 <span class="dashboard-info-icon" title="마우스를 올리면 시스템 설명이 표시됩니다">ℹ️</span>
         </h1>
         <div class="dashboard-title-tooltip">
             🛡️ 실시간 이기종 로그 연계 침해사고 재구성 및 내부 데이터 거버넌스 모니터링 (Zero Trust XDR)
@@ -1938,13 +1990,13 @@ if menu == "종합 관제":
         if not inc:
             return inc_id
         if inc.severity == Severity.CRITICAL:
-            badge = f"🔴 [CRITICAL {inc.score}점]"
+            badge = f"🔴 [치명 {inc.score}점]"
         elif inc.severity == Severity.HIGH:
-            badge = f"🔴 [HIGH {inc.score}점]"
+            badge = f"🔴 [고위험 {inc.score}점]"
         elif inc.severity == Severity.MEDIUM:
-            badge = f"🟡 [WATCH {inc.score}점]"
+            badge = f"🟡 [관찰 {inc.score}점]"
         else:
-            badge = f"🟢 [NORMAL {inc.score}점]"
+            badge = f"🟢 [정상 {inc.score}점]"
         return f"{badge}  {inc.incident_id}  |  {inc.title}"
 
     cur_idx = sorted_incident_ids.index(st.session_state.selected_incident_id) if st.session_state.selected_incident_id in sorted_incident_ids else 0
@@ -1974,29 +2026,7 @@ if menu == "종합 관제":
         </div>
         """, unsafe_allow_html=True)
 
-    # 📈 실시간 2단계 상태 머신 감사 이력 (주식창 스타일 항시 노출 뷰 - 확대)
-    hist = ctx.correlation_engine.store.get_risk_history(25)
-    st.markdown("""
-    <div style="background: #091322; border: 1.5px solid #1e3a5f; border-radius: 10px; padding: 14px 18px 8px 18px; margin-bottom: 16px; box-shadow: 0 4px 14px rgba(0,0,0,0.35);">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 10px;">
-            <span style="font-weight:800; font-size:14px; color:#38bdf8; display:flex; align-items:center; gap:6px;">
-                📈 실시간 보안 상태 감사 트레일 (Live Security Ticker · SQLite Audit)
-            </span>
-            <span style="font-size:11px; color:#94a3b8; background:rgba(30,58,138,0.4); padding:3px 8px; border-radius:4px; border:1px solid #1e40af;">실시간 2단계 상태 전이 영구 보관</span>
-        </div>
-    """, unsafe_allow_html=True)
-    if hist:
-        df_hist = pd.DataFrame(hist)[["at", "user", "from_state", "to_state", "reason"]]
-        df_hist.columns = ["일시 (UTC)", "대상 계정/호스트", "이전 상태", "전이 상태", "판정 사유"]
-        st.dataframe(df_hist, use_container_width=True, height=270)
-    else:
-        st.caption("💡 현재 기록된 상태 전이 이력이 없습니다. 좌측 사이드바 시뮬레이터를 통해 이벤트를 주입해보세요.")
-    st.markdown("</div>", unsafe_allow_html=True)
-
-    # 🌟 [상단 분계선] 3대 KPI 카드 위 분계선
-    st.markdown('<hr style="border: 0; border-top: 1.5px solid #1e3a5f; margin: 18px 0 16px 0;">', unsafe_allow_html=True)
-
-    # 3대 위험도별 KPI 카드 (CRITICAL/HIGH, WATCH, NORMAL) - 색상은 유지하고 문구 치환 (WATCH: 🟡 주황, NORMAL: 🟢 초록)
+    # 사용자가 첫 화면에서 즉시 우선순위를 판단하도록 핵심 위험 지표를 최상단에 배치
     crit_high_count = len(crit_high_ids)
     watch_count = len(watch_ids)
     normal_count = len(normal_ids)
@@ -2005,38 +2035,39 @@ if menu == "종합 관제":
 
     with kpi1:
         st.markdown(f"""
-        <div class="kpi-card">
-            <div class="kpi-title critical-text">
-                {tooltip("🚨", "CRITICAL / HIGH 긴급 경보", "즉각적인 격리 또는 차단이 요구되는 활성 공격 및 기밀 유출 사건입니다.")} CRITICAL / HIGH
-            </div>
-            <div class="kpi-value critical-text">{crit_high_count}</div>
-            <div class="kpi-sub">긴급 대응 필요 침해 킬체인</div>
+            <div class="kpi-card">
+                <div class="kpi-title critical-text">
+                {tooltip("🚨", "긴급·고위험 경보", "즉각적인 격리 또는 차단이 요구되는 활성 공격 및 기밀 유출 사건입니다.")} 긴급·고위험
+                </div>
+                <div class="kpi-value critical-text">{crit_high_count}</div>
+                <div class="kpi-sub">즉시 대응이 필요한 침해사고</div>
         </div>
         """, unsafe_allow_html=True)
 
     with kpi2:
         st.markdown(f"""
-        <div class="kpi-card">
-            <div class="kpi-title medium-text">
-                {tooltip("👁️", "WATCH 사전 관찰", "위험 행위 징후 포착에 따른 선제적 모니터링 추적 단계입니다.")} WATCH
-            </div>
-            <div class="kpi-value medium-text">{watch_count}</div>
-            <div class="kpi-sub">사전 관찰 및 잠재 이상 추적</div>
+            <div class="kpi-card">
+                <div class="kpi-title medium-text">
+                {tooltip("👁️", "관찰 단계", "위험 행위 징후 포착에 따른 선제적 모니터링 추적 단계입니다.")} 관찰
+                </div>
+                <div class="kpi-value medium-text">{watch_count}</div>
+                <div class="kpi-sub">잠재적 이상 행위 추적</div>
         </div>
         """, unsafe_allow_html=True)
 
     with kpi3:
         st.markdown(f"""
-        <div class="kpi-card">
-            <div class="kpi-title low-text">
-                {tooltip("⚖️", "NORMAL 정상/주의", "일반 업무 활동 및 경미한 이상 징후 모니터링 단계입니다.")} NORMAL
-            </div>
-            <div class="kpi-value low-text">{normal_count}</div>
-            <div class="kpi-sub">일반 활동 및 모니터링 단계</div>
+            <div class="kpi-card">
+                <div class="kpi-title low-text">
+                {tooltip("⚖️", "정상 단계", "일반 업무 활동 및 경미한 이상 징후 모니터링 단계입니다.")} 정상
+                </div>
+                <div class="kpi-value low-text">{normal_count}</div>
+                <div class="kpi-sub">일반 활동과 경미한 징후</div>
         </div>
         """, unsafe_allow_html=True)
 
-    # 🌟 [하단 분계선] 3대 KPI 카드 아래 분계선
+    # 세부 감사 이력은 핵심 대응 정보 아래에서 필요할 때 펼쳐 확인
+    hist = ctx.correlation_engine.store.get_risk_history(25)
     st.markdown('<hr style="border: 0; border-top: 1.5px solid #1e3a5f; margin: 16px 0 20px 0;">', unsafe_allow_html=True)
 
     # 🌟 [단일 통합 카드 형식 인시던트 선택기] 건수 표시 제거, 색상 가이드만 유지, 단일 카드로 묶음
@@ -2044,10 +2075,10 @@ if menu == "종합 관제":
         st.markdown("""
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;">
             <span style="font-weight:700; font-size:15px; color:#60a5fa; display:flex; align-items:center; gap:6px;">
-                🎯 분석 대상 인시던트 통합 선택
+                🎯 우선 대응 인시던트 선택
             </span>
             <span style="font-size:13px; color:#cbd5e1; background:rgba(30,58,138,0.3); padding:4px 12px; border-radius:20px; border:1px solid #1e40af;">
-                🔴 CRITICAL / HIGH &nbsp;·&nbsp; 🟡 WATCH &nbsp;·&nbsp; 🟢 NORMAL
+                🔴 긴급·고위험 &nbsp;·&nbsp; 🟡 관찰 &nbsp;·&nbsp; 🟢 정상
             </span>
         </div>
         """, unsafe_allow_html=True)
@@ -2074,7 +2105,7 @@ if menu == "종합 관제":
             "header_color": "#f87171",
             "header_label": "🚨 [치명적 침해사고 긴급 격리 대상] 인시던트 종합 정보",
             "dot_glow": "#ef4444",
-            "badge": '<span class="badge badge-critical" style="font-size:13px; padding:5px 12px; background:#dc2626; color:#ffffff; font-weight:800; border-radius:6px;">CRITICAL (치명)</span>',
+            "badge": '<span class="badge badge-critical" style="font-size:13px; padding:5px 12px; background:#dc2626; color:#ffffff; font-weight:800; border-radius:6px;">치명</span>',
             "score_color": "#ff4d61",
             "actor_color": "#fca5a5",
             "target_color": "#f87171",
@@ -2089,7 +2120,7 @@ if menu == "종합 관제":
             "header_color": "#fb7185",
             "header_label": "🚨 [고위험 유출/침해 대응 대상] 인시던트 종합 정보",
             "dot_glow": "#f43f5e",
-            "badge": '<span class="badge badge-high" style="font-size:13px; padding:5px 12px; background:#e11d48; color:#ffffff; font-weight:800; border-radius:6px;">HIGH (고위험)</span>',
+            "badge": '<span class="badge badge-high" style="font-size:13px; padding:5px 12px; background:#e11d48; color:#ffffff; font-weight:800; border-radius:6px;">고위험</span>',
             "score_color": "#ff758f",
             "actor_color": "#fecdd3",
             "target_color": "#fb7185",
@@ -2102,9 +2133,9 @@ if menu == "종합 관제":
             "glow": "rgba(245, 158, 11, 0.35)",
             "bg": "linear-gradient(135deg, #1c1507 0%, #261d0a 50%, #121927 100%)",
             "header_color": "#fbbf24",
-            "header_label": "👁️ [WATCH 단계 선제적 감시 대상] 인시던트 종합 정보",
+            "header_label": "👁️ [관찰 단계 선제적 감시 대상] 인시던트 종합 정보",
             "dot_glow": "#f59e0b",
-            "badge": '<span class="badge badge-medium" style="font-size:13px; padding:5px 12px; background:#d97706; color:#ffffff; font-weight:800; border-radius:6px;">WATCH</span>',
+            "badge": '<span class="badge badge-medium" style="font-size:13px; padding:5px 12px; background:#d97706; color:#ffffff; font-weight:800; border-radius:6px;">관찰</span>',
             "score_color": "#fbbf24",
             "actor_color": "#fde68a",
             "target_color": "#f59e0b",
@@ -2117,9 +2148,9 @@ if menu == "종합 관제":
             "glow": "rgba(16, 185, 129, 0.35)",
             "bg": "linear-gradient(135deg, #091a13 0%, #0d261d 50%, #0d1927 100%)",
             "header_color": "#34d399",
-            "header_label": "⚖️ [NORMAL 단계 정상/모니터링 대상] 인시던트 종합 정보",
+            "header_label": "⚖️ [정상 단계 모니터링 대상] 인시던트 종합 정보",
             "dot_glow": "#10b981",
-            "badge": '<span class="badge badge-low" style="font-size:13px; padding:5px 12px; background:#059669; color:#ffffff; font-weight:800; border-radius:6px;">NORMAL</span>',
+            "badge": '<span class="badge badge-low" style="font-size:13px; padding:5px 12px; background:#059669; color:#ffffff; font-weight:800; border-radius:6px;">정상</span>',
             "score_color": "#34d399",
             "actor_color": "#a7f3d0",
             "target_color": "#10b981",
@@ -2159,13 +2190,23 @@ if menu == "종합 관제":
     # 🔍 킬체인 심층 분석 바로가기
     st.markdown("<div style='margin-top: 14px;'></div>", unsafe_allow_html=True)
     st.button(
-        "🔍 선택한 인시던트 킬체인 심층 분석 바로가기 ➔",
+        "🔍 선택한 인시던트의 공격 경로와 판단 근거 확인 ➔",
         key="btn_jump_kc",
         on_click=navigate_to,
         args=("킬체인 분석", selected_inc.incident_id),
         use_container_width=True,
-        help="해당 인시던트의 네트워크 토폴로지 맵 및 상세 킬체인 분석 탭으로 이동합니다."
+        help="해당 인시던트의 네트워크 경로와 상세 판단 근거 화면으로 이동합니다."
     )
+
+    st.markdown("<div style='height:10px;'></div>", unsafe_allow_html=True)
+    with st.expander("📋 실시간 보안 상태 감사 이력", expanded=False):
+        st.caption("위험 상태가 변경된 시점과 판단 사유를 시간순으로 확인할 수 있습니다.")
+        if hist:
+            df_hist = pd.DataFrame(hist)[["at", "user", "from_state", "to_state", "reason"]]
+            df_hist.columns = ["일시(UTC)", "대상 계정·호스트", "이전 상태", "변경 상태", "판정 사유"]
+            st.dataframe(df_hist, use_container_width=True, height=270)
+        else:
+            st.caption("현재 기록된 상태 변경 이력이 없습니다. 사이드바 시뮬레이터에서 이벤트를 생성할 수 있습니다.")
 
 
 # ==========================================
@@ -2244,7 +2285,7 @@ elif menu == "킬체인 분석":
     # 🌐 침해사고 네트워크 토폴로지 맵
     map_title = f"""
     <div class="box-title" style="display:flex; justify-content:space-between; align-items:center;">
-        <span>{tooltip("🌐", "네트워크 토폴로지 맵", "선택된 인시던트의 발원지, 경유지, 타깃 자산 간의 통신 포트와 공격 이동 경로를 실시간 시각화합니다. 마우스 휠로 확대/축소하고 드래그하여 지도를 자유롭게 이동할 수 있습니다.")} 네트워크 토폴로지 맵 (Network Map)</span>
+        <span>{tooltip("🌐", "네트워크 경로 맵", "선택된 인시던트의 발원지, 경유지, 타깃 자산 간의 통신 포트와 공격 이동 경로를 실시간 시각화합니다. 마우스 휠로 확대/축소하고 드래그하여 지도를 자유롭게 이동할 수 있습니다.")} 네트워크 경로 맵</span>
         <span style="font-size:12px; font-weight:normal; color:#64748b;">🔍 마우스 휠 확대/축소 & 드래그 이동 지원</span>
     </div>
     """
@@ -2262,7 +2303,7 @@ elif menu == "킬체인 분석":
     with col_left:
         st.markdown(f"""
         <div class="box-title">
-            {tooltip("⏱️", "공격 시퀀스 순서", "공격자 또는 내부 유출자가 시스템에 접근하여 목적을 달성하기까지의 행위 순서입니다.")} 공격 행위 타임라인 (Attack Sequence)
+            {tooltip("⏱️", "공격 행위 순서", "공격자 또는 내부 유출자가 시스템에 접근하여 목적을 달성하기까지의 행위 순서입니다.")} 공격 행위 순서
         </div>
         """, unsafe_allow_html=True)
 
@@ -2283,7 +2324,7 @@ elif menu == "킬체인 분석":
     with col_right:
         st.markdown(f"""
         <div class="box-title">
-            {tooltip("🛡️", "상관분석 판단 근거", "서로 다른 이기종 로그를 교차 분석하여 침해사고로 판정한 핵심 엔진 근거입니다.")} 상관분석 판단 근거 (Explainable Evidence)
+            {tooltip("🛡️", "상관분석 판단 근거", "서로 다른 이기종 로그를 교차 분석하여 침해사고로 판정한 핵심 엔진 근거입니다.")} 상관분석 판단 근거
         </div>
         """, unsafe_allow_html=True)
         for ev in target_inc.evidences:
@@ -2388,20 +2429,32 @@ elif menu == "AI·IT 거버넌스":
             """, unsafe_allow_html=True)
 
             # 🌟 도메인 조치 액션 버튼 (카드 내부 일체화)
-            act_col1, act_col2, act_col3 = st.columns([1, 1, 1])
+            act_col1, act_col2, act_col3 = st.columns([1.15, 1, 0.9])
             with act_col1:
                 if st.button(f"✅ 정식 승인(양성화)", key=f"app_{asset.domain}", use_container_width=True, help="해당 SaaS를 회사 승인 소프트웨어 목록에 등록하고 정식 라이선스 계약을 추진합니다."):
                     ctx.governance_engine.update_sanction_status(asset.domain, SanctionStatus.APPROVED)
                     st.success(f"'{asset.domain}' 서비스가 사내 승인 목록으로 전환되었습니다.")
                     st.rerun()
             with act_col2:
-                if st.button(f"💬 사내 대체 도구 안내", key=f"guide_{asset.domain}", use_container_width=True, help="사용자에게 사내 승인 대체 보안 도구 사용 가이드를 DM으로 발송합니다."):
-                    st.info(f"해당 사용자 그룹에게 '{asset.recommended_alternative}' 사용 가이드가 발송되었습니다.")
+                if st.button("💡 대체 도구 보기", key=f"guide_{asset.domain}", use_container_width=True, help="승인된 사내 대체 도구와 전환 권고를 화면에서 확인합니다."):
+                    st.info(f"권장 대체 도구: {asset.recommended_alternative or '사내 표준 도구 유지'}")
             with act_col3:
-                if st.button(f"⛔ 도메인 차단 룰 생성", key=f"blk_{asset.domain}", use_container_width=True, help="DNS 싱크홀 및 방화벽 차단 정책에 등록하여 접근을 차단합니다."):
-                    ctx.governance_engine.update_sanction_status(asset.domain, SanctionStatus.BLOCKED)
-                    st.warning(f"'{asset.domain}' DNS 싱크홀 및 방화벽 차단 룰이 등록되었습니다.")
-                    st.rerun()
+                if st.button("⛔ 차단 검토", key=f"blk_{asset.domain}", use_container_width=True, help="영향 범위를 확인한 뒤 별도 확인 단계에서 차단합니다."):
+                    st.session_state["pending_block_domain"] = asset.domain
+
+            if st.session_state.get("pending_block_domain") == asset.domain:
+                st.error(f"⚠️ {asset.domain} 접근을 차단하면 해당 서비스를 사용 중인 임직원의 연결이 중단됩니다. 적용 전 영향 범위를 확인하세요.")
+                confirm_col, cancel_col = st.columns([1, 1])
+                with confirm_col:
+                    if st.button("차단 정책 적용", key=f"confirm_blk_{asset.domain}", use_container_width=True):
+                        ctx.governance_engine.update_sanction_status(asset.domain, SanctionStatus.BLOCKED)
+                        st.session_state.pop("pending_block_domain", None)
+                        st.warning(f"'{asset.domain}' DNS 싱크홀 및 방화벽 차단 정책이 적용되었습니다.")
+                        st.rerun()
+                with cancel_col:
+                    if st.button("취소", key=f"cancel_blk_{asset.domain}", use_container_width=True):
+                        st.session_state.pop("pending_block_domain", None)
+                        st.rerun()
 
         # 도메인 박스 간격 추가 (시인성 극대화)
         st.markdown("<div style='margin-bottom: 20px;'></div>", unsafe_allow_html=True)
@@ -2409,17 +2462,17 @@ elif menu == "AI·IT 거버넌스":
 
 # ==========================================
 # ==========================================
-# VIEW 4: 중앙 서버 파이프 라인
+# VIEW 4: 중앙 서버 파이프라인
 # ==========================================
-elif menu == "중앙 서버 파이프 라인":
+elif menu == "중앙 서버 파이프라인":
     from nexusguard.collectors.team_collector import (
         fetch_railway_events, fetch_activity_log_events, RAILWAY_URL, RAILWAY_API_KEY
     )
 
     st.markdown(f"""
     <div class="nexus-page-title-box">
-        <h1 class="nexus-page-title">📡 중앙 서버 파이프 라인</h1>
-        {tooltip("ℹ️", "중앙 서버 파이프 라인 연동 가이드", "팀원들이 개발한 Windows Agent(NexusGuardAgent.exe)와 Railway 클라우드 중앙 서버(Flask + PostgreSQL)의 실시간 수집 현황 및 연동 가이드입니다.")}
+        <h1 class="nexus-page-title">📡 중앙 서버 파이프라인</h1>
+        {tooltip("ℹ️", "중앙 서버 파이프라인 연동 가이드", "팀원들이 개발한 Windows Agent(NexusGuardAgent.exe)와 Railway 클라우드 중앙 서버(Flask + PostgreSQL)의 실시간 수집 현황 및 연동 가이드입니다.")}
     </div>
     """, unsafe_allow_html=True)
 
