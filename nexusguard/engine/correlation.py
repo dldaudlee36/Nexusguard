@@ -112,12 +112,12 @@ class CorrelationEngine:
             ]
         )
 
-        # INC-003 (NORMAL / MEDIUM: 사내 정규 협업 SaaS 정상 트래픽 및 정기 보안 정책 준수)
+        # INC-003 (NORMAL / LOW: 사내 정규 협업 SaaS 정상 트래픽 및 정기 보안 정책 준수)
         inc_3 = Incident(
             incident_id="INC-003",
             title="사내 정규 협업 SaaS(Slack/Zoom) 정상 트래픽 및 보안 정책 준수",
             category=IncidentCategory.INSIDER_DATA_THEFT,
-            severity=Severity.MEDIUM,
+            severity=Severity.LOW,
             score=45,
             status=IncidentStatus.ACTIVE,
             summary="사내 업무 목적 정규 클라우드 협업 도구 연동 트래픽으로 보안 이상 징후 없음 (정상 모니터링 단계)",
@@ -140,12 +140,12 @@ class CorrelationEngine:
             ]
         )
 
-        # INC-004 (WATCH / LOW: 인사팀 단말의 비인가 내부 서브넷 탐색 및 사전 관찰 대상 등록)
+        # INC-004 (WATCH / MEDIUM: 인사팀 단말의 비인가 내부 서브넷 탐색 및 사전 관찰 대상 등록)
         inc_4 = Incident(
             incident_id="INC-004",
             title="인사팀 단말의 비인가 내부 서브넷 탐색 징후 및 사전 관찰 대상(WATCH) 등록",
             category=IncidentCategory.UNAUTHORIZED_PORT,
-            severity=Severity.LOW,
+            severity=Severity.MEDIUM,
             score=65,
             status=IncidentStatus.ACTIVE,
             summary="단말에서 비인가 내부 세그먼트 포트 질의가 포착되어 1단계 사전 감시(WATCH) 대상으로 등록됨",
@@ -306,7 +306,7 @@ class CorrelationEngine:
             incident_id=inc_id,
             title=f"사용자 '{user}' 미승인 AI 접속 및 기밀 반출 위험 선제 감시 (WATCH)",
             category=IncidentCategory.SHADOW_AI_EXFILTRATION,
-            severity=Severity.LOW,
+            severity=Severity.MEDIUM,
             score=68,
             status=IncidentStatus.ACTIVE,
             summary=f"사내 기밀 DB({sc.get('table', 'vault')}) 조회 후 15분 내 미승인 서비스({sc.get('service', 'AI')}) 접속 포착 — 데이터 외부 반출 전 선제 감시(WATCH) 승격",
@@ -341,7 +341,7 @@ class CorrelationEngine:
             incident_id=inc_id,
             title=f"사용자 '{user}' 30분 무전송 만료(TTL)로 인한 정상(NORMAL) 자가 치유",
             category=IncidentCategory.INSIDER_DATA_THEFT,
-            severity=Severity.MEDIUM,
+            severity=Severity.LOW,
             score=20,
             status=IncidentStatus.RESOLVED,
             summary=f"사전 감시(WATCH) 대상자였으나 30분간 추가 외부 데이터 전송이 발생하지 않아 정상(NORMAL) 상태로 안전하게 자가 치유(Self-healing) 완료",

@@ -824,7 +824,7 @@ with st.sidebar:
         ctx.correlation_engine.update_user_risk(ev3)
         # 해당 사용자의 기존 미완료 WATCH 인시던트 정리
         for inc_id, inc in list(ctx.correlation_engine.incidents.items()):
-            if sc["user"] in inc.title and inc.severity == Severity.LOW:
+            if sc["user"] in inc.title and inc.severity == Severity.MEDIUM:
                 inc.status = IncidentStatus.RESOLVED
                 ctx.correlation_engine.store.save_incident(inc)
         # 생성된 최신 HIGH 인시던트로 자동 포커스
@@ -857,7 +857,7 @@ with st.sidebar:
         )
         # 기존 미완료 WATCH 인시던트 종료
         for inc_id, inc in list(ctx.correlation_engine.incidents.items()):
-            if heal_user in inc.title and inc.severity == Severity.LOW:
+            if heal_user in inc.title and inc.severity == Severity.MEDIUM:
                 inc.status = IncidentStatus.RESOLVED
                 ctx.correlation_engine.store.save_incident(inc)
         # 3단계 오탐 해제 인시던트 생성 (NORMAL 카운트 및 드롭다운 실시간 연동)
@@ -1604,17 +1604,17 @@ if menu == "대시보드 종합 관제":
     </div>
     """, unsafe_allow_html=True)
 
-    # 위험도별 인시던트 목록 분할
+    # 위험도별 인시던트 목록 분할 (WATCH: MEDIUM / NORMAL: LOW)
     all_incident_ids = [inc.incident_id for inc in incidents]
     crit_high_ids = [inc.incident_id for inc in incidents if inc.severity in [Severity.CRITICAL, Severity.HIGH]]
-    med_ids = [inc.incident_id for inc in incidents if inc.severity == Severity.MEDIUM]
-    low_ids = [inc.incident_id for inc in incidents if inc.severity == Severity.LOW]
+    watch_ids = [inc.incident_id for inc in incidents if inc.severity == Severity.MEDIUM]
+    normal_ids = [inc.incident_id for inc in incidents if inc.severity == Severity.LOW]
 
     # 기본 선택 인시던트 유효성 검증
     if "selected_incident_id" not in st.session_state or st.session_state.selected_incident_id not in all_incident_ids:
         st.session_state.selected_incident_id = all_incident_ids[0]
 
-    # 위험도 우선순위 정렬: CRITICAL -> HIGH -> MEDIUM -> LOW (동일 등급 내 점수 내림차순)
+    # 위험도 우선순위 정렬: CRITICAL -> HIGH -> MEDIUM (WATCH) -> LOW (NORMAL) (동일 등급 내 점수 내림차순)
     sev_order = {Severity.CRITICAL: 0, Severity.HIGH: 1, Severity.MEDIUM: 2, Severity.LOW: 3}
     sorted_incidents = sorted(
         incidents,
@@ -1622,7 +1622,7 @@ if menu == "대시보드 종합 관제":
     )
     sorted_incident_ids = [inc.incident_id for inc in sorted_incidents]
 
-    # 🌟 [단일 통합 드롭다운 포맷터] 위험도별 색상 및 기호로 시인성 극대화 (NORMAL / WATCH 적용)
+    # 🌟 [단일 통합 드롭다운 포맷터] 위험도별 색상 및 기호로 시인성 극대화 (WATCH: 🟡 / NORMAL: 🟢)
     def format_unified_incident(inc_id: str) -> str:
         inc = ctx.correlation_engine.get_incident(inc_id)
         if not inc:
@@ -1632,9 +1632,9 @@ if menu == "대시보드 종합 관제":
         elif inc.severity == Severity.HIGH:
             badge = f"🔴 [HIGH {inc.score}점]"
         elif inc.severity == Severity.MEDIUM:
-            badge = f"🟡 [NORMAL {inc.score}점]"
+            badge = f"🟡 [WATCH {inc.score}점]"
         else:
-            badge = f"🟢 [WATCH {inc.score}점]"
+            badge = f"🟢 [NORMAL {inc.score}점]"
         return f"{badge}  {inc.incident_id}  |  {inc.title}"
 
     cur_idx = sorted_incident_ids.index(st.session_state.selected_incident_id) if st.session_state.selected_incident_id in sorted_incident_ids else 0
@@ -1686,10 +1686,10 @@ if menu == "대시보드 종합 관제":
     # 🌟 [상단 분계선] 3대 KPI 카드 위 분계선
     st.markdown('<hr style="border: 0; border-top: 1.5px solid #1e3a5f; margin: 18px 0 16px 0;">', unsafe_allow_html=True)
 
-    # 3대 위험도별 KPI 카드 (CRITICAL/HIGH, NORMAL, WATCH) - 실시간 2단계 상태 머신 및 인시던트와 100% 동기화
+    # 3대 위험도별 KPI 카드 (CRITICAL/HIGH, WATCH, NORMAL) - 색상은 유지하고 문구 치환 (WATCH: 🟡 주황, NORMAL: 🟢 초록)
     crit_high_count = len(crit_high_ids)
-    normal_count = len(med_ids)
-    watch_count = len(low_ids)
+    watch_count = len(watch_ids)
+    normal_count = len(normal_ids)
 
     kpi1, kpi2, kpi3 = st.columns(3)
 
@@ -1708,10 +1708,10 @@ if menu == "대시보드 종합 관제":
         st.markdown(f"""
         <div class="kpi-card">
             <div class="kpi-title medium-text">
-                {tooltip("⚖️", "NORMAL 정상/주의", "일반 업무 활동 및 경미한 이상 징후 모니터링 단계입니다.")} NORMAL
+                {tooltip("👁️", "WATCH 사전 관찰", "위험 행위 징후 포착에 따른 선제적 모니터링 추적 단계입니다.")} WATCH
             </div>
-            <div class="kpi-value medium-text">{normal_count}</div>
-            <div class="kpi-sub">일반 활동 및 모니터링 단계</div>
+            <div class="kpi-value medium-text">{watch_count}</div>
+            <div class="kpi-sub">사전 관찰 및 잠재 이상 추적</div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -1719,10 +1719,10 @@ if menu == "대시보드 종합 관제":
         st.markdown(f"""
         <div class="kpi-card">
             <div class="kpi-title low-text">
-                {tooltip("👁️", "WATCH 사전 관찰", "위험 행위 징후 포착에 따른 선제적 모니터링 추적 단계입니다.")} WATCH
+                {tooltip("⚖️", "NORMAL 정상/주의", "일반 업무 활동 및 경미한 이상 징후 모니터링 단계입니다.")} NORMAL
             </div>
-            <div class="kpi-value low-text">{watch_count}</div>
-            <div class="kpi-sub">사전 관찰 및 잠재 이상 추적</div>
+            <div class="kpi-value low-text">{normal_count}</div>
+            <div class="kpi-sub">일반 활동 및 모니터링 단계</div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -1737,7 +1737,7 @@ if menu == "대시보드 종합 관제":
                 🎯 분석 대상 인시던트 통합 선택
             </span>
             <span style="font-size:13px; color:#cbd5e1; background:rgba(30,58,138,0.3); padding:4px 12px; border-radius:20px; border:1px solid #1e40af;">
-                🔴 CRITICAL / HIGH &nbsp;·&nbsp; 🟡 NORMAL &nbsp;·&nbsp; 🟢 WATCH
+                🔴 CRITICAL / HIGH &nbsp;·&nbsp; 🟡 WATCH &nbsp;·&nbsp; 🟢 NORMAL
             </span>
         </div>
         """, unsafe_allow_html=True)
@@ -1792,9 +1792,9 @@ if menu == "대시보드 종합 관제":
             "glow": "rgba(245, 158, 11, 0.35)",
             "bg": "linear-gradient(135deg, #1c1507 0%, #261d0a 50%, #121927 100%)",
             "header_color": "#fbbf24",
-            "header_label": "⚠️ [NORMAL 단계 모니터링 대상] 인시던트 종합 정보",
+            "header_label": "👁️ [WATCH 단계 선제적 감시 대상] 인시던트 종합 정보",
             "dot_glow": "#f59e0b",
-            "badge": '<span class="badge badge-medium" style="font-size:13px; padding:5px 12px; background:#d97706; color:#ffffff; font-weight:800; border-radius:6px;">NORMAL</span>',
+            "badge": '<span class="badge badge-medium" style="font-size:13px; padding:5px 12px; background:#d97706; color:#ffffff; font-weight:800; border-radius:6px;">WATCH</span>',
             "score_color": "#fbbf24",
             "actor_color": "#fde68a",
             "target_color": "#f59e0b",
@@ -1807,9 +1807,9 @@ if menu == "대시보드 종합 관제":
             "glow": "rgba(16, 185, 129, 0.35)",
             "bg": "linear-gradient(135deg, #091a13 0%, #0d261d 50%, #0d1927 100%)",
             "header_color": "#34d399",
-            "header_label": "🟢 [WATCH 단계 선제적 감시 대상] 인시던트 종합 정보",
+            "header_label": "⚖️ [NORMAL 단계 정상/모니터링 대상] 인시던트 종합 정보",
             "dot_glow": "#10b981",
-            "badge": '<span class="badge badge-low" style="font-size:13px; padding:5px 12px; background:#059669; color:#ffffff; font-weight:800; border-radius:6px;">WATCH</span>',
+            "badge": '<span class="badge badge-low" style="font-size:13px; padding:5px 12px; background:#059669; color:#ffffff; font-weight:800; border-radius:6px;">NORMAL</span>',
             "score_color": "#34d399",
             "actor_color": "#a7f3d0",
             "target_color": "#10b981",
@@ -1906,8 +1906,8 @@ elif menu == "침해사고 킬체인 분석":
         sev_badge = {
             Severity.CRITICAL: "🔴 [CRITICAL]",
             Severity.HIGH: "🔴 [HIGH]",
-            Severity.MEDIUM: "🟡 [NORMAL]",
-            Severity.LOW: "🟢 [WATCH]"
+            Severity.MEDIUM: "🟡 [WATCH]",
+            Severity.LOW: "🟢 [NORMAL]"
         }.get(inc.severity, "⚪")
         return f"{sev_badge} {inc.incident_id} | {inc.title}"
 
