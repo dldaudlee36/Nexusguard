@@ -670,15 +670,14 @@ def select_incident_cb(inc_id):
 # 5. 사이드바 구성
 with st.sidebar:
     st.markdown(f"""
-    <div style="padding: 10px 0 20px 0;">
+    <div style="padding: 10px 0 10px 0;">
         <h2 style="color: #f5f7fb; margin:0; font-size:22px; font-weight:700;">
             {tooltip("🛡️", "NexusGuard XDR Platform", "이기종 다차원 로그 상관분석 & 섀도우 AI 거버넌스 자동화 시스템")} NexusGuard
         </h2>
-        <span style="color: #9fb0c8; font-size:13px;">Zero Trust XDR & Shadow AI</span>
     </div>
     """, unsafe_allow_html=True)
 
-    menu_options = ["대시보드 종합 관제", "침해사고 킬체인 분석", "섀도우 AI·IT 거버넌스", "📡 팀원 Agent & Railway", "Zero Trust 승인센터", "원천 이벤트 탐색"]
+    menu_options = ["대시보드 종합 관제", "침해사고 킬체인 분석", "섀도우 AI·IT 거버넌스", "📡 팀원 Agent & Railway"]
     if "nav_radio" not in st.session_state:
         st.session_state.nav_radio = "대시보드 종합 관제"
 
@@ -705,36 +704,40 @@ with st.sidebar:
         with col_s4:
             btn_reset = st.button("🔄 초기화\n시뮬 리셋", use_container_width=True, help="시뮬레이션 데이터 초기화")
 
-        st.markdown("<div style='height:6px;'></div>", unsafe_allow_html=True)
-        with st.container(border=True):
-            st.markdown("<div style='font-size:12px; font-weight:700; color:#38bdf8; margin-bottom:4px;'>🌐 Railway 실시간 수집</div>", unsafe_allow_html=True)
-            from nexusguard.collectors.team_collector import set_railway_collection_enabled, is_railway_collection_enabled
-            if "railway_collection_active" not in st.session_state:
-                st.session_state["railway_collection_active"] = False
-            if "sb_railway_toggle" not in st.session_state:
-                st.session_state["sb_railway_toggle"] = st.session_state["railway_collection_active"]
-            if "view_railway_collection_toggle" not in st.session_state:
-                st.session_state["view_railway_collection_toggle"] = st.session_state["railway_collection_active"]
+        # Railway 수집 상태 세션 변수 사전 초기화
+        from nexusguard.collectors.team_collector import set_railway_collection_enabled, is_railway_collection_enabled
+        if "railway_collection_active" not in st.session_state:
+            st.session_state["railway_collection_active"] = False
+        if "sb_railway_toggle" not in st.session_state:
+            st.session_state["sb_railway_toggle"] = st.session_state["railway_collection_active"]
+        if "view_railway_collection_toggle" not in st.session_state:
+            st.session_state["view_railway_collection_toggle"] = st.session_state["railway_collection_active"]
 
-            def _on_sb_railway_toggle():
-                val = st.session_state.get("sb_railway_toggle", False)
-                st.session_state["railway_collection_active"] = val
-                st.session_state["view_railway_collection_toggle"] = val
-                set_railway_collection_enabled(val)
+        # 🌟 현재 '📡 팀원 Agent & Railway' 페이지가 아닐 때만 사이드바 수집 제어 박스 표시
+        if menu != "📡 팀원 Agent & Railway":
+            st.markdown("<div style='height:6px;'></div>", unsafe_allow_html=True)
+            with st.container(border=True):
+                st.markdown("<div style='font-size:12px; font-weight:700; color:#38bdf8; margin-bottom:4px;'>🌐 Railway 실시간 수집</div>", unsafe_allow_html=True)
 
-            sb_railway_active = st.toggle(
-                "실시간 로그 수집 가동", 
-                value=st.session_state.get("railway_collection_active", False),
-                key="sb_railway_toggle", 
-                on_change=_on_sb_railway_toggle, 
-                help="Railway 실시간 로그 수집을 켜거나 끕니다."
-            )
-            set_railway_collection_enabled(sb_railway_active)
-            if st.button("🔄 최신 로그 즉시 동기화", disabled=not sb_railway_active, use_container_width=True, key="btn_sb_sync_now", help="Railway 중앙 서버에서 최신 에이전트 수집 로그를 즉시 갱신합니다."):
-                from nexusguard.collectors.team_collector import fetch_railway_events
-                r_logs = fetch_railway_events(timeout=5, force=True)
-                st.toast(f"🔄 Railway 중앙 서버에서 최신 {len(r_logs)}개 에이전트 로그를 동기화했습니다.", icon="🌐")
-                st.rerun()
+                def _on_sb_railway_toggle():
+                    val = st.session_state.get("sb_railway_toggle", False)
+                    st.session_state["railway_collection_active"] = val
+                    st.session_state["view_railway_collection_toggle"] = val
+                    set_railway_collection_enabled(val)
+
+                sb_railway_active = st.toggle(
+                    "실시간 로그 수집 가동", 
+                    value=st.session_state.get("railway_collection_active", False),
+                    key="sb_railway_toggle", 
+                    on_change=_on_sb_railway_toggle, 
+                    help="Railway 실시간 로그 수집을 켜거나 끕니다."
+                )
+                set_railway_collection_enabled(sb_railway_active)
+                if st.button("🔄 최신 로그 즉시 동기화", disabled=not sb_railway_active, use_container_width=True, key="btn_sb_sync_now", help="Railway 중앙 서버에서 최신 에이전트 수집 로그를 즉시 갱신합니다."):
+                    from nexusguard.collectors.team_collector import fetch_railway_events
+                    r_logs = fetch_railway_events(timeout=5, force=True)
+                    st.toast(f"🔄 Railway 중앙 서버에서 최신 {len(r_logs)}개 에이전트 로그를 동기화했습니다.", icon="🌐")
+                    st.rerun()
 
     from nexusguard.collectors.team_collector import get_team_sim_scenarios
     SIM_SCENARIOS = get_team_sim_scenarios()
@@ -2101,8 +2104,12 @@ elif menu == "📡 팀원 Agent & Railway":
         fetch_railway_events, fetch_activity_log_events, load_team_guide_markdown, RAILWAY_URL, RAILWAY_API_KEY
     )
 
-    st.markdown("<h2>📡 팀원 Agent & Railway 중앙 서버 파이프라인 연동</h2>", unsafe_allow_html=True)
-    st.caption("팀원들이 개발한 Windows Agent(NexusGuardAgent.exe)와 Railway 클라우드 중앙 서버(Flask + PostgreSQL)의 실시간 수집 현황 및 연동 가이드입니다.")
+    st.markdown(f"""
+    <div style="display:flex; align-items:center; gap:8px; margin-bottom: 12px;">
+        <h2 style="margin:0; font-size:24px; font-weight:700;">📡 팀원 Agent & Railway 중앙 서버 파이프라인 연동</h2>
+        {tooltip("ℹ️", "팀원 Agent & Railway 연동 가이드", "팀원들이 개발한 Windows Agent(NexusGuardAgent.exe)와 Railway 클라우드 중앙 서버(Flask + PostgreSQL)의 실시간 수집 현황 및 연동 가이드입니다.")}
+    </div>
+    """, unsafe_allow_html=True)
 
     # Railway 수집 활성화 여부
     from nexusguard.collectors.team_collector import set_railway_collection_enabled, is_railway_collection_enabled
@@ -2311,58 +2318,3 @@ logs = response.json()
     with tab_guide:
         guide_text = load_team_guide_markdown()
         st.markdown(guide_text)
-
-
-# ==========================================
-# VIEW 4: Zero Trust 승인센터 & 접근통제 (IDAM)
-# ==========================================
-elif menu == "Zero Trust 승인센터":
-    st.markdown("<h2>⚖️ Zero Trust 동적 승인센터 & 접근통제 (IDAM Gate)</h2>", unsafe_allow_html=True)
-    st.caption("3과목(접근통제) 연계 모듈: 직무 기반(RBAC) 조건부 접근 제어 및 임직원 승인 요청 심의선")
-
-    st.markdown('<div class="box-title">📋 대기 중인 임직원 SaaS/AI 승인 요청 목록</div>', unsafe_allow_html=True)
-    
-    req_df = pd.DataFrame([
-        {"요청 번호": "REQ-2026-081", "신청자": "김대리 (마케팅팀)", "대상 서비스": "ChatGPT Plus", "사유": "하반기 캠페인 카피라이팅 작성 지원", "기밀문서 포함 여부": "미포함 서약 완료", "상태": "심의 대기"},
-        {"요청 번호": "REQ-2026-082", "신청자": "이과장 (재무팀)", "대상 서비스": "Dropbox Business", "사유": "외부 회계법인 대용량 감사 자료 송수신", "기밀문서 포함 여부": "재무제표 포함", "상태": "보안성 검토 필요"},
-        {"요청 번호": "REQ-2026-083", "신청자": "박엔지니어 (개발1팀)", "대상 서비스": "Claude.ai Code", "사유": "레거시 파이썬 코드 리팩토링 검토", "기밀문서 포함 여부": "사내 소스코드", "상태": "심의 대기"}
-    ])
-    st.dataframe(req_df, hide_index=True, use_container_width=True)
-
-
-# ==========================================
-# VIEW 5: 원천 이벤트 탐색 (Raw Event Explorer)
-# ==========================================
-elif menu == "원천 이벤트 탐색":
-    st.markdown("<h2>🔎 원천 보안 이벤트 스트림 탐색 (Event Explorer)</h2>", unsafe_allow_html=True)
-    st.caption("팀원들의 실제 Windows 에이전트 로그, 사내 DB 감사 로그 및 침해 상관분석 이벤트를 통합 검색합니다.")
-    
-    from nexusguard.collectors.team_collector import get_team_security_events
-    team_events = get_team_security_events()
-    all_events = team_events + ctx.initial_events
-    
-    src_filter = st.radio("로그 필터", ["전체 이벤트", "🌐 Railway 실시간 에이전트 로그", "💾 사내 DB 감사 로그", "모의 침해 킬체인 로그"], horizontal=True)
-    
-    filtered_events = []
-    for e in all_events:
-        if src_filter == "🌐 Railway 실시간 에이전트 로그" and not e.event_id.startswith("EVT-RLY"):
-            continue
-        elif src_filter == "💾 사내 DB 감사 로그" and not (e.event_id.startswith("EVT-ACT") or e.log_source == LogSource.DB):
-            continue
-        elif src_filter == "모의 침해 킬체인 로그" and (e.event_id.startswith("EVT-RLY") or e.event_id.startswith("EVT-ACT")):
-            continue
-        filtered_events.append(e)
-
-    ev_list = []
-    for e in filtered_events:
-        ev_list.append({
-            "이벤트 ID": e.event_id,
-            "발생 시각": e.timestamp.strftime('%H:%M:%S'),
-            "로그 소스": e.log_source.value.upper(),
-            "출발지": f"{e.actor.src_ip}" + (f":{e.actor.src_port}" if e.actor.src_port else ""),
-            "사용자": e.actor.user_id or "-",
-            "목적지": e.target.domain or f"{e.target.dst_ip}:{e.target.dst_port}",
-            "행위": e.action.value,
-            "원천 로그": e.raw_message[:70] + "..." if e.raw_message else "-"
-        })
-    st.dataframe(pd.DataFrame(ev_list), hide_index=True, use_container_width=True)
