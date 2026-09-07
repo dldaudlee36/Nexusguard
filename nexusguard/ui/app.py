@@ -530,8 +530,9 @@ st.markdown("""
         font-weight: 700 !important;
     }
 
-    /* 🌟 킬체인 심층 분석 바로가기 액션 버튼 스타일 */
-    div[class*="st-key-btn_jump_kc"] button {
+    /* 🌟 킬체인 심층 분석 바로가기 & 종합 관제 돌아가기 공통 액션 버튼 스타일 */
+    div[class*="st-key-btn_jump_kc"] button,
+    div[class*="st-key-btn_back_overview"] button {
         min-height: 52px !important;
         height: 52px !important;
         padding: 12px 18px !important;
@@ -544,10 +545,45 @@ st.markdown("""
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35) !important;
         transition: all 0.2s ease-in-out !important;
     }
-    div[class*="st-key-btn_jump_kc"] button:hover {
+    div[class*="st-key-btn_jump_kc"] button:hover,
+    div[class*="st-key-btn_back_overview"] button:hover {
         transform: translateY(-2px) !important;
         border-color: #38bdf8 !important;
         box-shadow: 0 6px 18px rgba(56, 189, 248, 0.35) !important;
+    }
+
+    /* 🌟 인시던트 위험도별 설명 박스 테마 */
+    .inc-summary-critical {
+        background: rgba(239, 68, 68, 0.12) !important;
+        border: 1.5px solid #ef4444 !important;
+        border-radius: 10px !important;
+        padding: 14px 18px !important;
+        margin-bottom: 16px !important;
+        color: #fecaca !important;
+    }
+    .inc-summary-high {
+        background: rgba(249, 115, 22, 0.12) !important;
+        border: 1.5px solid #f97316 !important;
+        border-radius: 10px !important;
+        padding: 14px 18px !important;
+        margin-bottom: 16px !important;
+        color: #fed7aa !important;
+    }
+    .inc-summary-medium {
+        background: rgba(245, 158, 11, 0.12) !important;
+        border: 1.5px solid #f59e0b !important;
+        border-radius: 10px !important;
+        padding: 14px 18px !important;
+        margin-bottom: 16px !important;
+        color: #fef08a !important;
+    }
+    .inc-summary-low {
+        background: rgba(16, 185, 129, 0.12) !important;
+        border: 1.5px solid #10b981 !important;
+        border-radius: 10px !important;
+        padding: 14px 18px !important;
+        margin-bottom: 16px !important;
+        color: #a7f3d0 !important;
     }
 
     /* 🌟 사이드바 파이프라인 실시간 모니터링 애니메이션 (Live Radar & Pulsing) */
@@ -1342,35 +1378,69 @@ def generate_dynamic_network_svg(inc: Incident) -> str:
         </svg>
         """
 
-    # 11. 일반 / 기타 인시던트 (Generic Fallback)
+    # 11. 일반 / 기타 인시던트 (Generic Fallback - 섀도우 AI 유출 vs 외부 침투 분기)
     else:
+        is_shadow_ai = "SHADOW_AI" in str(inc.category.value).upper() or "OPENAI" in str(inc.target_asset).lower() or "유출" in str(inc.title)
+        
+        # 텍스트 안전 포맷팅 (글자 짤림 방지)
+        actor_clean = str(inc.actor).strip()
+        if len(actor_clean) > 20:
+            actor_display = actor_clean[:18] + ".."
+        else:
+            actor_display = actor_clean
+
+        target_clean = str(inc.target_asset).strip()
+        if len(target_clean) > 20:
+            target_display = target_clean[:18] + ".."
+        else:
+            target_display = target_clean
+
+        if is_shadow_ai:
+            node1_title = "사내 단말 (User PC)"
+            node1_sub = "[기밀 조회]"
+            node2_title = "사내 게이트웨이"
+            node2_sub = "[프록시 세션 중계]"
+            node3_title = "외부 미승인 AI/SaaS"
+            node3_sub = "[기밀 데이터 유출]"
+            edge1_label = "기밀 DB 쿼리 / 세션"
+            edge2_label = "⚠️ 대용량 외부 전송 (POST)"
+        else:
+            node1_title = "공격 발원지"
+            node1_sub = "[초기 진입]"
+            node2_title = "사내 게이트웨이"
+            node2_sub = "[경유 및 세션 중계]"
+            node3_title = "타깃 자산"
+            node3_sub = "[권한 침해]"
+            edge1_label = "비정상 통신 유입"
+            edge2_label = "⚠️ 권한 침해 및 변조"
+
         return f"""
-        <svg width="100%" height="240" viewBox="0 0 900 240" xmlns="http://www.w3.org/2000/svg">
+        <svg width="100%" height="240" viewBox="0 0 1000 240" xmlns="http://www.w3.org/2000/svg" shape-rendering="geometricPrecision" text-rendering="geometricPrecision" style="font-family:-apple-system,BlinkMacSystemFont,'Pretendard','Segoe UI',Roboto,sans-serif;">
             {svg_defs}
             <!-- Node 1: Actor -->
-            <circle cx="110" cy="120" r="58" fill="#1e3a8a" stroke="#60a5fa" stroke-width="2.5"/>
-            <text x="110" y="104" fill="#ffffff" font-size="12" font-weight="bold" text-anchor="middle">공격 발원지</text>
-            <text x="110" y="122" fill="#93c5fd" font-size="10" text-anchor="middle">{inc.actor[:15]}</text>
-            <text x="110" y="142" fill="#94a3b8" font-size="10" text-anchor="middle">[초기 진입]</text>
+            <circle cx="120" cy="120" r="66" fill="#0f1f38" stroke="#38bdf8" stroke-width="2.5"/>
+            <text x="120" y="102" fill="#ffffff" font-size="12" font-weight="bold" text-anchor="middle">{node1_title}</text>
+            <text x="120" y="122" fill="#7dd3fc" font-size="11" font-weight="600" text-anchor="middle">{actor_display}</text>
+            <text x="120" y="142" fill="#94a3b8" font-size="10" text-anchor="middle">{node1_sub}</text>
 
             <!-- Node 2: Gateway / Proxy -->
-            <rect x="350" y="80" width="160" height="80" rx="10" fill="url(#grad-node)" stroke="#f59e0b" stroke-width="2.5"/>
-            <text x="430" y="107" fill="#ffffff" font-size="12" font-weight="bold" text-anchor="middle">사내 게이트웨이</text>
-            <text x="430" y="125" fill="#fbbf24" font-size="10" text-anchor="middle">Internal Gateway</text>
-            <text x="430" y="143" fill="#ffd169" font-size="10" text-anchor="middle">[경유 및 세션 중계]</text>
+            <rect x="380" y="75" width="180" height="90" rx="12" fill="url(#grad-node)" stroke="#f59e0b" stroke-width="2.5"/>
+            <text x="470" y="105" fill="#ffffff" font-size="12" font-weight="bold" text-anchor="middle">{node2_title}</text>
+            <text x="470" y="125" fill="#fde047" font-size="11" font-weight="600" text-anchor="middle">Internal Gateway</text>
+            <text x="470" y="145" fill="#ffd169" font-size="10" text-anchor="middle">{node2_sub}</text>
 
             <!-- Node 3: Target Asset -->
-            <circle cx="750" cy="120" r="58" fill="#4a044e" stroke="#c084fc" stroke-width="2.5"/>
-            <text x="750" y="104" fill="#ffffff" font-size="12" font-weight="bold" text-anchor="middle">타깃 자산</text>
-            <text x="750" y="122" fill="#e9d5ff" font-size="10" text-anchor="middle">{inc.target_asset[:15]}</text>
-            <text x="750" y="142" fill="#c084fc" font-size="10" text-anchor="middle">[권한 침해]</text>
+            <circle cx="820" cy="120" r="66" fill="#350e42" stroke="#c084fc" stroke-width="2.5"/>
+            <text x="820" y="102" fill="#ffffff" font-size="12" font-weight="bold" text-anchor="middle">{node3_title}</text>
+            <text x="820" y="122" fill="#f0abfc" font-size="11" font-weight="600" text-anchor="middle">{target_display}</text>
+            <text x="820" y="142" fill="#ff7b88" font-size="10" font-weight="bold" text-anchor="middle">{node3_sub}</text>
 
             <!-- Connectors -->
-            <line x1="168" y1="120" x2="350" y2="120" stroke="#f59e0b" stroke-width="3" stroke-dasharray="6,3"/>
-            <text x="259" y="108" fill="#fbbf24" font-size="11" font-weight="bold" text-anchor="middle">비정상 통신 유입</text>
+            <line x1="186" y1="120" x2="380" y2="120" stroke="#f59e0b" stroke-width="3" stroke-dasharray="6,3"/>
+            <text x="283" y="108" fill="#fbbf24" font-size="11" font-weight="bold" text-anchor="middle">{edge1_label}</text>
 
-            <line x1="510" y1="120" x2="692" y2="120" stroke="#ef4444" stroke-width="3.5"/>
-            <text x="601" y="108" fill="#f87171" font-size="11" font-weight="bold" text-anchor="middle">권한 침해 및 변조</text>
+            <line x1="560" y1="120" x2="754" y2="120" stroke="#ef4444" stroke-width="3.5"/>
+            <text x="657" y="108" fill="#ff7b88" font-size="11" font-weight="bold" text-anchor="middle">{edge2_label}</text>
         </svg>
         """
 
@@ -1479,8 +1549,11 @@ def render_interactive_map(svg_markup: str):
         svg {{
             width: 100%;
             height: 100%;
-            max-height: 280px;
+            max-height: 320px;
             display: block;
+            shape-rendering: geometricPrecision;
+            text-rendering: geometricPrecision;
+            image-rendering: -webkit-optimize-contrast;
         }}
     </style>
     </head>
@@ -1603,7 +1676,7 @@ def render_interactive_map(svg_markup: str):
     </body>
     </html>
     """
-    components.html(map_html, height=310)
+    components.html(map_html, height=350)
 
 
 if menu == "종합 관제":
@@ -1876,17 +1949,7 @@ if menu == "종합 관제":
 # VIEW 2: 킬체인 분석 (Lateral Movement)
 # ==========================================
 elif menu == "킬체인 분석":
-    top_col1, top_col2 = st.columns([7, 3])
-    with top_col1:
-        st.markdown("<h2>🎯 외부 침투 및 침해사고 킬체인(Lateral Movement) 심층 분석</h2>", unsafe_allow_html=True)
-    with top_col2:
-        st.markdown("<div style='margin-top: 10px;'></div>", unsafe_allow_html=True)
-        st.button(
-            "⬅️ 종합 관제로 돌아가기",
-            on_click=navigate_to,
-            args=("종합 관제",),
-            use_container_width=True
-        )
+    st.markdown("<h2 style='white-space:nowrap; margin-bottom:14px;'>🎯 외부 침투 및 침해사고 심층 분석</h2>", unsafe_allow_html=True)
 
     incident_ids = [inc.incident_id for inc in incidents]
     curr_target_id = st.session_state.get("selected_incident_id", incidents[0].incident_id)
@@ -1920,7 +1983,36 @@ elif menu == "킬체인 분석":
 
     target_inc = ctx.correlation_engine.get_incident(st.session_state.selected_incident_id)
 
-    st.info(f"**[{target_inc.incident_id}] {target_inc.title}**\n\n{target_inc.summary}")
+    # 🌟 인시던트 위험도에 따른 동적 설명창 테마
+    summary_class = {
+        Severity.CRITICAL: "inc-summary-critical",
+        Severity.HIGH: "inc-summary-high",
+        Severity.MEDIUM: "inc-summary-medium",
+        Severity.LOW: "inc-summary-low"
+    }.get(target_inc.severity, "inc-summary-high")
+
+    badge_label = {
+        Severity.CRITICAL: "🔴 CRITICAL",
+        Severity.HIGH: "🔴 HIGH",
+        Severity.MEDIUM: "🟡 WATCH",
+        Severity.LOW: "🟢 NORMAL"
+    }.get(target_inc.severity, "⚪ UNKNOWN")
+
+    st.markdown(f"""
+    <div class="{summary_class}">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <span style="font-size:15px; font-weight:800; color:#ffffff;">
+                [{target_inc.incident_id}] {target_inc.title}
+            </span>
+            <span style="font-size:12px; font-weight:700; padding:2px 8px; border-radius:4px; background:rgba(0,0,0,0.35);">
+                {badge_label} ({target_inc.score}점)
+            </span>
+        </div>
+        <div style="font-size:13px; line-height:1.5;">
+            {target_inc.summary}
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
     # 🌐 침해사고 네트워크 토폴로지 맵
     map_title = f"""
@@ -1935,7 +2027,7 @@ elif menu == "킬체인 분석":
     raw_svg = generate_dynamic_network_svg(target_inc)
     render_interactive_map(raw_svg)
 
-    # 🔍 인시던트 상세 타임라인 & 상관분석 판단 근거 & Zero Trust 대응
+    # 🔍 인시던트 상세 타임라인 & 상관분석 판단 근거 (불필요한 노이즈 정보 삭제 및 핵심 위주 정돈)
     st.markdown("<hr style='border:none; border-top:1.5px solid #1c2e47; margin:24px 0 20px 0;'>", unsafe_allow_html=True)
     
     col_left, col_right = st.columns([1, 1])
@@ -1943,80 +2035,48 @@ elif menu == "킬체인 분석":
     with col_left:
         st.markdown(f"""
         <div class="box-title">
-            {tooltip("⏱️", "공격 시퀀스 순서", "공격자가 내부망에 침투하여 목적을 달성하기까지의 행위 순서입니다.")} 공격 행위 타임라인 (Attack Sequence)
+            {tooltip("⏱️", "공격 시퀀스 순서", "공격자 또는 내부 유출자가 시스템에 접근하여 목적을 달성하기까지의 행위 순서입니다.")} 공격 행위 타임라인 (Attack Sequence)
         </div>
         """, unsafe_allow_html=True)
-        # 홉(Hop) 기반 타임라인 자동 생성
-        steps_html_parts = []
-        for idx, h in enumerate(target_inc.network_hops):
-            steps_html_parts.append(f'<span class="timeline-step">{idx+1}. {h.from_node} ➔ {h.to_node} (:{h.port})</span>')
-        steps_html = f'<div style="margin-top:8px; margin-bottom:20px; display:flex; flex-wrap:wrap; gap:8px;">{" ".join(steps_html_parts)}</div>'
-        st.markdown(steps_html, unsafe_allow_html=True)
 
-        st.markdown(f'<div class="box-title">📍 재구성된 네트워크 홉(Hop) 명세 ({target_inc.incident_id})</div>', unsafe_allow_html=True)
         if target_inc.network_hops:
-            hops_data = []
-            for h in target_inc.network_hops:
-                hops_data.append({
-                    "출발지(From)": h.from_node,
-                    "목적지(To)": h.to_node,
-                    "포트": h.port,
-                    "유형": h.hop_type.upper()
-                })
-            st.table(pd.DataFrame(hops_data))
+            steps_html_parts = []
+            for idx, h in enumerate(target_inc.network_hops):
+                steps_html_parts.append(f'<div class="timeline-step" style="padding:10px 14px; margin-bottom:8px; border-radius:8px; font-size:13px; font-weight:600;"><span style="color:#38bdf8; font-weight:800; margin-right:6px;">Step {idx+1}.</span> {h.from_node} ➔ <b style="color:#f8fafc;">{h.to_node}</b> <span style="color:#94a3b8; font-size:11px;">(:{h.port} / {h.hop_type.upper()})</span></div>')
+            st.markdown(f'<div style="margin-top:8px;">{" ".join(steps_html_parts)}</div>', unsafe_allow_html=True)
         else:
             st.markdown(f"""
-            <div style="background:#0d1a2b; border:1px solid #1c2e47; border-radius:8px; padding:14px; color:#94a3b8; font-size:13px;">
-                단일 호스트 내부 공격 및 데이터 유출 시퀀스 감지<br>
-                • 공격 발원: <b style="color:#f87171;">{target_inc.actor}</b><br>
-                • 타깃 자산: <b style="color:#38bdf8;">{target_inc.target_asset}</b>
+            <div style="background:#0d1a2b; border:1px solid #1c2e47; border-radius:8px; padding:16px; color:#cbd5e1; font-size:13px; margin-top:8px;">
+                <div style="font-weight:700; color:#38bdf8; margin-bottom:6px;">단일 호스트 내부 공격 및 데이터 유출 시퀀스</div>
+                • <b>발원 계정/단말:</b> <code style="color:#f87171; background:#07111e; padding:2px 6px; border-radius:4px;">{target_inc.actor}</code><br>
+                • <b>타깃 기밀 자산:</b> <code style="color:#38bdf8; background:#07111e; padding:2px 6px; border-radius:4px;">{target_inc.target_asset}</code>
             </div>
             """, unsafe_allow_html=True)
 
     with col_right:
         st.markdown(f"""
         <div class="box-title">
-            {tooltip("🛡️", "상관분석 판단 근거", "서로 다른 이기종 로그를 단일 공격으로 결합한 수학적/규칙적 판단 근거입니다.")} 상관분석 판단 근거 (Explainable Evidence)
+            {tooltip("🛡️", "상관분석 판단 근거", "서로 다른 이기종 로그를 교차 분석하여 침해사고로 판정한 핵심 엔진 근거입니다.")} 상관분석 판단 근거 (Explainable Evidence)
         </div>
         """, unsafe_allow_html=True)
         for ev in target_inc.evidences:
             st.markdown(f"""
-            <div class="evidence-item">
-                <span style="color:#38bdf8; font-weight:700;">✓</span>
-                <span>{ev}</span>
+            <div class="evidence-item" style="padding:10px 14px; margin-bottom:8px; border-radius:8px; font-size:13px;">
+                <span style="color:#38bdf8; font-weight:800; margin-right:8px; font-size:14px;">✓</span>
+                <span style="color:#e2e8f0; line-height:1.4;">{ev}</span>
             </div>
             """, unsafe_allow_html=True)
 
-        st.markdown(f"""
-        <div class="box-title" style="margin-top:20px;">
-            {tooltip("🔒", "Zero Trust 대응", "침해 의심 단말 및 타깃 자산에 대한 단계별 자동화 방어 조치 내역입니다.")} Zero Trust 대응 조치 및 격리 상태
-        </div>
-        """, unsafe_allow_html=True)
-        st.markdown(f"""
-        <div class="zt-action-card">
-            <div class="zt-action-badge">1</div>
-            <div>
-                <b style="color:#38bdf8;">발원지/단말 제어:</b>
-                <code style="color:#4ade80; background:#07111e; padding:2px 6px; border-radius:4px; font-size:12px;">{target_inc.actor}</code>
-                관련 활성 세션 강제 만료 및 EDR 격리 대기
-            </div>
-        </div>
-        <div class="zt-action-card">
-            <div class="zt-action-badge">2</div>
-            <div>
-                <b style="color:#38bdf8;">타깃 자산 보호:</b>
-                <code style="color:#38bdf8; background:#07111e; padding:2px 6px; border-radius:4px; font-size:12px;">{target_inc.target_asset}</code>
-                대상 접근 정책 긴급 강화 및 Direct 접근 차단
-            </div>
-        </div>
-        <div class="zt-action-card">
-            <div class="zt-action-badge">3</div>
-            <div>
-                <b style="color:#38bdf8;">포렌식 아티팩트 보존:</b>
-                해당 호스트 메모리 덤프 및 Syslog 스냅샷 생성 완료
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+    # ⬅️ 종합 관제로 돌아가기 (화면 맨 밑단 배치, btn_jump_kc와 동일한 버튼 스타일)
+    st.markdown("<div style='margin-top: 28px;'></div>", unsafe_allow_html=True)
+    st.button(
+        "⬅️ 종합 관제로 돌아가기",
+        key="btn_back_overview",
+        on_click=navigate_to,
+        args=("종합 관제",),
+        use_container_width=True,
+        help="종합 관제 메인 대시보드 화면으로 즉시 복귀합니다."
+    )
 
 
 # VIEW 3: AI·IT 거버넌스 (Shadow IT/AI)
