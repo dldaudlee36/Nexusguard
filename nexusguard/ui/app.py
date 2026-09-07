@@ -1239,6 +1239,28 @@ if menu == "대시보드 종합 관제":
     med_idx = med_ids.index(cur_sel) if cur_sel in med_ids else None
     low_idx = low_ids.index(cur_sel) if cur_sel in low_ids else None
 
+    # 🌟 [2단계 위험 상태 기계] 실시간 감시 대상 (WATCH) 현황판
+    watch_users = ctx.correlation_engine.get_watch_users()
+    active_watch = [u for u in watch_users if u.get("state") == "WATCH"]
+    if active_watch:
+        watch_rows = []
+        for w in active_watch:
+            reasons_str = " / ".join(w.get("reasons", []))
+            watch_rows.append(f"<div style='margin-bottom:4px;'>• <b style='color:#ffffff;'>{w['user']}</b> <span style='color:#fbbf24; font-weight:700;'>[위험도 {w['score']}점]</span> <span style='color:#cbd5e1;'>— 사유: {reasons_str}</span></div>")
+        st.markdown(f"""
+        <div style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border: 1.5px solid #f59e0b; border-left: 6px solid #fbbf24; border-radius: 12px; padding: 16px 22px; margin-bottom: 20px; box-shadow: 0 4px 14px rgba(245, 158, 11, 0.25);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;">
+                <span style="font-weight:800; color:#fbbf24; font-size:15px; display:flex; align-items:center; gap:6px;">
+                    👁️ 실시간 사전 감시 대상 (WATCH) — {len(active_watch)}명 승격 포착 (데이터 전송 전 선제 탐지)
+                </span>
+                <span style="font-size:12px; color:#94a3b8; background:rgba(15,23,42,0.6); padding:3px 8px; border-radius:6px; border:1px solid #334155;">30분 내 외부 전송 없을 시 자동 복귀 (Self-healing TTL)</span>
+            </div>
+            <div style="font-size:13px;">
+                {''.join(watch_rows)}
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
     # 3대 위험도별 KPI 카드 및 드롭다운 메뉴 (CRITICAL/HIGH, MEDIUM, LOW로 3분할 균등 확장)
     kpi1, kpi2, kpi3 = st.columns(3)
 

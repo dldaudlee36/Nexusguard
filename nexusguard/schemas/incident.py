@@ -9,6 +9,22 @@ from typing import List, Optional, Dict, Any
 from pydantic import BaseModel, Field
 
 
+class RiskState(str, Enum):
+    NORMAL = "NORMAL"
+    WATCH = "WATCH"
+    HIGH = "HIGH"
+    CRITICAL = "CRITICAL"
+
+
+class UserRiskRecord(BaseModel):
+    user: str = Field(description="사용자 식별자")
+    state: RiskState = Field(default=RiskState.NORMAL, description="현재 위험 상태")
+    score: int = Field(default=0, ge=0, le=100, description="누적 위험도 점수")
+    reasons: List[str] = Field(default_factory=list, description="위험 상태 진입 근거 목록")
+    entered_at: datetime = Field(default_factory=datetime.utcnow)
+    expires_at: datetime = Field(description="상태 만료 일시 UTC")
+
+
 class Severity(str, Enum):
     CRITICAL = "CRITICAL"
     HIGH = "HIGH"

@@ -1,5 +1,8 @@
 from .event import SecurityEvent, LogSource, EventAction, Actor, Target, PayloadMetadata
-from .incident import Incident, Severity, IncidentCategory, IncidentStatus, NetworkHop, ShadowAIAsset, SanctionStatus
+from .incident import (
+    Incident, Severity, IncidentCategory, IncidentStatus, NetworkHop, ShadowAIAsset, SanctionStatus,
+    RiskState, UserRiskRecord
+)
 
 __all__ = [
     "SecurityEvent",
@@ -15,4 +18,6 @@ __all__ = [
     "NetworkHop",
     "ShadowAIAsset",
     "SanctionStatus",
+    "RiskState",
+    "UserRiskRecord",
 ]
