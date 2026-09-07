@@ -20,11 +20,11 @@ env/
 Thumbs.db
 
 # Exclude README & walkthroughs per user request
-README.md
 walkthroughs/
 *.bat
 *.ps1
 *.png
+!docs/screenshots/*.png
 *_backup*.py
 *.db
 *.sqlite3
