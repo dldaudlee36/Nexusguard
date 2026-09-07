@@ -490,11 +490,7 @@ st.markdown("""
         box-shadow: 0 4px 16px rgba(16, 185, 129, 0.45) !important;
         transform: translateY(-2px) !important;
     }
-    div[class*="st-key-app_"] button p {
-        color: #ffffff !important;
-        font-weight: 700 !important;
-    }
-    /* 사내 프라이빗 도구 안내(Slack) */
+    /* 사내 프라이빗 도구 안내 */
     div[class*="st-key-guide_"] button {
         background: #111e33 !important;
         border: 1px solid #2a4365 !important;
@@ -508,11 +504,7 @@ st.markdown("""
         box-shadow: 0 4px 14px rgba(56, 189, 248, 0.3) !important;
         transform: translateY(-2px) !important;
     }
-    div[class*="st-key-guide_"] button p {
-        color: #f1f5f9 !important;
-        font-weight: 600 !important;
-    }
-    /* 도메인 차단 룰 생성: 문구 시인성을 완벽히 유지하는 세련된 크림슨 레드 배경 */
+    /* 도메인 차단 룰 생성 */
     div[class*="st-key-blk_"] button {
         background: linear-gradient(135deg, rgba(239, 68, 68, 0.28) 0%, rgba(185, 28, 28, 0.42) 100%) !important;
         border: 1.5px solid #ef4444 !important;
@@ -525,9 +517,19 @@ st.markdown("""
         box-shadow: 0 4px 16px rgba(239, 68, 68, 0.45) !important;
         transform: translateY(-2px) !important;
     }
+    div[class*="st-key-app_"] button p,
+    div[class*="st-key-guide_"] button p,
     div[class*="st-key-blk_"] button p {
+        font-size: 13px !important;
+        white-space: nowrap !important;
+        letter-spacing: -0.3px !important;
         color: #ffffff !important;
-        font-weight: 700 !important;
+    }
+    div[class*="st-key-app_"] button,
+    div[class*="st-key-guide_"] button,
+    div[class*="st-key-blk_"] button {
+        min-height: 44px !important;
+        padding: 8px 6px !important;
     }
 
     /* 🌟 킬체인 심층 분석 바로가기 & 종합 관제 돌아가기 공통 액션 버튼 스타일 */
@@ -2083,25 +2085,45 @@ elif menu == "킬체인 분석":
 # ==========================================
 elif menu == "AI·IT 거버넌스":
     st.markdown("<h2>🤖 사내 섀도우 IT 및 생성형 AI 거버넌스 대시보드</h2>", unsafe_allow_html=True)
-    with st.expander("⚡ Gemini AI 실시간 미등록 외부 도메인 진단기 (즉시 테스트)", expanded=True):
-        st.markdown("""
-        <div style="color:#94a3b8; font-size:12.5px; margin-bottom:10px;">
-            사내 임직원이 새롭게 접속한 외부 사이트(도메인)를 입력하면, <b>Gemini LLM</b>이 서비스 성격과 <b>데이터 재학습 위험도</b>를 즉시 판별하고 사내 대체 도구를 추천합니다.
-        </div>
-        """, unsafe_allow_html=True)
-        col_in, col_btn = st.columns([3.5, 1.2])
-        with col_in:
-            test_domain_input = st.text_input("분석할 도메인 주소", value="perplexity.ai", placeholder="예: perplexity.ai, v0.dev, gamma.app, midjourney.com", label_visibility="collapsed")
-        with col_btn:
-            btn_run_gemini = st.button("🚀 AI 즉시 진단", use_container_width=True)
 
-        if btn_run_gemini and test_domain_input:
-            import os
-            active_key = st.session_state.get("gemini_api_key") or os.environ.get("GEMINI_API_KEY")
-            with st.spinner(f"'{test_domain_input}' 도메인의 보안 위험도를 Gemini AI로 진단 중..."):
-                new_asset = ctx.governance_engine.analyze_and_register_domain(test_domain_input, api_key=active_key)
-            st.success(f"'{new_asset.domain}' ({new_asset.service_name}) 분석 완료! [위험도: {new_asset.risk_level.value}] 사내 대체 권고: {new_asset.recommended_alternative}")
-            st.rerun()
+    # ⚡ Gemini AI 실시간 미등록 외부 도메인 진단기 (오픈형 인라인 바)
+    st.markdown("""
+    <div style="background:#0c1626; border:1px solid #1e3a5f; border-radius:12px; padding:18px 20px 14px 20px; margin-bottom:14px; box-shadow:0 4px 14px rgba(0,0,0,0.25);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <span style="font-size:15px; font-weight:800; color:#38bdf8; display:flex; align-items:center; gap:6px;">
+                ⚡ Gemini AI 실시간 미등록 외부 도메인 진단기
+            </span>
+            <span style="font-size:12px; color:#94a3b8;">
+                사내 임직원 신규 접속 AI·SaaS 위험도 즉시 판별 & 대체재 추천
+            </span>
+        </div>
+        <div style="color:#cbd5e1; font-size:12.5px; margin-bottom:12px;">
+            임직원이 사내에서 새롭게 접속한 미승인 도메인을 입력하고 즉시 진단 버튼을 누르면, <b>Gemini LLM</b>이 데이터 재학습 여부와 보안 위험도를 실시간 분석합니다.
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    col_in, col_btn = st.columns([4.2, 1.2])
+    with col_in:
+        test_domain_input = st.text_input(
+            "분석할 도메인 주소",
+            value="perplexity.ai",
+            placeholder="예: perplexity.ai, v0.dev, gamma.app, midjourney.com",
+            label_visibility="collapsed",
+            key="gemini_test_domain_input"
+        )
+    with col_btn:
+        btn_run_gemini = st.button("🚀 AI 즉시 진단", key="btn_run_gemini_diag", use_container_width=True)
+
+    if btn_run_gemini and test_domain_input:
+        import os
+        active_key = st.session_state.get("gemini_api_key") or os.environ.get("GEMINI_API_KEY")
+        with st.spinner(f"'{test_domain_input}' 도메인의 보안 위험도를 Gemini AI로 진단 중..."):
+            new_asset = ctx.governance_engine.analyze_and_register_domain(test_domain_input, api_key=active_key)
+        st.success(f"'{new_asset.domain}' ({new_asset.service_name}) 분석 완료! [위험도: {new_asset.risk_level.value}] 사내 대체 권고: {new_asset.recommended_alternative}")
+        st.rerun()
+
+    st.markdown("<div style='margin-bottom:32px; border-bottom:1px solid #16253a;'></div>", unsafe_allow_html=True)
 
     shadow_assets = ctx.governance_engine.get_all_assets()
 
@@ -2109,44 +2131,51 @@ elif menu == "AI·IT 거버넌스":
         badge_style = "badge-high" if asset.risk_level == Severity.HIGH else ("badge-medium" if asset.risk_level == Severity.MEDIUM else "badge-low")
         status_text = "정식 승인됨" if asset.sanction_status == SanctionStatus.APPROVED else ("명시적 차단" if asset.sanction_status == SanctionStatus.BLOCKED else "미승인 검토중")
         
-        st.markdown(f"""
-        <div style="background:#0d1a2b; border:1px solid #1c2e47; border-radius:12px; padding:18px; margin-bottom:12px;">
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-                <div>
-                    <span style="font-size:18px; font-weight:bold; color:#ffffff;">{asset.domain}</span>
-                    <span style="color:#9fb0c8; font-size:13px; margin-left:8px;">({asset.service_name} · {asset.category})</span>
+        # 🌟 도메인 일체형 카드 컨테이너
+        with st.container(border=True):
+            st.markdown(f"""
+            <div style="padding: 2px 2px 0 2px;">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <div>
+                        <span style="font-size:18px; font-weight:bold; color:#ffffff;">{asset.domain}</span>
+                        <span style="color:#9fb0c8; font-size:13px; margin-left:8px;">({asset.service_name} · {asset.category})</span>
+                    </div>
+                    <div>
+                        <span class="badge {badge_style}">{asset.risk_level.value}</span>
+                        <span class="badge" style="background:#1b2a3f; color:#9fb0c8; margin-left:4px;">{status_text}</span>
+                    </div>
                 </div>
-                <div>
-                    <span class="badge {badge_style}">{asset.risk_level.value}</span>
-                    <span class="badge" style="background:#1b2a3f; color:#9fb0c8; margin-left:4px;">{status_text}</span>
+                <div style="font-size:13px; color:#c9d3e2; margin-top:8px;">
+                    👥 사용 현황: <b>{asset.department_count}개 부서</b> / <b>{asset.user_count}명 임직원 사용</b> | 사용 빈도: {asset.usage_frequency}
+                </div>
+                <div style="font-size:13px; color:#9ee0b2; margin-top:5px;">
+                    💡 <b>Gemini AI 진단:</b> {asset.ai_diagnosis}
+                </div>
+                <div style="font-size:13px; color:#ffd169; margin-top:3px;">
+                    🔄 <b>사내 대체 도구:</b> {asset.recommended_alternative or '사내 표준 도구 유지'}
                 </div>
             </div>
-            <div style="font-size:13px; color:#c9d3e2; margin-top:8px;">
-                👥 사용 현황: <b>{asset.department_count}개 부서</b> / <b>{asset.user_count}명 임직원 사용</b> | 사용 빈도: {asset.usage_frequency}
-            </div>
-            <div style="font-size:13px; color:#9ee0b2; margin-top:4px;">
-                💡 <b>Gemini AI 진단:</b> {asset.ai_diagnosis}
-            </div>
-            <div style="font-size:13px; color:#ffd169; margin-top:2px;">
-                🔄 <b>사내 대체 도구:</b> {asset.recommended_alternative or '사내 표준 도구 유지'}
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+            <div style="border-top: 1px dashed #1e3352; margin: 12px 0 10px 0;"></div>
+            """, unsafe_allow_html=True)
 
-        act_col1, act_col2, act_col3 = st.columns([1, 1, 1])
-        with act_col1:
-            if st.button(f"✅ 정식 승인(양성화)", key=f"app_{asset.domain}", use_container_width=True, help="해당 SaaS를 회사 승인 소프트웨어 목록에 등록하고 정식 라이선스 계약을 추진합니다."):
-                ctx.governance_engine.update_sanction_status(asset.domain, SanctionStatus.APPROVED)
-                st.success(f"'{asset.domain}' 서비스가 사내 승인 목록으로 전환되었습니다.")
-                st.rerun()
-        with act_col2:
-            if st.button(f"💬 사내 프라이빗 도구 안내(Slack)", key=f"guide_{asset.domain}", use_container_width=True, help="사용자에게 사내 승인 대체 보안 도구 사용 가이드를 DM으로 발송합니다."):
-                st.info(f"해당 사용자 그룹에게 '{asset.recommended_alternative}' 사용 가이드가 발송되었습니다.")
-        with act_col3:
-            if st.button(f"⛔ 도메인 차단 룰 생성", key=f"blk_{asset.domain}", use_container_width=True, help="DNS 싱크홀 및 방화벽 차단 정책에 등록하여 접근을 차단합니다."):
-                ctx.governance_engine.update_sanction_status(asset.domain, SanctionStatus.BLOCKED)
-                st.warning(f"'{asset.domain}' DNS 싱크홀 및 방화벽 차단 룰이 등록되었습니다.")
-                st.rerun()
+            # 🌟 도메인 조치 액션 버튼 (카드 내부 일체화)
+            act_col1, act_col2, act_col3 = st.columns([1, 1, 1])
+            with act_col1:
+                if st.button(f"✅ 정식 승인(양성화)", key=f"app_{asset.domain}", use_container_width=True, help="해당 SaaS를 회사 승인 소프트웨어 목록에 등록하고 정식 라이선스 계약을 추진합니다."):
+                    ctx.governance_engine.update_sanction_status(asset.domain, SanctionStatus.APPROVED)
+                    st.success(f"'{asset.domain}' 서비스가 사내 승인 목록으로 전환되었습니다.")
+                    st.rerun()
+            with act_col2:
+                if st.button(f"💬 사내 대체 도구 안내", key=f"guide_{asset.domain}", use_container_width=True, help="사용자에게 사내 승인 대체 보안 도구 사용 가이드를 DM으로 발송합니다."):
+                    st.info(f"해당 사용자 그룹에게 '{asset.recommended_alternative}' 사용 가이드가 발송되었습니다.")
+            with act_col3:
+                if st.button(f"⛔ 도메인 차단 룰 생성", key=f"blk_{asset.domain}", use_container_width=True, help="DNS 싱크홀 및 방화벽 차단 정책에 등록하여 접근을 차단합니다."):
+                    ctx.governance_engine.update_sanction_status(asset.domain, SanctionStatus.BLOCKED)
+                    st.warning(f"'{asset.domain}' DNS 싱크홀 및 방화벽 차단 룰이 등록되었습니다.")
+                    st.rerun()
+
+        # 도메인 박스 간격 추가 (시인성 극대화)
+        st.markdown("<div style='margin-bottom: 20px;'></div>", unsafe_allow_html=True)
 
 
 # ==========================================
