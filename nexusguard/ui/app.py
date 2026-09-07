@@ -875,12 +875,22 @@ with st.sidebar:
     
     # Gemini AI 상태 판별
     import os
-    has_gemini_key = bool(st.session_state.get("gemini_api_key") or os.environ.get("GEMINI_API_KEY"))
+    from pathlib import Path
+    try:
+        from dotenv import load_dotenv
+        load_dotenv(Path(__file__).resolve().parent.parent.parent / ".env")
+    except Exception:
+        pass
+
+    if "gemini_api_key" not in st.session_state:
+        st.session_state["gemini_api_key"] = os.environ.get("GEMINI_API_KEY", "")
+
+    has_gemini_key = bool(st.session_state.get("gemini_api_key"))
     use_local_ai = st.session_state.get("use_local_ai", True)
 
     with st.expander("🔑 Gemini AI 엔진 연동 설정", expanded=False):
         st.markdown("<div style='font-size:12px; color:#cbd5e1; margin-bottom:6px;'>미등록 외부 SaaS 및 Shadow AI 도메인을 자동 분류하고 데이터 재학습 위험도를 실시간 진단하는 AI 보강(Enrichment) 엔진입니다.</div>", unsafe_allow_html=True)
-        key_input = st.text_input("Gemini API Key", type="password", value=st.session_state.get("gemini_api_key", os.environ.get("GEMINI_API_KEY", "")), placeholder="AIzaSy... (Google AI Studio)", help="Google AI Studio에서 무료로 발급받은 API 키를 입력하면 실시간 Gemini 2.5 Flash 모델이 가동됩니다.")
+        key_input = st.text_input("Gemini API Key", type="password", value=st.session_state.get("gemini_api_key", ""), placeholder="AIzaSy... 또는 AQ.Ab... (Google AI Studio)", help="Google AI Studio에서 발급받은 API 키가 자동 적용되어 실시간 Gemini 3.6 / 2.5 Flash 모델이 가동됩니다.")
         if key_input != st.session_state.get("gemini_api_key", ""):
             st.session_state["gemini_api_key"] = key_input
             if key_input:
@@ -891,7 +901,7 @@ with st.sidebar:
         use_local_ai = enable_local
 
     if has_gemini_key:
-        gemini_status_line = '<div style="color: #62d487; font-size:12px; margin-top:5px; display:flex; align-items:center;"><span class="pipeline-pulse-dot"></span> Gemini AI 판별 모듈 가동 중 (Cloud 2.5)</div>'
+        gemini_status_line = '<div style="color: #62d487; font-size:12px; margin-top:5px; display:flex; align-items:center;"><span class="pipeline-pulse-dot"></span> Gemini AI 판별 모듈 가동 중 (Cloud 3.6/2.5)</div>'
     elif use_local_ai:
         gemini_status_line = '<div style="color: #62d487; font-size:12px; margin-top:5px; display:flex; align-items:center;"><span class="pipeline-pulse-dot"></span> Gemini AI 판별 모듈 가동 중 (로컬 AI)</div>'
     else:

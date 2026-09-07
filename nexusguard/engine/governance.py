@@ -101,10 +101,22 @@ def analyze_domain_with_gemini(domain: str, api_key: Optional[str] = None) -> Di
     "alternative": "권고 사내 대체 도구 (예: 사내 프라이빗 AI 포털 (Aegis-GenAI) 등)"
 }}
 """
-        response = client.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=prompt,
-        )
+        models_to_try = ["gemini-3.6-flash", "gemini-2.5-flash", "gemini-1.5-flash"]
+        response = None
+        for m in models_to_try:
+            try:
+                response = client.models.generate_content(
+                    model=m,
+                    contents=prompt,
+                )
+                if response and response.text:
+                    break
+            except Exception:
+                continue
+
+        if not response or not response.text:
+            return _fallback_heuristic_analysis(domain)
+
         text = response.text.strip()
         if "```json" in text:
             text = text.split("```json")[1].split("```")[0].strip()
