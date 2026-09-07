@@ -51,7 +51,39 @@ st.markdown("""
         min-width: 0px !important;
         max-width: 0px !important;
         width: 0px !important;
+        margin-left: 0px !important;
+        padding: 0px !important;
+        overflow: hidden !important;
+        border: none !important;
         transform: translateX(-100%) !important;
+    }
+
+    /* 메인 컨테이너 및 블록 컨테이너 유연한 100% 가로 확장 및 반응형 화면 맞춤 */
+    section[data-testid="stMain"] {
+        width: 100% !important;
+        max-width: 100% !important;
+        flex: 1 1 auto !important;
+    }
+    .block-container {
+        max-width: 100% !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+    }
+
+    /* 데이터프레임 및 차트가 창 크기 축소/확장 시 유연하게 자동 리사이즈되도록 제한 */
+    div[data-testid="stDataFrame"],
+    div[data-testid="stDataFrameResizable"],
+    .stDataFrameGlideDataEditor {
+        max-width: 100% !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+    }
+    div[data-testid="stPlotlyChart"],
+    .js-plotly-plot,
+    .plotly {
+        max-width: 100% !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
     }
 
     /* 🌟 사이드바 라디오 네비게이션 가로 100% 꽉 채우기 및 창 크기 반응형 */
@@ -742,82 +774,124 @@ components.html("""
         const sidebar = parentDoc.querySelector('section[data-testid="stSidebar"]');
         if (!sidebar) return;
 
-        // 이미 핸들이 주입되어 있다면 재등록 방지
-        if (sidebar.querySelector('#sidebar-drag-handle')) return;
+        let handle = sidebar.querySelector('#sidebar-drag-handle');
+        if (!handle) {
+            handle = parentDoc.createElement('div');
+            handle.id = 'sidebar-drag-handle';
+            handle.title = '좌우로 드래그하여 사이드바 및 메인 창 크기를 조절할 수 있습니다';
+            handle.style.cssText = `
+                position: absolute;
+                top: 0;
+                right: -3px;
+                width: 7px;
+                height: 100%;
+                cursor: col-resize;
+                z-index: 999999;
+                background: transparent;
+                transition: background 0.2s ease;
+            `;
 
-        const handle = parentDoc.createElement('div');
-        handle.id = 'sidebar-drag-handle';
-        handle.title = '좌우로 드래그하여 사이드바 및 메인 창 크기를 조절할 수 있습니다';
-        handle.style.cssText = `
-            position: absolute;
-            top: 0;
-            right: -3px;
-            width: 7px;
-            height: 100%;
-            cursor: col-resize;
-            z-index: 999999;
-            background: transparent;
-            transition: background 0.2s ease;
-        `;
+            handle.addEventListener('mouseenter', () => {
+                handle.style.background = 'rgba(56, 189, 248, 0.5)';
+            });
+            handle.addEventListener('mouseleave', () => {
+                if (!isDragging) handle.style.background = 'transparent';
+            });
 
-        handle.addEventListener('mouseenter', () => {
-            handle.style.background = 'rgba(56, 189, 248, 0.5)';
-        });
-        handle.addEventListener('mouseleave', () => {
-            if (!isDragging) handle.style.background = 'transparent';
-        });
+            let isDragging = false;
+            let startX = 0;
+            let startWidth = 0;
 
-        let isDragging = false;
-        let startX = 0;
-        let startWidth = 0;
+            handle.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                startX = e.clientX;
+                startWidth = sidebar.offsetWidth;
+                handle.style.background = '#38bdf8';
+                parentDoc.body.style.cursor = 'col-resize';
+                parentDoc.body.style.userSelect = 'none';
+                e.preventDefault();
+                e.stopPropagation();
+            });
 
-        handle.addEventListener('mousedown', (e) => {
-            isDragging = true;
-            startX = e.clientX;
-            startWidth = sidebar.offsetWidth;
-            handle.style.background = '#38bdf8';
-            parentDoc.body.style.cursor = 'col-resize';
-            parentDoc.body.style.userSelect = 'none';
-            e.preventDefault();
-            e.stopPropagation();
-        });
+            parentDoc.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                const delta = e.clientX - startX;
+                const newWidth = Math.min(Math.max(startWidth + delta, 240), 750);
+                sidebar.style.setProperty('width', newWidth + 'px', 'important');
+                sidebar.style.setProperty('min-width', newWidth + 'px', 'important');
+                sidebar.style.setProperty('max-width', newWidth + 'px', 'important');
+                sidebar.style.setProperty('transition', 'none', 'important');
+                sessionStorage.setItem('nexusguard_sb_width', newWidth);
+                window.parent.dispatchEvent(new Event('resize'));
+            });
 
-        parentDoc.addEventListener('mousemove', (e) => {
-            if (!isDragging) return;
-            const delta = e.clientX - startX;
-            const newWidth = Math.min(Math.max(startWidth + delta, 240), 750);
-            sidebar.style.setProperty('width', newWidth + 'px', 'important');
-            sidebar.style.setProperty('min-width', newWidth + 'px', 'important');
-            sidebar.style.setProperty('max-width', newWidth + 'px', 'important');
-            sidebar.style.setProperty('transition', 'none', 'important');
-            sessionStorage.setItem('nexusguard_sb_width', newWidth);
-        });
+            parentDoc.addEventListener('mouseup', () => {
+                if (isDragging) {
+                    isDragging = false;
+                    handle.style.background = 'transparent';
+                    parentDoc.body.style.cursor = '';
+                    parentDoc.body.style.userSelect = '';
+                    window.parent.dispatchEvent(new Event('resize'));
+                }
+            });
 
-        parentDoc.addEventListener('mouseup', () => {
-            if (isDragging) {
-                isDragging = false;
-                handle.style.background = 'transparent';
-                parentDoc.body.style.cursor = '';
-                parentDoc.body.style.userSelect = '';
-            }
-        });
-
-        sidebar.appendChild(handle);
-
-        // 이전 저장된 사이드바 폭 복원 (접힘 상태가 아닐 때만)
-        const saved = sessionStorage.getItem('nexusguard_sb_width');
-        const isCollapsed = sidebar.getAttribute('aria-expanded') === 'false';
-        if (saved && !isCollapsed) {
-            const w = Math.min(Math.max(parseInt(saved, 10), 240), 750);
-            sidebar.style.setProperty('width', w + 'px', 'important');
-            sidebar.style.setProperty('min-width', w + 'px', 'important');
-            sidebar.style.setProperty('max-width', w + 'px', 'important');
+            sidebar.appendChild(handle);
         }
+
+        // 사이드바 접힘/펼침 상태와 인라인 스타일 완벽 동기화
+        function syncSidebarState() {
+            const isCollapsed = sidebar.getAttribute('aria-expanded') === 'false';
+            if (isCollapsed) {
+                // 접힘 시: 사이드바 인라인 폭을 강제 제거하여 0px로 완벽 축소 & 메인 화면 100% 확장
+                sidebar.style.removeProperty('width');
+                sidebar.style.removeProperty('min-width');
+                sidebar.style.removeProperty('max-width');
+                sidebar.style.removeProperty('transition');
+                sidebar.style.width = '0px';
+                sidebar.style.minWidth = '0px';
+                sidebar.style.maxWidth = '0px';
+                if (handle) handle.style.display = 'none';
+            } else {
+                // 펼침 시: 핸들 복원 및 사용자가 설정했던 사이드바 폭 적용 (기본 300px)
+                if (handle) handle.style.display = 'block';
+                const saved = sessionStorage.getItem('nexusguard_sb_width') || '300';
+                const w = Math.min(Math.max(parseInt(saved, 10), 240), 750);
+                sidebar.style.setProperty('width', w + 'px', 'important');
+                sidebar.style.setProperty('min-width', w + 'px', 'important');
+                sidebar.style.setProperty('max-width', w + 'px', 'important');
+            }
+            window.parent.dispatchEvent(new Event('resize'));
+        }
+
+        // 접힘/펼침(aria-expanded) 속성 변경 실시간 감지 옵저버 등록
+        if (!sidebar._nexusCollapseObs) {
+            const collapseObs = new MutationObserver((mutations) => {
+                for (const m of mutations) {
+                    if (m.type === 'attributes' && m.attributeName === 'aria-expanded') {
+                        syncSidebarState();
+                    }
+                }
+            });
+            collapseObs.observe(sidebar, { attributes: true, attributeFilter: ['aria-expanded'] });
+            sidebar._nexusCollapseObs = collapseObs;
+        }
+
+        syncSidebarState();
     }
 
     setupResizer();
     const observer = new MutationObserver(setupResizer);
     observer.observe(parentDoc.body, { childList: true, subtree: true });
+
+    // 브라우저 창 크기 조절 시 접힘 상태 및 레이아웃 반응형 보장
+    window.parent.addEventListener('resize', () => {
+        const sidebar = parentDoc.querySelector('section[data-testid="stSidebar"]');
+        if (sidebar && sidebar.getAttribute('aria-expanded') === 'false') {
+            sidebar.style.width = '0px';
+            sidebar.style.minWidth = '0px';
+            sidebar.style.maxWidth = '0px';
+        }
+    });
 })();
 </script>
 """, height=0, width=0)
