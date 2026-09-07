@@ -2184,32 +2184,32 @@ elif menu == "📡 팀원 Agent & Railway":
             server_status_color = "#94a3b8"
 
         st.markdown(f"""
-        <div class="kpi-card" style="border-left: 4px solid {server_status_color};">
-            <div class="kpi-title">Railway 서버 통신 상태</div>
-            <div class="kpi-value" style="color:{server_status_color}; font-size:20px;">{server_status_val}</div>
+        <div class="kpi-card" style="border-left: 4px solid {server_status_color}; text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+            <div class="kpi-title" style="text-align: center; width: 100%; margin-bottom: 8px;">Railway 서버 통신 상태</div>
+            <div class="kpi-value" style="color:{server_status_color}; font-size:20px; text-align: center; width: 100%;">{server_status_val}</div>
         </div>
         """, unsafe_allow_html=True)
     with kpi_c2:
         st.markdown(f"""
-        <div class="kpi-card" style="border-left: 4px solid #38bdf8;">
-            <div class="kpi-title">수집된 실제 에이전트 로그</div>
-            <div class="kpi-value" style="color:#38bdf8; font-size:26px;">{len(r_events)} 건</div>
+        <div class="kpi-card" style="border-left: 4px solid #38bdf8; text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+            <div class="kpi-title" style="text-align: center; width: 100%; margin-bottom: 8px;">수집된 실제 에이전트 로그</div>
+            <div class="kpi-value" style="color:#38bdf8; font-size:26px; text-align: center; width: 100%;">{len(r_events)} 건</div>
         </div>
         """, unsafe_allow_html=True)
     with kpi_c3:
         st.markdown(f"""
-        <div class="kpi-card" style="border-left: 4px solid #a855f7;">
-            <div class="kpi-title">실시간 수집 PC</div>
-            <div class="kpi-value" style="color:#a855f7; font-size:18px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">DESKTOP-OF0CMDB</div>
+        <div class="kpi-card" style="border-left: 4px solid #a855f7; text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+            <div class="kpi-title" style="text-align: center; width: 100%; margin-bottom: 8px;">실시간 수집 PC</div>
+            <div class="kpi-value" style="color:#a855f7; font-size:17px; text-align: center; width: 100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">DESKTOP-OF0CMDB</div>
         </div>
         """, unsafe_allow_html=True)
     with kpi_c4:
         key_status_color = "#10b981" if RAILWAY_API_KEY else "#ef4444"
         key_status_text = "● VERIFIED" if RAILWAY_API_KEY else "○ NOT SET"
         st.markdown(f"""
-        <div class="kpi-card" style="border-left: 4px solid {key_status_color};">
-            <div class="kpi-title">API Key 보안 인증</div>
-            <div class="kpi-value" style="color:{key_status_color}; font-size:18px; font-weight:800;">{key_status_text}</div>
+        <div class="kpi-card" style="border-left: 4px solid {key_status_color}; text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+            <div class="kpi-title" style="text-align: center; width: 100%; margin-bottom: 8px;">API Key 보안 인증</div>
+            <div class="kpi-value" style="color:{key_status_color}; font-size:18px; font-weight:800; text-align: center; width: 100%;">{key_status_text}</div>
         </div>
         """, unsafe_allow_html=True)
 
