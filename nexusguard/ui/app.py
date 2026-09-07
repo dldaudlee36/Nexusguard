@@ -218,13 +218,83 @@ st.markdown("""
         background-color: transparent !important;
         border: none !important;
     }
+    /* Dashboard 제목 호버 툴팁 */
+    .dashboard-title-box {
+        position: relative;
+        display: inline-block;
+        margin-bottom: 20px;
+        cursor: pointer;
+    }
+    .dashboard-title {
+        margin: 0;
+        font-size: 38px;
+        font-weight: 800;
+        color: #ffffff;
+        letter-spacing: -0.5px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .dashboard-info-icon {
+        font-size: 20px;
+        color: #64748b;
+        cursor: pointer;
+        transition: color 0.2s;
+    }
+    .dashboard-title-box:hover .dashboard-info-icon {
+        color: #38bdf8;
+    }
+    .dashboard-title-tooltip {
+        visibility: hidden;
+        opacity: 0;
+        position: absolute;
+        top: calc(100% + 6px);
+        left: 0;
+        background-color: #0c1c33;
+        color: #93c5fd;
+        font-size: 13px;
+        font-weight: 500;
+        padding: 8px 16px;
+        border-radius: 8px;
+        border: 1px solid #2563eb;
+        box-shadow: 0 10px 28px rgba(0, 0, 0, 0.8);
+        white-space: nowrap;
+        z-index: 9999;
+        transition: opacity 0.2s ease, visibility 0.2s ease;
+        pointer-events: none;
+    }
+    .dashboard-title-box:hover .dashboard-title-tooltip {
+        visibility: visible;
+        opacity: 1;
+    }
+
+    /* 통합 인시던트 선택기 단일 박스 컨테이너 */
+    div[data-testid="stVerticalBlockBorderWrapper"] {
+        background-color: #0c182a !important;
+        border: 1.5px solid #1c324e !important;
+        border-radius: 12px !important;
+        padding: 14px 20px 16px 20px !important;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35) !important;
+        margin-bottom: 16px !important;
+    }
+    /* 통합 선택 박스 내부 불필요한 라벨 및 도움말 아이콘 완전 은닉 */
+    div[data-testid="stSelectbox"] label,
+    div[data-testid="stSelectbox"] [data-testid="stWidgetLabel"] {
+        display: none !important;
+        height: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    /* 🌟 인시던트 선택 박스 세로 높이 확대 및 시인성 향상 */
     div[data-testid="stSelectbox"] div[data-baseweb="select"] > div {
-        min-height: 54px !important;
+        min-height: 64px !important;
+        height: 64px !important;
         background-color: #0b1a2e !important;
         border: 2px solid #3b82f6 !important;
         border-radius: 12px !important;
         box-shadow: 0 4px 16px rgba(37, 99, 235, 0.25) !important;
-        padding: 4px 14px !important;
+        padding: 6px 18px !important;
         display: flex !important;
         align-items: center !important;
         box-sizing: border-box !important;
@@ -239,8 +309,8 @@ st.markdown("""
     div[data-testid="stSelectbox"] div[data-baseweb="select"] [data-testid="stMarkdownContainer"] p,
     div[data-testid="stSelectbox"] div[data-baseweb="select"] span {
         color: #ffffff !important;
-        font-size: 15px !important;
-        font-weight: 600 !important;
+        font-size: 16px !important;
+        font-weight: 700 !important;
         line-height: 1.5 !important;
     }
     /* 우측 토글 화살표(Chevron): 박스 우측 내부에 완벽 고정 */
@@ -1268,9 +1338,13 @@ def render_interactive_map(svg_markup: str):
 
 if menu == "대시보드 종합 관제":
     st.markdown("""
-    <div style="margin-bottom: 20px;">
-        <h1 style="margin:0; font-size: 39px; font-weight: 800; color:#ffffff; letter-spacing: -0.5px;">Dashboard</h1>
-        <span style="color: #9fb0c8; font-size: 14px;">실시간 이기종 로그 연계 침해사고 재구성 및 내부 데이터 거버넌스 모니터링 (Zero Trust XDR)</span>
+    <div class="dashboard-title-box">
+        <h1 class="dashboard-title">
+            Dashboard <span class="dashboard-info-icon" title="마우스를 올리면 시스템 설명이 표시됩니다">ℹ️</span>
+        </h1>
+        <div class="dashboard-title-tooltip">
+            🛡️ 실시간 이기종 로그 연계 침해사고 재구성 및 내부 데이터 거버넌스 모니터링 (Zero Trust XDR)
+        </div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -1292,7 +1366,7 @@ if menu == "대시보드 종합 관제":
     )
     sorted_incident_ids = [inc.incident_id for inc in sorted_incidents]
 
-    # 🌟 [단일 통합 드롭다운 포맷터] 위험도별 색상 및 기호로 시인성 극대화
+    # 🌟 [단일 통합 드롭다운 포맷터] 위험도별 색상 및 기호로 시인성 극대화 (NORMAL / WATCH 적용)
     def format_unified_incident(inc_id: str) -> str:
         inc = ctx.correlation_engine.get_incident(inc_id)
         if not inc:
@@ -1302,9 +1376,9 @@ if menu == "대시보드 종합 관제":
         elif inc.severity == Severity.HIGH:
             badge = f"🔴 [HIGH {inc.score}점]"
         elif inc.severity == Severity.MEDIUM:
-            badge = f"🟡 [MEDIUM {inc.score}점]"
+            badge = f"🟡 [NORMAL {inc.score}점]"
         else:
-            badge = f"🟢 [LOW {inc.score}점]"
+            badge = f"🟢 [WATCH {inc.score}점]"
         return f"{badge}  {inc.incident_id}  |  {inc.title}"
 
     cur_idx = sorted_incident_ids.index(st.session_state.selected_incident_id) if st.session_state.selected_incident_id in sorted_incident_ids else 0
@@ -1334,17 +1408,32 @@ if menu == "대시보드 종합 관제":
         </div>
         """, unsafe_allow_html=True)
 
-    # 📜 실시간 2단계 상태 머신 감사 이력 (SQLite risk_history)
-    with st.expander("📜 실시간 2단계 상태 머신 감사 이력 (SQLite `risk_history`)", expanded=False):
-        hist = ctx.correlation_engine.store.get_risk_history(10)
-        if hist:
-            df_hist = pd.DataFrame(hist)[["at", "user", "from_state", "to_state", "reason"]]
-            df_hist.columns = ["일시 (UTC)", "대상자", "이전 상태", "전이 상태", "판정 사유"]
-            st.dataframe(df_hist, use_container_width=True)
-        else:
-            st.caption("아직 기록된 상태 전이 이력이 없습니다. 좌측 사이드바 시뮬레이터를 실행해보세요.")
+    # 📈 실시간 2단계 상태 머신 감사 이력 (주식창 스타일 항시 노출 뷰)
+    hist = ctx.correlation_engine.store.get_risk_history(10)
+    st.markdown("""
+    <div style="background: #091322; border: 1.5px solid #1e3a5f; border-radius: 10px; padding: 14px 18px 8px 18px; margin-bottom: 16px; box-shadow: 0 4px 14px rgba(0,0,0,0.35);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 10px;">
+            <span style="font-weight:800; font-size:14px; color:#38bdf8; display:flex; align-items:center; gap:6px;">
+                📈 실시간 보안 상태 감사 트레일 (Live Security Ticker · SQLite Audit)
+            </span>
+            <span style="font-size:11px; color:#94a3b8; background:rgba(30,58,138,0.4); padding:3px 8px; border-radius:4px; border:1px solid #1e40af;">실시간 2단계 상태 전이 영구 보관</span>
+        </div>
+    """, unsafe_allow_html=True)
+    if hist:
+        df_hist = pd.DataFrame(hist)[["at", "user", "from_state", "to_state", "reason"]]
+        df_hist.columns = ["일시 (UTC)", "대상 계정/호스트", "이전 상태", "전이 상태", "판정 사유"]
+        st.dataframe(df_hist, use_container_width=True, height=155)
+    else:
+        st.caption("💡 현재 기록된 상태 전이 이력이 없습니다. 좌측 사이드바 시뮬레이터를 통해 이벤트를 주입해보세요.")
+    st.markdown("</div>", unsafe_allow_html=True)
 
-    # 3대 위험도별 KPI 카드
+    # 🌟 [상단 분계선] 3대 KPI 카드 위 분계선
+    st.markdown('<hr style="border: 0; border-top: 1.5px solid #1e3a5f; margin: 18px 0 16px 0;">', unsafe_allow_html=True)
+
+    # 3대 위험도별 KPI 카드 (CRITICAL/HIGH, NORMAL, WATCH) - 실시간 2단계 상태 머신과 완벽 동기화
+    watch_count = len(active_watch) + len(low_ids)
+    normal_count = len([u for u in watch_users if u.get("state") == "NORMAL"]) + len(med_ids)
+
     kpi1, kpi2, kpi3 = st.columns(3)
 
     with kpi1:
@@ -1362,10 +1451,10 @@ if menu == "대시보드 종합 관제":
         st.markdown(f"""
         <div class="kpi-card">
             <div class="kpi-title medium-text">
-                {tooltip("⚠️", "MEDIUM 주의 단계", "비인가 포트 스캔, 마이닝 풀 질의 등 정찰 행위 및 정책 위반 사항입니다.")} MEDIUM (주의)
+                {tooltip("⚖️", "NORMAL 정상/주의", "일반 업무 활동 및 경미한 이상 징후 모니터링 단계입니다.")} NORMAL
             </div>
-            <div class="kpi-value medium-text">{len(med_ids)}</div>
-            <div class="kpi-sub">내부 비인가 탐색 및 반출 의심</div>
+            <div class="kpi-value medium-text">{normal_count}</div>
+            <div class="kpi-sub">일반 활동 및 모니터링 단계</div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -1373,23 +1462,37 @@ if menu == "대시보드 종합 관제":
         st.markdown(f"""
         <div class="kpi-card">
             <div class="kpi-title low-text">
-                {tooltip("🟢", "LOW 경미 단계", "단순 정책 위반 또는 저위험 포트 스캔 탐지 사항입니다.")} LOW (경미)
+                {tooltip("👁️", "WATCH 사전 관찰", "위험 행위 징후 포착에 따른 선제적 모니터링 추적 단계입니다.")} WATCH
             </div>
-            <div class="kpi-value low-text">{len(low_ids)}</div>
-            <div class="kpi-sub">저위험 단순 정책 위반 탐지</div>
+            <div class="kpi-value low-text">{watch_count}</div>
+            <div class="kpi-sub">사전 관찰 및 잠재 이상 추적</div>
         </div>
         """, unsafe_allow_html=True)
 
-    # 🌟 [단일 통합 드롭다운] 사용자 요청: 3분할 드롭다운을 1개로 통합하고 위험도별 색상과 기호로 가시성 극대화
-    st.selectbox(
-        f"🎯 분석 대상 인시던트 통합 선택 (🔴 긴급/고위험 {len(crit_high_ids)}건  |  🟡 주의 {len(med_ids)}건  |  🟢 경미 {len(low_ids)}건)",
-        options=sorted_incident_ids,
-        index=cur_idx,
-        format_func=format_unified_incident,
-        key="sel_unified_incident",
-        on_change=on_select_unified,
-        help="위험도별(🔴긴급/고위험 ➔ 🟡주의 ➔ 🟢경미)로 정렬된 통합 인시던트 목록입니다."
-    )
+    # 🌟 [하단 분계선] 3대 KPI 카드 아래 분계선
+    st.markdown('<hr style="border: 0; border-top: 1.5px solid #1e3a5f; margin: 16px 0 20px 0;">', unsafe_allow_html=True)
+
+    # 🌟 [단일 통합 카드 형식 인시던트 선택기] 건수 표시 제거, 색상 가이드만 유지, 단일 카드로 묶음
+    with st.container(border=True):
+        st.markdown("""
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;">
+            <span style="font-weight:700; font-size:15px; color:#60a5fa; display:flex; align-items:center; gap:6px;">
+                🎯 분석 대상 인시던트 통합 선택
+            </span>
+            <span style="font-size:13px; color:#cbd5e1; background:rgba(30,58,138,0.3); padding:4px 12px; border-radius:20px; border:1px solid #1e40af;">
+                🔴 긴급/고위험 &nbsp;·&nbsp; 🟡 NORMAL &nbsp;·&nbsp; 🟢 WATCH
+            </span>
+        </div>
+        """, unsafe_allow_html=True)
+        st.selectbox(
+            "인시던트 목록",
+            options=sorted_incident_ids,
+            index=cur_idx,
+            format_func=format_unified_incident,
+            key="sel_unified_incident",
+            on_change=on_select_unified,
+            label_visibility="collapsed"
+        )
 
     # 선택된 분석 대상 인시던트 종합 정보 카드 (위험도별 동적 색상 및 테마 반영)
     selected_inc = ctx.correlation_engine.get_incident(st.session_state.selected_incident_id)
@@ -1432,9 +1535,9 @@ if menu == "대시보드 종합 관제":
             "glow": "rgba(245, 158, 11, 0.35)",
             "bg": "linear-gradient(135deg, #1c1507 0%, #261d0a 50%, #121927 100%)",
             "header_color": "#fbbf24",
-            "header_label": "⚠️ [주의 단계 모니터링 대상] 인시던트 종합 정보",
+            "header_label": "⚠️ [NORMAL 단계 모니터링 대상] 인시던트 종합 정보",
             "dot_glow": "#f59e0b",
-            "badge": '<span class="badge badge-medium" style="font-size:13px; padding:5px 12px; background:#d97706; color:#ffffff; font-weight:800; border-radius:6px;">MEDIUM (주의)</span>',
+            "badge": '<span class="badge badge-medium" style="font-size:13px; padding:5px 12px; background:#d97706; color:#ffffff; font-weight:800; border-radius:6px;">NORMAL</span>',
             "score_color": "#fbbf24",
             "actor_color": "#fde68a",
             "target_color": "#f59e0b",
@@ -1447,9 +1550,9 @@ if menu == "대시보드 종합 관제":
             "glow": "rgba(16, 185, 129, 0.35)",
             "bg": "linear-gradient(135deg, #091a13 0%, #0d261d 50%, #0d1927 100%)",
             "header_color": "#34d399",
-            "header_label": "🟢 [경미 단계 단순 정책 위반 탐지 대상] 인시던트 종합 정보",
+            "header_label": "🟢 [WATCH 단계 선제적 감시 대상] 인시던트 종합 정보",
             "dot_glow": "#10b981",
-            "badge": '<span class="badge badge-low" style="font-size:13px; padding:5px 12px; background:#059669; color:#ffffff; font-weight:800; border-radius:6px;">LOW (경미)</span>',
+            "badge": '<span class="badge badge-low" style="font-size:13px; padding:5px 12px; background:#059669; color:#ffffff; font-weight:800; border-radius:6px;">WATCH</span>',
             "score_color": "#34d399",
             "actor_color": "#a7f3d0",
             "target_color": "#10b981",
