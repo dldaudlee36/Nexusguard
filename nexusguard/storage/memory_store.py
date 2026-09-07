@@ -3,16 +3,21 @@ NexusGuard - Memory Store
 시스템 상태 및 싱글톤 인스턴스 관리 저장소
 """
 
-from typing import Optional
-from nexusguard.engine.correlation import CorrelationEngine
-from nexusguard.engine.governance import ShadowAIGovernanceEngine
+from typing import Optional, TYPE_CHECKING
 from nexusguard.generators.dummy_logs import get_all_initial_events
+
+if TYPE_CHECKING:
+    from nexusguard.engine.correlation import CorrelationEngine
+    from nexusguard.engine.governance import ShadowAIGovernanceEngine
 
 
 class AppContext:
     _instance: Optional["AppContext"] = None
 
     def __init__(self):
+        from nexusguard.engine.correlation import CorrelationEngine
+        from nexusguard.engine.governance import ShadowAIGovernanceEngine
+        
         self.correlation_engine = CorrelationEngine()
         self.governance_engine = ShadowAIGovernanceEngine()
         self.initial_events = get_all_initial_events()

@@ -15,9 +15,10 @@ import streamlit as st
 import pandas as pd
 import base64
 import streamlit.components.v1 as components
-from datetime import datetime
+from datetime import datetime, timedelta
 from nexusguard.storage import get_context
 from nexusguard.schemas import Severity, SanctionStatus, IncidentStatus, Incident
+from nexusguard.schemas.event import SecurityEvent, LogSource, EventAction, Actor, Target, PayloadMetadata
 
 # 1. 페이지 기본 설정
 st.set_page_config(
@@ -481,6 +482,95 @@ with st.sidebar:
         key="nav_radio",
         label_visibility="collapsed"
     )
+
+    st.markdown("---")
+    with st.expander("🧪 2단계 상태머신 실시간 시뮬레이터", expanded=True):
+        st.markdown("<div style='font-size:12px; color:#cbd5e1; margin-bottom:10px;'>사내 Shadow AI 기밀 유출 킬체인을 단계별로 실시간 시뮬레이션합니다.</div>", unsafe_allow_html=True)
+        col_s1, col_s2 = st.columns(2)
+        with col_s1:
+            btn_watch = st.button("👁️ 1단계\n선제감시(WATCH)", use_container_width=True, help="기밀 DB 조회 + 미승인 AI 질의 발생 -> 전송 전 WATCH 상태 승격")
+        with col_s2:
+            btn_high = st.button("🚨 2단계\n유출확정(HIGH)", use_container_width=True, help="WATCH 대상자의 48MB 대용량 외부 전송 발생 -> HIGH Incident 즉시 확정")
+            
+        col_s3, col_s4 = st.columns(2)
+        with col_s3:
+            btn_heal = st.button("⏱️ 30분 만료\n(오탐 자동 해제)", use_container_width=True, help="전송 없이 30분 경과 -> NORMAL 상태로 자가 치유")
+        with col_s4:
+            btn_reset = st.button("🔄 시뮬 리셋", use_container_width=True, help="시뮬레이션 데이터 초기화")
+
+    if btn_watch:
+        now = datetime.utcnow()
+        ev1 = SecurityEvent(
+            event_id=f"EVT-SIM-DB-{int(now.timestamp())}",
+            timestamp=now,
+            log_source=LogSource.DB,
+            actor=Actor(user_id="park_finance", src_ip="192.168.10.77"),
+            target=Target(dst_ip="10.0.0.30", dst_port=3306),
+            action=EventAction.SELECT,
+            payload=PayloadMetadata(table_name="customer_vault", query_string="SELECT user_id, rrn, balance FROM customer_vault")
+        )
+        ev2 = SecurityEvent(
+            event_id=f"EVT-SIM-DNS-{int(now.timestamp())}",
+            timestamp=now + timedelta(seconds=5),
+            log_source=LogSource.DNS,
+            actor=Actor(user_id="park_finance", src_ip="192.168.10.77"),
+            target=Target(domain="chatgpt.com"),
+            action=EventAction.QUERY,
+            payload=PayloadMetadata(category="Generative_AI")
+        )
+        ctx.correlation_engine.update_user_risk(ev1)
+        ctx.correlation_engine.update_user_risk(ev2)
+        st.toast("⚡ [1단계 선제 감시] 사용자 'park_finance'가 WATCH 상태로 승격되었습니다!", icon="👁️")
+        st.rerun()
+
+    if btn_high:
+        now = datetime.utcnow()
+        ev3 = SecurityEvent(
+            event_id=f"EVT-SIM-FW-{int(now.timestamp())}",
+            timestamp=now,
+            log_source=LogSource.FIREWALL,
+            actor=Actor(user_id="park_finance", src_ip="192.168.10.77"),
+            target=Target(domain="api.openai.com", dst_port=443),
+            action=EventAction.ALLOW,
+            payload=PayloadMetadata(bytes_sent=48500000)
+        )
+        ctx.correlation_engine.update_user_risk(ev3)
+        for inc in ctx.correlation_engine.get_all_incidents():
+            if "park_finance" in inc.title or "park_finance" in inc.actor:
+                st.session_state.selected_incident_id = inc.incident_id
+                break
+        st.toast("🚨 [2단계 유출 확정] 'park_finance' 외부 48.5MB 전송 포착! HIGH Incident 생성 완료!", icon="🚨")
+        st.rerun()
+
+    if btn_heal:
+        now = datetime.utcnow()
+        ctx.correlation_engine.store.upsert_risk(
+            user="choi_intern",
+            state="NORMAL",
+            score=15,
+            reasons=["30분 경과: 외부 데이터 전송 행위 없음 (오탐 자동 해제)"],
+            expires_at=now + timedelta(hours=1)
+        )
+        ctx.correlation_engine.store.append_history(
+            user="choi_intern",
+            from_state="WATCH",
+            to_state="NORMAL",
+            reason="30분 만료(TTL)로 인한 정상(NORMAL) 자가 치유"
+        )
+        st.toast("⏱️ [오탐 자동 해제] 30분간 전송이 없었던 'choi_intern'이 NORMAL로 자가 치유되었습니다.", icon="⏱️")
+        st.rerun()
+
+    if btn_reset:
+        with ctx.correlation_engine.store._get_conn() as conn:
+            conn.execute("DELETE FROM user_risk WHERE user IN ('park_finance', 'choi_intern')")
+            conn.execute("DELETE FROM risk_history WHERE user IN ('park_finance', 'choi_intern')")
+            conn.execute("DELETE FROM incidents WHERE actor LIKE '%park_finance%'")
+            conn.commit()
+        remove_keys = [k for k, inc in list(ctx.correlation_engine.incidents.items()) if "park_finance" in inc.actor]
+        for k in remove_keys:
+            del ctx.correlation_engine.incidents[k]
+        st.toast("🔄 시뮬레이션 상태가 리셋되었습니다.", icon="🔄")
+        st.rerun()
 
     st.markdown("---")
     st.markdown(f"""
@@ -1260,6 +1350,16 @@ if menu == "대시보드 종합 관제":
             </div>
         </div>
         """, unsafe_allow_html=True)
+
+    # 📜 실시간 2단계 상태 머신 감사 이력 (SQLite risk_history)
+    with st.expander("📜 실시간 2단계 상태 머신 감사 이력 (SQLite `risk_history`)", expanded=False):
+        hist = ctx.correlation_engine.store.get_risk_history(10)
+        if hist:
+            df_hist = pd.DataFrame(hist)[["at", "user", "from_state", "to_state", "reason"]]
+            df_hist.columns = ["일시 (UTC)", "대상자", "이전 상태", "전이 상태", "판정 사유"]
+            st.dataframe(df_hist, use_container_width=True)
+        else:
+            st.caption("아직 기록된 상태 전이 이력이 없습니다. 좌측 사이드바 시뮬레이터를 실행해보세요.")
 
     # 3대 위험도별 KPI 카드 및 드롭다운 메뉴 (CRITICAL/HIGH, MEDIUM, LOW로 3분할 균등 확장)
     kpi1, kpi2, kpi3 = st.columns(3)

@@ -26,3 +26,5 @@ walkthroughs/
 *.ps1
 *.png
 *_backup*.py
+*.db
+*.sqlite3
