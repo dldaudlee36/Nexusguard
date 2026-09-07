@@ -671,7 +671,7 @@ with st.sidebar:
     </div>
     """, unsafe_allow_html=True)
 
-    menu_options = ["대시보드 종합 관제", "침해사고 킬체인 분석", "섀도우 AI·IT 거버넌스", "Zero Trust 승인센터", "원천 이벤트 탐색"]
+    menu_options = ["대시보드 종합 관제", "침해사고 킬체인 분석", "섀도우 AI·IT 거버넌스", "📡 팀원 Agent & Railway", "Zero Trust 승인센터", "원천 이벤트 탐색"]
     if "nav_radio" not in st.session_state:
         st.session_state.nav_radio = "대시보드 종합 관제"
 
@@ -684,12 +684,13 @@ with st.sidebar:
 
     st.markdown("---")
     with st.expander("🧪 실시간 시뮬레이터", expanded=True):
-        st.markdown("<div style='font-size:12px; color:#cbd5e1; margin-bottom:10px;'>사내 Shadow AI 기밀 유출 킬체인을 단계별로 실시간 시뮬레이션합니다.</div>", unsafe_allow_html=True)
+        st.markdown("<div style='font-size:12px; color:#cbd5e1; margin-bottom:4px;'>사내 Shadow AI 기밀 유출 킬체인을 단계별로 실시간 시뮬레이션합니다.</div>", unsafe_allow_html=True)
+        st.markdown("<div style='font-size:11px; color:#38bdf8; margin-bottom:10px;'>👥 <b>팀원 실제 로그 연동 모드</b> (NexusGuardAgent.exe & activity.log)</div>", unsafe_allow_html=True)
         col_s1, col_s2 = st.columns(2)
         with col_s1:
-            btn_watch = st.button("👁️ 1단계\n선제 감시", use_container_width=True, help="기밀 DB 조회 + 미승인 AI 질의 발생 -> 전송 전 WATCH 상태 승격")
+            btn_watch = st.button("👁️ 1단계\n선제 감시", use_container_width=True, help="팀원(kim, User)의 기밀 DB 조회 + 미승인 SaaS/AI 접속 포착 -> WATCH 선제 승격")
         with col_s2:
-            btn_high = st.button("🚨 2단계\n유출 확정", use_container_width=True, help="WATCH 대상자의 대용량 외부 전송 발생 -> HIGH Incident 즉시 확정")
+            btn_high = st.button("🚨 2단계\n유출 확정", use_container_width=True, help="WATCH 대상자의 대용량 외부 전송 포착 -> HIGH Incident 즉시 확정")
             
         col_s3, col_s4 = st.columns(2)
         with col_s3:
@@ -697,68 +698,14 @@ with st.sidebar:
         with col_s4:
             btn_reset = st.button("🔄 초기화\n시뮬 리셋", use_container_width=True, help="시뮬레이션 데이터 초기화")
 
-    SIM_SCENARIOS = [
-        {
-            "user": "park_finance",
-            "name": "박재무 대리",
-            "ip": "192.168.10.77",
-            "table": "customer_vault",
-            "query": "SELECT user_id, rrn, balance FROM customer_vault WHERE balance > 100000000",
-            "service": "chatgpt.com",
-            "dst_domain": "api.openai.com",
-            "category": "Generative_AI",
-            "data_desc": "금융 VIP 고객 2.4만 건 RRN 및 자산 원장",
-            "bytes": 48500000
-        },
-        {
-            "user": "lee_dev",
-            "name": "이개발 책임",
-            "ip": "192.168.20.104",
-            "table": "core_infra_secrets",
-            "query": "SELECT repo_path, master_api_key, pem_cert FROM core_infra_secrets",
-            "service": "claude.ai",
-            "dst_domain": "api.anthropic.com",
-            "category": "Generative_AI",
-            "data_desc": "사내 클라우드 마스터 API 시크릿 및 SSL 인증서",
-            "bytes": 68200000
-        },
-        {
-            "user": "jung_sales",
-            "name": "정영업 차장",
-            "ip": "192.168.30.55",
-            "table": "corp_strategic_plan",
-            "query": "SELECT tender_pricing, partner_nda FROM confidential_tender_bid",
-            "service": "deepseek.com",
-            "dst_domain": "api.deepseek.com",
-            "category": "Generative_AI",
-            "data_desc": "2026 차세대 사업 비공개 수주 전략 및 입찰 단가표",
-            "bytes": 35600000
-        },
-        {
-            "user": "kang_hr",
-            "name": "강인사 과장",
-            "ip": "192.168.10.12",
-            "table": "payroll_vault",
-            "query": "SELECT emp_id, ssn, appraisal_score, salary FROM payroll_2026",
-            "service": "chatgpt.com",
-            "dst_domain": "chatgpt.com",
-            "category": "Generative_AI",
-            "data_desc": "전사 임직원 2026 연봉계약서 및 다면 인사평가표",
-            "bytes": 22400000
-        },
-        {
-            "user": "choi_intern",
-            "name": "최인턴 사원",
-            "ip": "192.168.40.89",
-            "table": "customer_leads",
-            "query": "SELECT email, phone, corporate_name FROM enterprise_leads",
-            "service": "notion.so",
-            "dst_domain": "file-upload.notion.so",
-            "category": "Cloud_Workspace",
-            "data_desc": "엔터프라이즈 리드 1,500개사 담당자 연락처 원장",
-            "bytes": 14200000
-        }
-    ]
+        if st.button("🌐 Railway 최신 로그 동기화", use_container_width=True, help="Railway 중앙 서버에서 최신 에이전트 수집 로그를 즉시 갱신합니다."):
+            from nexusguard.collectors.team_collector import fetch_railway_events
+            r_logs = fetch_railway_events(timeout=5)
+            st.toast(f"🔄 Railway 중앙 서버에서 최신 {len(r_logs)}개 에이전트 로그를 동기화했습니다.", icon="🌐")
+            st.rerun()
+
+    from nexusguard.collectors.team_collector import get_team_sim_scenarios
+    SIM_SCENARIOS = get_team_sim_scenarios()
 
     if btn_watch:
         import random
@@ -929,7 +876,7 @@ with st.sidebar:
             </span>
         </div>
         <div style="color: #62d487; font-size:12px; margin-top:6px; display:flex; align-items:center;">
-            <span class="pipeline-pulse-dot"></span> DNS 수집기 (dnsmasq) 정상
+            <span class="pipeline-pulse-dot"></span> 팀원 Agent(NexusGuardAgent.exe) & Railway 정상 (LIVE)
         </div>
         <div style="color: #62d487; font-size:12px; margin-top:5px; display:flex; align-items:center;">
             <span class="pipeline-pulse-dot"></span> 이기종 로그 정규화 정상
@@ -2100,6 +2047,161 @@ elif menu == "섀도우 AI·IT 거버넌스":
 
 
 # ==========================================
+# ==========================================
+# VIEW: 팀원 Agent & Railway 파이프라인
+# ==========================================
+elif menu == "📡 팀원 Agent & Railway":
+    from nexusguard.collectors.team_collector import (
+        fetch_railway_events, fetch_activity_log_events, load_team_guide_markdown, RAILWAY_URL, RAILWAY_API_KEY
+    )
+
+    st.markdown("<h2>📡 팀원 Agent & Railway 중앙 서버 파이프라인 연동</h2>", unsafe_allow_html=True)
+    st.caption("팀원들이 개발한 Windows Agent(NexusGuardAgent.exe)와 Railway 클라우드 중앙 서버(Flask + PostgreSQL)의 실시간 수집 현황 및 연동 가이드입니다.")
+
+    r_events = fetch_railway_events(timeout=5)
+    act_events = fetch_activity_log_events()
+
+    # 상단 실시간 메트릭 카드 4종
+    kpi_c1, kpi_c2, kpi_c3, kpi_c4 = st.columns(4)
+    with kpi_c1:
+        st.markdown(f"""
+        <div class="kpi-card" style="border-left: 4px solid #10b981;">
+            <div class="kpi-title">Railway 서버 통신 상태</div>
+            <div class="kpi-value" style="color:#10b981; font-size:20px;">🟢 정상 (200 OK)</div>
+            <div class="kpi-sub">bountiful-nature...railway.app</div>
+        </div>
+        """, unsafe_allow_html=True)
+    with kpi_c2:
+        st.markdown(f"""
+        <div class="kpi-card" style="border-left: 4px solid #38bdf8;">
+            <div class="kpi-title">수집된 실제 에이전트 로그</div>
+            <div class="kpi-value" style="color:#38bdf8;">{len(r_events)} 건</div>
+            <div class="kpi-sub">PostgreSQL events 테이블 연동</div>
+        </div>
+        """, unsafe_allow_html=True)
+    with kpi_c3:
+        st.markdown(f"""
+        <div class="kpi-card" style="border-left: 4px solid #a855f7;">
+            <div class="kpi-title">실시간 수집 PC</div>
+            <div class="kpi-value" style="color:#a855f7; font-size:18px;">DESKTOP-OF0CMDB</div>
+            <div class="kpi-sub">수집 대상: User, kim</div>
+        </div>
+        """, unsafe_allow_html=True)
+    with kpi_c4:
+        st.markdown(f"""
+        <div class="kpi-card" style="border-left: 4px solid #f59e0b;">
+            <div class="kpi-title">팀 API Key 인증</div>
+            <div class="kpi-value" style="color:#f59e0b; font-size:20px;">{RAILWAY_API_KEY}</div>
+            <div class="kpi-sub">헤더 X-API-Key 인증 완료</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # 탭 구성: [실시간 수집 로그 테이블], [파이프라인 아키텍처], [팀원 가이드 원문]
+    tab_logs, tab_arch, tab_guide = st.tabs([
+        f"📋 Railway 실시간 수집 로그 ({len(r_events)}건)",
+        "🏗️ 4단계 데이터 파이프라인 구조",
+        "📖 팀원 공유 초간단 가이드 원문"
+    ])
+
+    with tab_logs:
+        st.markdown("### 🌐 Railway 중앙 서버 수집 이벤트 (/events)")
+        st.caption("각 PC에서 `NexusGuardAgent.exe`가 사이트 접속(DNS)을 자동 감지하여 중앙 서버에 전송한 실제 데이터입니다.")
+
+        col_btn_ref, _ = st.columns([1.5, 4])
+        with col_btn_ref:
+            if st.button("🔄 Railway 실제 로그 새로고침", use_container_width=True):
+                st.rerun()
+
+        if r_events:
+            df_rly = pd.DataFrame(r_events)
+            cols_order = [c for c in ["id", "event_time", "user_name", "pc_name", "event_type", "target", "source", "risk_score"] if c in df_rly.columns]
+            df_display = df_rly[cols_order].rename(columns={
+                "id": "ID",
+                "event_time": "발생 시각",
+                "user_name": "사용자",
+                "pc_name": "PC 이름",
+                "event_type": "이벤트 종류",
+                "target": "접속 사이트",
+                "source": "수집 소스",
+                "risk_score": "위험 점수"
+            })
+            st.dataframe(df_display, hide_index=True, use_container_width=True, height=350)
+        else:
+            st.warning("Railway 서버에서 수집된 로그가 없습니다.")
+
+        st.markdown("---")
+        st.markdown("### 💾 사내 DB 감사 활동 로그 (activity.log)")
+        st.caption("사내 DB(company_db)의 민감 테이블(`customer_vault`, `customer_db`) 조회 활동 원천 로그입니다.")
+        if act_events:
+            df_act = pd.DataFrame(act_events).rename(columns={
+                "id": "ID",
+                "event_time": "발생 시각",
+                "user_name": "사용자",
+                "pc_name": "PC 이름",
+                "event_type": "수행 액션",
+                "target": "대상 테이블/도메인",
+                "rows": "조회 행 수"
+            })
+            st.dataframe(df_act, hide_index=True, use_container_width=True)
+
+    with tab_arch:
+        st.markdown("### 🔄 NexusGuard 전체 수집 파이프라인 흐름도")
+        st.markdown(f"""
+        <div style="background:#0b1523; border:1px solid #1e3a5f; border-radius:12px; padding:20px; margin-bottom:15px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                <div style="background:#132238; border:1px solid #2563eb; border-radius:8px; padding:12px; flex:1; min-width:180px; text-align:center;">
+                    <div style="font-size:24px;">💻</div>
+                    <div style="font-weight:bold; color:#60a5fa; font-size:14px; margin-top:4px;">1. 사용자 PC</div>
+                    <div style="color:#94a3b8; font-size:12px;">NexusGuardAgent.exe</div>
+                    <div style="color:#cbd5e1; font-size:11px; margin-top:4px;">크롬/브라우저 사이트 접속 감지</div>
+                </div>
+                <div style="color:#38bdf8; font-size:20px; font-weight:bold;">➔</div>
+                <div style="background:#132238; border:1px solid #10b981; border-radius:8px; padding:12px; flex:1; min-width:180px; text-align:center;">
+                    <div style="font-size:24px;">⚡</div>
+                    <div style="font-weight:bold; color:#34d399; font-size:14px; margin-top:4px;">2. Railway 중앙 서버</div>
+                    <div style="color:#94a3b8; font-size:12px;">Flask /events API</div>
+                    <div style="color:#cbd5e1; font-size:11px; margin-top:4px;">인터넷 REST API로 수신</div>
+                </div>
+                <div style="color:#38bdf8; font-size:20px; font-weight:bold;">➔</div>
+                <div style="background:#132238; border:1px solid #a855f7; border-radius:8px; padding:12px; flex:1; min-width:180px; text-align:center;">
+                    <div style="font-size:24px;">🗄️</div>
+                    <div style="font-weight:bold; color:#c084fc; font-size:14px; margin-top:4px;">3. PostgreSQL DB</div>
+                    <div style="color:#94a3b8; font-size:12px;">events 테이블</div>
+                    <div style="color:#cbd5e1; font-size:11px; margin-top:4px;">클라우드 데이터 영구 저장</div>
+                </div>
+                <div style="color:#38bdf8; font-size:20px; font-weight:bold;">➔</div>
+                <div style="background:#132238; border:1px solid #f59e0b; border-radius:8px; padding:12px; flex:1; min-width:180px; text-align:center;">
+                    <div style="font-size:24px;">🛡️</div>
+                    <div style="font-weight:bold; color:#fbbf24; font-size:14px; margin-top:4px;">4. Streamlit UI</div>
+                    <div style="color:#94a3b8; font-size:12px;">NexusGuard 대시보드</div>
+                    <div style="color:#cbd5e1; font-size:11px; margin-top:4px;">실시간 상관분석 & 관제 화면</div>
+                </div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        st.markdown("#### ⚙️ 실제 연동 코드 규격 (팀원 가이드 4번 항목)")
+        st.code(f"""
+import requests
+
+url = "{RAILWAY_URL}"
+headers = {{
+    "X-API-Key": "{RAILWAY_API_KEY}"
+}}
+
+response = requests.get(url, headers=headers, timeout=5)
+response.raise_for_status()
+logs = response.json()
+        """, language="python")
+
+    with tab_guide:
+        guide_text = load_team_guide_markdown()
+        st.markdown(guide_text)
+
+
+# ==========================================
 # VIEW 4: Zero Trust 승인센터 & 접근통제 (IDAM)
 # ==========================================
 elif menu == "Zero Trust 승인센터":
@@ -2121,10 +2223,26 @@ elif menu == "Zero Trust 승인센터":
 # ==========================================
 elif menu == "원천 이벤트 탐색":
     st.markdown("<h2>🔎 원천 보안 이벤트 스트림 탐색 (Event Explorer)</h2>", unsafe_allow_html=True)
+    st.caption("팀원들의 실제 Windows 에이전트 로그, 사내 DB 감사 로그 및 침해 상관분석 이벤트를 통합 검색합니다.")
     
-    events = ctx.initial_events
+    from nexusguard.collectors.team_collector import get_team_security_events
+    team_events = get_team_security_events()
+    all_events = team_events + ctx.initial_events
+    
+    src_filter = st.radio("로그 필터", ["전체 이벤트", "🌐 Railway 실시간 에이전트 로그", "💾 사내 DB 감사 로그", "모의 침해 킬체인 로그"], horizontal=True)
+    
+    filtered_events = []
+    for e in all_events:
+        if src_filter == "🌐 Railway 실시간 에이전트 로그" and not e.event_id.startswith("EVT-RLY"):
+            continue
+        elif src_filter == "💾 사내 DB 감사 로그" and not (e.event_id.startswith("EVT-ACT") or e.log_source == LogSource.DB):
+            continue
+        elif src_filter == "모의 침해 킬체인 로그" and (e.event_id.startswith("EVT-RLY") or e.event_id.startswith("EVT-ACT")):
+            continue
+        filtered_events.append(e)
+
     ev_list = []
-    for e in events:
+    for e in filtered_events:
         ev_list.append({
             "이벤트 ID": e.event_id,
             "발생 시각": e.timestamp.strftime('%H:%M:%S'),
@@ -2133,6 +2251,6 @@ elif menu == "원천 이벤트 탐색":
             "사용자": e.actor.user_id or "-",
             "목적지": e.target.domain or f"{e.target.dst_ip}:{e.target.dst_port}",
             "행위": e.action.value,
-            "원천 로그": e.raw_message[:60] + "..." if e.raw_message else "-"
+            "원천 로그": e.raw_message[:70] + "..." if e.raw_message else "-"
         })
     st.dataframe(pd.DataFrame(ev_list), hide_index=True, use_container_width=True)

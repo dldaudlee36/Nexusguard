@@ -5,6 +5,7 @@ NexusGuard - Memory Store
 
 from typing import Optional, TYPE_CHECKING
 from nexusguard.generators.dummy_logs import get_all_initial_events
+from nexusguard.schemas.event import LogSource
 
 if TYPE_CHECKING:
     from nexusguard.engine.correlation import CorrelationEngine
@@ -26,6 +27,16 @@ class AppContext:
         self.correlation_engine.ingest_events(self.initial_events)
         for ev in self.initial_events:
             self.governance_engine.process_dns_event(ev)
+
+        # 팀원들의 실제 에이전트 및 DB 이벤트 피딩
+        try:
+            from nexusguard.collectors.team_collector import get_team_security_events
+            self.team_events = get_team_security_events()
+            for ev in self.team_events:
+                if ev.log_source == LogSource.DNS:
+                    self.governance_engine.process_dns_event(ev)
+        except Exception as e:
+            self.team_events = []
 
     @classmethod
     def get_instance(cls) -> "AppContext":

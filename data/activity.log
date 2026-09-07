@@ -1,0 +1,7 @@
+2026-09-07T00:07:39.159470 user=kim action=DB_SELECT target=customer_db
+2026-09-07T00:09:22.138097 user=kim action=DB_SELECT target=customer_db
+2026-09-07T00:12:23.408468 user=kim action=DB_SELECT target=customer_db
+2026-09-07T00:12:24.311763 user=kim action=DB_SELECT target=customer_db
+2026-09-07T00:12:37.839533 user=kim action=WEB_ACCESS domain=notion.so
+2026-09-07T00:26:55.671134 user=kim action=DB_SELECT target=customer_db
+2026-09-07T00:27:42.713941 user=kim action=DB_SELECT target=customer_vault rows=2
