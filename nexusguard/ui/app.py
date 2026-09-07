@@ -317,63 +317,6 @@ st.markdown("""
         align-items: center !important;
         gap: 10px !important;
     }
-    .dashboard-title-box {
-        position: relative;
-        display: inline-block;
-        margin-bottom: 22px;
-        cursor: pointer;
-    }
-    .dashboard-title {
-        margin: 0;
-        font-size: 28px !important;
-        font-weight: 800;
-        color: #ffffff;
-        letter-spacing: -0.5px;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-    .dashboard-info-icon {
-        font-size: 20px;
-        color: #64748b;
-        cursor: pointer;
-        transition: color 0.2s;
-    }
-    .dashboard-title-box:hover .dashboard-info-icon,
-    .nexus-page-title-box:hover .dashboard-info-icon {
-        color: #38bdf8;
-    }
-    .dashboard-title-tooltip {
-        visibility: hidden;
-        opacity: 0;
-        position: absolute;
-        top: calc(100% + 6px);
-        left: 0;
-        background: rgba(12, 28, 51, 0.95) !important;
-        backdrop-filter: blur(12px) !important;
-        -webkit-backdrop-filter: blur(12px) !important;
-        color: #93c5fd;
-        font-size: 13px;
-        font-weight: 500;
-        padding: 9px 16px;
-        border-radius: 8px;
-        border: 1px solid #2563eb;
-        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.75), 0 0 12px rgba(37, 99, 235, 0.25);
-        white-space: nowrap;
-        z-index: 9999;
-        transform: translateY(-4px) scale(0.98);
-        transition: opacity 0.24s cubic-bezier(0.16, 1, 0.3, 1),
-                    transform 0.24s cubic-bezier(0.16, 1, 0.3, 1),
-                    visibility 0.24s cubic-bezier(0.16, 1, 0.3, 1);
-        pointer-events: none;
-    }
-    .dashboard-title-box:hover .dashboard-title-tooltip,
-    .nexus-page-title-box:hover .dashboard-title-tooltip {
-        visibility: visible;
-        opacity: 1;
-        transform: translateY(0) scale(1);
-    }
-
     /* 통합 인시던트 선택기 단일 박스 컨테이너 */
     div[data-testid="stVerticalBlockBorderWrapper"] {
         background-color: #0c182a !important;
@@ -510,6 +453,34 @@ st.markdown("""
         visibility: visible;
         opacity: 1;
         transform: translate(-50%, 0) scale(1);
+    }
+
+    /* 페이지 제목 앞 아이콘 전용 설명창: 아이콘에만 반응하고 제목 아래로 펼침 */
+    .nexus-page-title > .tooltip-container {
+        cursor: help;
+        flex-shrink: 0;
+    }
+    .nexus-page-title > .tooltip-container .tooltip-popup {
+        top: calc(100% + 10px);
+        bottom: auto;
+        left: 0;
+        width: max-content;
+        min-width: 320px;
+        max-width: min(440px, 82vw);
+        white-space: normal;
+        font-size: 13px;
+        font-weight: 500;
+        transform: translate(0, -4px) scale(0.98);
+        transform-origin: top left;
+    }
+    .nexus-page-title > .tooltip-container .tooltip-popup::after {
+        top: -12px;
+        left: 18px;
+        margin-left: 0;
+        border-color: transparent transparent #38bdf8 transparent;
+    }
+    .nexus-page-title > .tooltip-container:hover .tooltip-popup {
+        transform: translate(0, 0) scale(1);
     }
 
     /* Streamlit 내장 툴팁 (help=...) 부드러운 페이드인 애니메이션 */
@@ -960,6 +931,10 @@ def tooltip(icon: str, title: str, desc: str) -> str:
         </span>
     </span>
     """
+
+def title_tooltip(icon: str, title: str, desc: str) -> str:
+    """Streamlit Markdown 파서가 제목 구조를 깨지 않도록 한 줄 HTML로 렌더링"""
+    return f'<span class="tooltip-container"><span class="tooltip-icon">{icon}</span><span class="tooltip-popup"><b style="color:#38bdf8; font-size:13px;">{title}</b><br><span style="color:#cbd5e1;">{desc}</span></span></span>'
 
 # 4. 데이터 컨텍스트 캐싱 (Streamlit Cloud 연산 딜레이 방지)
 @st.cache_resource
@@ -1955,15 +1930,8 @@ def render_interactive_map(svg_markup: str):
 
 
 if menu == "종합 관제":
-    st.markdown("""
-    <div class="nexus-page-title-box">
-        <h1 class="nexus-page-title">
-            🛡️ 종합 관제 <span class="dashboard-info-icon" title="마우스를 올리면 시스템 설명이 표시됩니다">ℹ️</span>
-        </h1>
-        <div class="dashboard-title-tooltip">
-            🛡️ 실시간 이기종 로그 연계 침해사고 재구성 및 내부 데이터 거버넌스 모니터링 (Zero Trust XDR)
-        </div>
-    </div>
+    st.markdown(f"""
+    <div class="nexus-page-title-box"><div class="nexus-page-title" role="heading" aria-level="1">{title_tooltip("🛡️", "종합 관제", "실시간 이기종 로그를 연계하여 침해사고를 재구성하고 내부 데이터 거버넌스를 모니터링하는 Zero Trust XDR 화면입니다.")}<span>종합 관제</span></div></div>
     """, unsafe_allow_html=True)
 
     # 위험도별 인시던트 목록 분할 (WATCH: MEDIUM / NORMAL: LOW)
@@ -2470,10 +2438,7 @@ elif menu == "중앙 서버 파이프라인":
     )
 
     st.markdown(f"""
-    <div class="nexus-page-title-box">
-        <h1 class="nexus-page-title">📡 중앙 서버 파이프라인</h1>
-        {tooltip("ℹ️", "중앙 서버 파이프라인 연동 가이드", "팀원들이 개발한 Windows Agent(NexusGuardAgent.exe)와 Railway 클라우드 중앙 서버(Flask + PostgreSQL)의 실시간 수집 현황 및 연동 가이드입니다.")}
-    </div>
+    <div class="nexus-page-title-box"><div class="nexus-page-title" role="heading" aria-level="1">{title_tooltip("📡", "중앙 서버 파이프라인", "Windows 에이전트(NexusGuardAgent.exe)와 Railway 중앙 서버(Flask + PostgreSQL)의 실시간 로그 수집 및 연동 상태를 확인하는 화면입니다.")}<span>중앙 서버 파이프라인</span></div></div>
     """, unsafe_allow_html=True)
 
     # Railway 수집 활성화 여부
