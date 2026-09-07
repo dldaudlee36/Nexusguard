@@ -656,7 +656,7 @@ incident_ids = [inc.incident_id for inc in incidents]
 if "selected_incident_id" not in st.session_state:
     st.session_state.selected_incident_id = incident_ids[0]
 if "nav_radio" not in st.session_state:
-    st.session_state.nav_radio = "대시보드 종합 관제"
+    st.session_state.nav_radio = "종합 관제"
 
 # 안전한 페이지 전환 및 인시던트 선택 콜백 (StreamlitAPIException 방지)
 def navigate_to(page_name, inc_id=None):
@@ -677,9 +677,9 @@ with st.sidebar:
     </div>
     """, unsafe_allow_html=True)
 
-    menu_options = ["대시보드 종합 관제", "침해사고 킬체인 분석", "섀도우 AI·IT 거버넌스", "📡 팀원 Agent & Railway"]
-    if "nav_radio" not in st.session_state:
-        st.session_state.nav_radio = "대시보드 종합 관제"
+    menu_options = ["종합 관제", "킬체인 분석", "AI·IT 거버넌스", "중앙 서버 파이프 라인"]
+    if "nav_radio" not in st.session_state or st.session_state.nav_radio not in menu_options:
+        st.session_state.nav_radio = "종합 관제"
 
     menu = st.radio(
         "네비게이션",
@@ -713,8 +713,8 @@ with st.sidebar:
         if "view_railway_collection_toggle" not in st.session_state:
             st.session_state["view_railway_collection_toggle"] = st.session_state["railway_collection_active"]
 
-        # 🌟 현재 '📡 팀원 Agent & Railway' 페이지가 아닐 때만 사이드바 수집 제어 박스 표시
-        if menu != "📡 팀원 Agent & Railway":
+        # 🌟 현재 '중앙 서버 파이프 라인' 페이지가 아닐 때만 사이드바 수집 제어 박스 표시
+        if menu != "중앙 서버 파이프 라인":
             st.markdown("<div style='height:6px;'></div>", unsafe_allow_html=True)
             with st.container(border=True):
                 st.markdown("<div style='font-size:12px; font-weight:700; color:#38bdf8; margin-bottom:4px;'>🌐 Railway 실시간 수집</div>", unsafe_allow_html=True)
@@ -1592,7 +1592,7 @@ def render_interactive_map(svg_markup: str):
     components.html(map_html, height=310)
 
 
-if menu == "대시보드 종합 관제":
+if menu == "종합 관제":
     st.markdown("""
     <div class="dashboard-title-box">
         <h1 class="dashboard-title">
@@ -1872,25 +1872,25 @@ if menu == "대시보드 종합 관제":
             "🔍 킬체인 심층 분석 바로가기 ➔",
             key="btn_jump_kc",
             on_click=navigate_to,
-            args=("침해사고 킬체인 분석", selected_inc.incident_id),
+            args=("킬체인 분석", selected_inc.incident_id),
             use_container_width=True,
             help="해당 인시던트의 네트워크 토폴로지 맵 및 상세 킬체인 분석 탭으로 이동합니다."
         )
 
 
 # ==========================================
-# VIEW 2: 침해사고 킬체인 분석 (Lateral Movement)
+# VIEW 2: 킬체인 분석 (Lateral Movement)
 # ==========================================
-elif menu == "침해사고 킬체인 분석":
+elif menu == "킬체인 분석":
     top_col1, top_col2 = st.columns([7, 3])
     with top_col1:
         st.markdown("<h2>🎯 외부 침투 및 침해사고 킬체인(Lateral Movement) 심층 분석</h2>", unsafe_allow_html=True)
     with top_col2:
         st.markdown("<div style='margin-top: 10px;'></div>", unsafe_allow_html=True)
         st.button(
-            "⬅️ 대시보드 종합 관제로 돌아가기",
+            "⬅️ 종합 관제로 돌아가기",
             on_click=navigate_to,
-            args=("대시보드 종합 관제",),
+            args=("종합 관제",),
             use_container_width=True
         )
 
@@ -2025,9 +2025,9 @@ elif menu == "침해사고 킬체인 분석":
         """, unsafe_allow_html=True)
 
 
-# VIEW 3: 섀도우 AI·IT 거버넌스 (Shadow IT/AI)
+# VIEW 3: AI·IT 거버넌스 (Shadow IT/AI)
 # ==========================================
-elif menu == "섀도우 AI·IT 거버넌스":
+elif menu == "AI·IT 거버넌스":
     st.markdown("<h2>🤖 사내 섀도우 IT 및 생성형 AI 거버넌스 대시보드</h2>", unsafe_allow_html=True)
     with st.expander("⚡ Gemini AI 실시간 미등록 외부 도메인 진단기 (즉시 테스트)", expanded=True):
         st.markdown("""
@@ -2097,17 +2097,17 @@ elif menu == "섀도우 AI·IT 거버넌스":
 
 # ==========================================
 # ==========================================
-# VIEW: 팀원 Agent & Railway 파이프라인
+# VIEW 4: 중앙 서버 파이프 라인
 # ==========================================
-elif menu == "📡 팀원 Agent & Railway":
+elif menu == "중앙 서버 파이프 라인":
     from nexusguard.collectors.team_collector import (
         fetch_railway_events, fetch_activity_log_events, load_team_guide_markdown, RAILWAY_URL, RAILWAY_API_KEY
     )
 
     st.markdown(f"""
     <div style="display:flex; align-items:center; gap:8px; margin-bottom: 12px;">
-        <h2 style="margin:0; font-size:24px; font-weight:700;">📡 팀원 Agent & Railway 중앙 서버 파이프라인 연동</h2>
-        {tooltip("ℹ️", "팀원 Agent & Railway 연동 가이드", "팀원들이 개발한 Windows Agent(NexusGuardAgent.exe)와 Railway 클라우드 중앙 서버(Flask + PostgreSQL)의 실시간 수집 현황 및 연동 가이드입니다.")}
+        <h2 style="margin:0; font-size:24px; font-weight:700;">📡 중앙 서버 파이프 라인</h2>
+        {tooltip("ℹ️", "중앙 서버 파이프 라인 연동 가이드", "팀원들이 개발한 Windows Agent(NexusGuardAgent.exe)와 Railway 클라우드 중앙 서버(Flask + PostgreSQL)의 실시간 수집 현황 및 연동 가이드입니다.")}
     </div>
     """, unsafe_allow_html=True)
 
