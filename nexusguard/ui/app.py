@@ -121,21 +121,28 @@ st.markdown("""
         background: #0d1a2b;
         border: 1px solid #1c2e47;
         border-radius: 14px;
-        padding: 20px 24px;
+        padding: 16px 20px;
         margin-bottom: 15px;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        min-height: 125px;
+        height: 125px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        box-sizing: border-box;
     }
     .kpi-title {
-        font-size: 14px;
+        font-size: 13px;
         font-weight: 600;
         color: #9fb0c8;
-        margin-bottom: 8px;
+        margin-bottom: 6px;
     }
     .kpi-value {
-        font-size: 38px;
+        font-size: 32px;
         font-weight: 700;
         color: #ffffff;
-        letter-spacing: -1px;
+        letter-spacing: -0.5px;
+        line-height: 1.2;
     }
     .kpi-sub {
         font-size: 12px;
@@ -698,32 +705,32 @@ with st.sidebar:
         with col_s4:
             btn_reset = st.button("🔄 초기화\n시뮬 리셋", use_container_width=True, help="시뮬레이션 데이터 초기화")
 
-        st.markdown("<div style='height:4px;'></div>", unsafe_allow_html=True)
-        from nexusguard.collectors.team_collector import set_railway_collection_enabled, is_railway_collection_enabled
-        if "railway_collection_active" not in st.session_state:
-            st.session_state["railway_collection_active"] = True
-        if "sb_railway_toggle" not in st.session_state:
-            st.session_state["sb_railway_toggle"] = st.session_state["railway_collection_active"]
-        if "view_railway_collection_toggle" not in st.session_state:
-            st.session_state["view_railway_collection_toggle"] = st.session_state["railway_collection_active"]
+        st.markdown("<div style='height:6px;'></div>", unsafe_allow_html=True)
+        with st.container(border=True):
+            st.markdown("<div style='font-size:12px; font-weight:700; color:#38bdf8; margin-bottom:4px;'>🌐 Railway 실시간 수집</div>", unsafe_allow_html=True)
+            from nexusguard.collectors.team_collector import set_railway_collection_enabled, is_railway_collection_enabled
+            if "railway_collection_active" not in st.session_state:
+                st.session_state["railway_collection_active"] = True
+            if "sb_railway_toggle" not in st.session_state:
+                st.session_state["sb_railway_toggle"] = st.session_state["railway_collection_active"]
+            if "view_railway_collection_toggle" not in st.session_state:
+                st.session_state["view_railway_collection_toggle"] = st.session_state["railway_collection_active"]
 
-        def _on_sb_railway_toggle():
-            val = st.session_state.get("sb_railway_toggle", True)
-            st.session_state["railway_collection_active"] = val
-            st.session_state["view_railway_collection_toggle"] = val
-            set_railway_collection_enabled(val)
+            def _on_sb_railway_toggle():
+                val = st.session_state.get("sb_railway_toggle", True)
+                st.session_state["railway_collection_active"] = val
+                st.session_state["view_railway_collection_toggle"] = val
+                set_railway_collection_enabled(val)
 
-        col_t1, col_t2 = st.columns([1.1, 1])
-        with col_t1:
             sb_railway_active = st.toggle(
-                "🌐 Railway 수집", 
+                "실시간 로그 수집 가동", 
+                value=st.session_state.get("railway_collection_active", True),
                 key="sb_railway_toggle", 
                 on_change=_on_sb_railway_toggle, 
                 help="Railway 실시간 로그 수집을 켜거나 끕니다."
             )
             set_railway_collection_enabled(sb_railway_active)
-        with col_t2:
-            if st.button("🔄 즉시 동기화", disabled=not sb_railway_active, use_container_width=True, help="Railway 중앙 서버에서 최신 에이전트 수집 로그를 즉시 갱신합니다."):
+            if st.button("🔄 최신 로그 즉시 동기화", disabled=not sb_railway_active, use_container_width=True, key="btn_sb_sync_now", help="Railway 중앙 서버에서 최신 에이전트 수집 로그를 즉시 갱신합니다."):
                 from nexusguard.collectors.team_collector import fetch_railway_events
                 r_logs = fetch_railway_events(timeout=5, force=True)
                 st.toast(f"🔄 Railway 중앙 서버에서 최신 {len(r_logs)}개 에이전트 로그를 동기화했습니다.", icon="🌐")
@@ -2104,42 +2111,52 @@ elif menu == "📡 팀원 Agent & Railway":
 
     railway_active = st.session_state.get("railway_collection_active", True)
 
-    # 실시간 수집 ON / OFF 스위치 카드
-    col_status_info, col_status_toggle = st.columns([3.2, 1.2])
-    with col_status_info:
-        if railway_active:
-            st.markdown("""
-            <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid #10b981; border-radius: 10px; padding: 12px 16px; display: flex; align-items: center;">
-                <span style="font-size: 22px; margin-right: 12px;">🟢</span>
-                <div>
-                    <b style="color: #34d399; font-size: 14px;">Railway 실시간 로그 수집 활성화 (ON)</b><br>
-                    <span style="color: #cbd5e1; font-size: 12px;">중앙 서버(bountiful-nature-production-22ec.up.railway.app/events)로부터 PC 에이전트 로그를 실시간 수집 중입니다.</span>
-                </div>
+    # 상단 수집 상태 안내 배너 (전체 너비 박스로 복원)
+    if railway_active:
+        st.markdown("""
+        <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid #10b981; border-radius: 10px; padding: 14px 18px; display: flex; align-items: center; margin-bottom: 12px;">
+            <span style="font-size: 24px; margin-right: 14px;">🟢</span>
+            <div>
+                <b style="color: #34d399; font-size: 14px;">Railway 실시간 로그 수집 활성화 (ON)</b><br>
+                <span style="color: #cbd5e1; font-size: 12px;">중앙 서버(bountiful-nature-production-22ec.up.railway.app/events)로부터 PC 에이전트 로그를 실시간 수집 중입니다.</span>
             </div>
-            """, unsafe_allow_html=True)
-        else:
-            st.markdown("""
-            <div style="background: rgba(100, 116, 139, 0.15); border: 1px solid #64748b; border-radius: 10px; padding: 12px 16px; display: flex; align-items: center;">
-                <span style="font-size: 22px; margin-right: 12px;">⏸️</span>
-                <div>
-                    <b style="color: #94a3b8; font-size: 14px;">Railway 실시간 로그 수집 일시 정지 (OFF)</b><br>
-                    <span style="color: #cbd5e1; font-size: 12px;">네트워크 API 질의가 중지되었습니다. 우측 스위치를 켜면 즉시 실시간 수집이 재개됩니다.</span>
-                </div>
+        </div>
+        """, unsafe_allow_html=True)
+    else:
+        st.markdown("""
+        <div style="background: rgba(100, 116, 139, 0.15); border: 1px solid #64748b; border-radius: 10px; padding: 14px 18px; display: flex; align-items: center; margin-bottom: 12px;">
+            <span style="font-size: 24px; margin-right: 14px;">⏸️</span>
+            <div>
+                <b style="color: #94a3b8; font-size: 14px;">Railway 실시간 로그 수집 일시 정지 (OFF)</b><br>
+                <span style="color: #cbd5e1; font-size: 12px;">네트워크 API 질의가 중지되었습니다. 하단 스위치를 켜면 즉시 실시간 수집이 재개됩니다.</span>
             </div>
-            """, unsafe_allow_html=True)
-    with col_status_toggle:
-        st.markdown("<div style='height:4px;'></div>", unsafe_allow_html=True)
-        st.toggle(
-            "수집 ON / OFF 스위치", 
-            key="view_railway_collection_toggle", 
-            on_change=_on_view_railway_toggle, 
-            help="클릭하여 Railway 실시간 로그 수집을 켜거나 끕니다."
-        )
+        </div>
+        """, unsafe_allow_html=True)
+
+    # 하단으로 분리된 전용 수집 제어 바
+    with st.container(border=True):
+        col_ctrl1, col_ctrl2 = st.columns([3.2, 1.2])
+        with col_ctrl1:
+            st.toggle(
+                "⚡ Railway 실시간 수집 ON / OFF 스위치", 
+                value=st.session_state.get("railway_collection_active", True),
+                key="view_railway_collection_toggle", 
+                on_change=_on_view_railway_toggle, 
+                help="클릭하여 Railway 실시간 로그 수집을 켜거나 끕니다."
+            )
+        with col_ctrl2:
+            if st.button("🔄 최신 로그 즉시 동기화", disabled=not railway_active, use_container_width=True, key="btn_view_sync_now", help="Railway 중앙 서버에서 최신 에이전트 수집 로그를 즉시 갱신합니다."):
+                from nexusguard.collectors.team_collector import fetch_railway_events
+                r_logs = fetch_railway_events(timeout=5, force=True)
+                st.toast(f"🔄 Railway 중앙 서버에서 최신 {len(r_logs)}개 에이전트 로그를 동기화했습니다.", icon="🌐")
+                st.rerun()
+
+    st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
 
     r_events = fetch_railway_events(timeout=5)
     act_events = fetch_activity_log_events()
 
-    # 상단 실시간 메트릭 카드 4종
+    # 상단 실시간 메트릭 카드 4종 (높이 및 규격 100% 동일 통일)
     kpi_c1, kpi_c2, kpi_c3, kpi_c4 = st.columns(4)
     with kpi_c1:
         if railway_active:
@@ -2160,7 +2177,7 @@ elif menu == "📡 팀원 Agent & Railway":
         st.markdown(f"""
         <div class="kpi-card" style="border-left: 4px solid #38bdf8;">
             <div class="kpi-title">수집된 실제 에이전트 로그</div>
-            <div class="kpi-value" style="color:#38bdf8;">{len(r_events)} 건</div>
+            <div class="kpi-value" style="color:#38bdf8; font-size:26px;">{len(r_events)} 건</div>
             <div class="kpi-sub">PostgreSQL events 테이블 연동</div>
         </div>
         """, unsafe_allow_html=True)
@@ -2168,7 +2185,7 @@ elif menu == "📡 팀원 Agent & Railway":
         st.markdown(f"""
         <div class="kpi-card" style="border-left: 4px solid #a855f7;">
             <div class="kpi-title">실시간 수집 PC</div>
-            <div class="kpi-value" style="color:#a855f7; font-size:18px;">DESKTOP-OF0CMDB</div>
+            <div class="kpi-value" style="color:#a855f7; font-size:18px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">DESKTOP-OF0CMDB</div>
             <div class="kpi-sub">수집 대상: User, kim</div>
         </div>
         """, unsafe_allow_html=True)
@@ -2176,7 +2193,7 @@ elif menu == "📡 팀원 Agent & Railway":
         st.markdown(f"""
         <div class="kpi-card" style="border-left: 4px solid #f59e0b;">
             <div class="kpi-title">팀 API Key 인증</div>
-            <div class="kpi-value" style="color:#f59e0b; font-size:20px;">{RAILWAY_API_KEY}</div>
+            <div class="kpi-value" style="color:#f59e0b; font-size:22px;">{RAILWAY_API_KEY}</div>
             <div class="kpi-sub">헤더 X-API-Key 인증 완료</div>
         </div>
         """, unsafe_allow_html=True)
