@@ -38,14 +38,20 @@ st.markdown("""
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     }
     
-    /* 사이드바 */
+    /* 사이드바 기본 및 드래그 조절 반응형 스타일 */
     section[data-testid="stSidebar"] {
         background-color: #0c1727 !important;
         border-right: 1px solid #1c2b42 !important;
-        width: clamp(280px, 20vw, 380px) !important;
-        min-width: 260px !important;
-        max-width: 420px !important;
-        transition: width 0.2s ease-in-out !important;
+        min-width: 240px;
+        max-width: 750px;
+        position: relative;
+    }
+    /* 사이드바 접힘(Collapsed) 시 완벽 숨김 및 메인 창 100% 확장 보장 */
+    section[data-testid="stSidebar"][aria-expanded="false"] {
+        min-width: 0px !important;
+        max-width: 0px !important;
+        width: 0px !important;
+        transform: translateX(-100%) !important;
     }
 
     /* 🌟 사이드바 라디오 네비게이션 가로 100% 꽉 채우기 및 창 크기 반응형 */
@@ -239,16 +245,37 @@ st.markdown("""
         background-color: transparent !important;
         border: none !important;
     }
-    /* Dashboard 제목 호버 툴팁 */
+    /* =================================================== */
+    /* 🌟 모든 페이지 타이틀 헤더 규격 통일 (28px) */
+    /* =================================================== */
+    .nexus-page-title-box {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 22px;
+        cursor: pointer;
+    }
+    .nexus-page-title {
+        margin: 0 !important;
+        font-size: 28px !important;
+        font-weight: 800 !important;
+        color: #ffffff !important;
+        letter-spacing: -0.5px !important;
+        line-height: 1.3 !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 10px !important;
+    }
     .dashboard-title-box {
         position: relative;
         display: inline-block;
-        margin-bottom: 20px;
+        margin-bottom: 22px;
         cursor: pointer;
     }
     .dashboard-title {
         margin: 0;
-        font-size: 38px;
+        font-size: 28px !important;
         font-weight: 800;
         color: #ffffff;
         letter-spacing: -0.5px;
@@ -262,7 +289,8 @@ st.markdown("""
         cursor: pointer;
         transition: color 0.2s;
     }
-    .dashboard-title-box:hover .dashboard-info-icon {
+    .dashboard-title-box:hover .dashboard-info-icon,
+    .nexus-page-title-box:hover .dashboard-info-icon {
         color: #38bdf8;
     }
     .dashboard-title-tooltip {
@@ -271,22 +299,29 @@ st.markdown("""
         position: absolute;
         top: calc(100% + 6px);
         left: 0;
-        background-color: #0c1c33;
+        background: rgba(12, 28, 51, 0.95) !important;
+        backdrop-filter: blur(12px) !important;
+        -webkit-backdrop-filter: blur(12px) !important;
         color: #93c5fd;
         font-size: 13px;
         font-weight: 500;
-        padding: 8px 16px;
+        padding: 9px 16px;
         border-radius: 8px;
         border: 1px solid #2563eb;
-        box-shadow: 0 10px 28px rgba(0, 0, 0, 0.8);
+        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.75), 0 0 12px rgba(37, 99, 235, 0.25);
         white-space: nowrap;
         z-index: 9999;
-        transition: opacity 0.2s ease, visibility 0.2s ease;
+        transform: translateY(-4px) scale(0.98);
+        transition: opacity 0.24s cubic-bezier(0.16, 1, 0.3, 1),
+                    transform 0.24s cubic-bezier(0.16, 1, 0.3, 1),
+                    visibility 0.24s cubic-bezier(0.16, 1, 0.3, 1);
         pointer-events: none;
     }
-    .dashboard-title-box:hover .dashboard-title-tooltip {
+    .dashboard-title-box:hover .dashboard-title-tooltip,
+    .nexus-page-title-box:hover .dashboard-title-tooltip {
         visibility: visible;
         opacity: 1;
+        transform: translateY(0) scale(1);
     }
 
     /* 통합 인시던트 선택기 단일 박스 컨테이너 */
@@ -366,7 +401,7 @@ st.markdown("""
     }
 
     /* =================================================== */
-    /* 💬 마우스 커서 호버 시 팝업(Tooltip) 스타일 */
+    /* 💬 마우스 커서 호버 시 팝업(Tooltip) 부드러운 애니메이션 스타일 */
     /* =================================================== */
     .tooltip-container {
         position: relative;
@@ -378,32 +413,37 @@ st.markdown("""
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        transition: transform 0.2s ease;
+        transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), filter 0.22s ease !important;
     }
     .tooltip-container:hover .tooltip-icon {
-        transform: scale(1.15);
+        transform: scale(1.18);
+        filter: drop-shadow(0 0 6px #38bdf8);
     }
     .tooltip-popup {
         visibility: hidden;
         opacity: 0;
         width: max-content;
-        max-width: 320px;
-        background: #0b1728;
+        max-width: 340px;
+        background: rgba(11, 23, 40, 0.95) !important;
+        backdrop-filter: blur(12px) !important;
+        -webkit-backdrop-filter: blur(12px) !important;
         color: #f1f5f9;
         text-align: left;
         border-radius: 8px;
-        padding: 10px 14px;
+        padding: 10px 15px;
         border: 1px solid #38bdf8;
-        box-shadow: 0 10px 28px rgba(0, 0, 0, 0.75);
-        font-size: 12px;
+        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.75), 0 0 14px rgba(56, 189, 248, 0.25);
+        font-size: 12.5px;
         font-weight: 500;
         line-height: 1.5;
         position: absolute;
         z-index: 99999;
         bottom: 135%;
         left: 50%;
-        transform: translateX(-50%);
-        transition: opacity 0.22s ease-in-out, visibility 0.22s ease-in-out;
+        transform: translate(-50%, 6px) scale(0.96);
+        transition: opacity 0.24s cubic-bezier(0.16, 1, 0.3, 1),
+                    transform 0.24s cubic-bezier(0.16, 1, 0.3, 1),
+                    visibility 0.24s cubic-bezier(0.16, 1, 0.3, 1) !important;
         pointer-events: none;
     }
     .tooltip-popup::after {
@@ -419,6 +459,24 @@ st.markdown("""
     .tooltip-container:hover .tooltip-popup {
         visibility: visible;
         opacity: 1;
+        transform: translate(-50%, 0) scale(1);
+    }
+
+    /* Streamlit 내장 툴팁 (help=...) 부드러운 페이드인 애니메이션 */
+    div[data-baseweb="tooltip"] {
+        animation: smooth-tooltip-fade 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+        backdrop-filter: blur(8px) !important;
+        border-radius: 8px !important;
+    }
+    @keyframes smooth-tooltip-fade {
+        0% {
+            opacity: 0;
+            transform: translateY(4px) scale(0.97);
+        }
+        100% {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
     }
 
     /* =================================================== */
@@ -674,6 +732,95 @@ st.markdown("""
     }
 </style>
 """, unsafe_allow_html=True)
+
+# 2-1. 사이드바 실시간 드래그 크기 조절 & 메인 창 동적 연동 핸들러 주입
+components.html("""
+<script>
+(function() {
+    const parentDoc = window.parent.document;
+    function setupResizer() {
+        const sidebar = parentDoc.querySelector('section[data-testid="stSidebar"]');
+        if (!sidebar) return;
+
+        // 이미 핸들이 주입되어 있다면 재등록 방지
+        if (sidebar.querySelector('#sidebar-drag-handle')) return;
+
+        const handle = parentDoc.createElement('div');
+        handle.id = 'sidebar-drag-handle';
+        handle.title = '좌우로 드래그하여 사이드바 및 메인 창 크기를 조절할 수 있습니다';
+        handle.style.cssText = `
+            position: absolute;
+            top: 0;
+            right: -3px;
+            width: 7px;
+            height: 100%;
+            cursor: col-resize;
+            z-index: 999999;
+            background: transparent;
+            transition: background 0.2s ease;
+        `;
+
+        handle.addEventListener('mouseenter', () => {
+            handle.style.background = 'rgba(56, 189, 248, 0.5)';
+        });
+        handle.addEventListener('mouseleave', () => {
+            if (!isDragging) handle.style.background = 'transparent';
+        });
+
+        let isDragging = false;
+        let startX = 0;
+        let startWidth = 0;
+
+        handle.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            startX = e.clientX;
+            startWidth = sidebar.offsetWidth;
+            handle.style.background = '#38bdf8';
+            parentDoc.body.style.cursor = 'col-resize';
+            parentDoc.body.style.userSelect = 'none';
+            e.preventDefault();
+            e.stopPropagation();
+        });
+
+        parentDoc.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            const delta = e.clientX - startX;
+            const newWidth = Math.min(Math.max(startWidth + delta, 240), 750);
+            sidebar.style.setProperty('width', newWidth + 'px', 'important');
+            sidebar.style.setProperty('min-width', newWidth + 'px', 'important');
+            sidebar.style.setProperty('max-width', newWidth + 'px', 'important');
+            sidebar.style.setProperty('transition', 'none', 'important');
+            sessionStorage.setItem('nexusguard_sb_width', newWidth);
+        });
+
+        parentDoc.addEventListener('mouseup', () => {
+            if (isDragging) {
+                isDragging = false;
+                handle.style.background = 'transparent';
+                parentDoc.body.style.cursor = '';
+                parentDoc.body.style.userSelect = '';
+            }
+        });
+
+        sidebar.appendChild(handle);
+
+        // 이전 저장된 사이드바 폭 복원 (접힘 상태가 아닐 때만)
+        const saved = sessionStorage.getItem('nexusguard_sb_width');
+        const isCollapsed = sidebar.getAttribute('aria-expanded') === 'false';
+        if (saved && !isCollapsed) {
+            const w = Math.min(Math.max(parseInt(saved, 10), 240), 750);
+            sidebar.style.setProperty('width', w + 'px', 'important');
+            sidebar.style.setProperty('min-width', w + 'px', 'important');
+            sidebar.style.setProperty('max-width', w + 'px', 'important');
+        }
+    }
+
+    setupResizer();
+    const observer = new MutationObserver(setupResizer);
+    observer.observe(parentDoc.body, { childList: true, subtree: true });
+})();
+</script>
+""", height=0, width=0)
 
 # 3. 툴팁 헬퍼 함수
 def tooltip(icon: str, title: str, desc: str) -> str:
@@ -1683,9 +1830,9 @@ def render_interactive_map(svg_markup: str):
 
 if menu == "종합 관제":
     st.markdown("""
-    <div class="dashboard-title-box">
-        <h1 class="dashboard-title">
-            Dashboard <span class="dashboard-info-icon" title="마우스를 올리면 시스템 설명이 표시됩니다">ℹ️</span>
+    <div class="nexus-page-title-box">
+        <h1 class="nexus-page-title">
+            🛡️ 종합 관제 (Dashboard) <span class="dashboard-info-icon" title="마우스를 올리면 시스템 설명이 표시됩니다">ℹ️</span>
         </h1>
         <div class="dashboard-title-tooltip">
             🛡️ 실시간 이기종 로그 연계 침해사고 재구성 및 내부 데이터 거버넌스 모니터링 (Zero Trust XDR)
@@ -1951,7 +2098,11 @@ if menu == "종합 관제":
 # VIEW 2: 킬체인 분석 (Lateral Movement)
 # ==========================================
 elif menu == "킬체인 분석":
-    st.markdown("<h2 style='white-space:nowrap; margin-bottom:14px;'>🎯 외부 침투 및 침해사고 심층 분석</h2>", unsafe_allow_html=True)
+    st.markdown("""
+    <div class="nexus-page-title-box">
+        <h1 class="nexus-page-title">🎯 외부 침투 및 침해사고 심층 분석</h1>
+    </div>
+    """, unsafe_allow_html=True)
 
     incident_ids = [inc.incident_id for inc in incidents]
     curr_target_id = st.session_state.get("selected_incident_id", incidents[0].incident_id)
@@ -2084,7 +2235,11 @@ elif menu == "킬체인 분석":
 # VIEW 3: AI·IT 거버넌스 (Shadow IT/AI)
 # ==========================================
 elif menu == "AI·IT 거버넌스":
-    st.markdown("<h2>🤖 사내 섀도우 IT 및 생성형 AI 거버넌스 대시보드</h2>", unsafe_allow_html=True)
+    st.markdown("""
+    <div class="nexus-page-title-box">
+        <h1 class="nexus-page-title">🤖 사내 섀도우 IT 및 생성형 AI 거버넌스 대시보드</h1>
+    </div>
+    """, unsafe_allow_html=True)
 
     # ⚡ Gemini AI 실시간 미등록 외부 도메인 진단기 (오픈형 인라인 바)
     st.markdown("""
@@ -2188,8 +2343,8 @@ elif menu == "중앙 서버 파이프 라인":
     )
 
     st.markdown(f"""
-    <div style="display:flex; align-items:center; gap:8px; margin-bottom: 12px;">
-        <h2 style="margin:0; font-size:24px; font-weight:700;">📡 중앙 서버 파이프 라인</h2>
+    <div class="nexus-page-title-box">
+        <h1 class="nexus-page-title">📡 중앙 서버 파이프 라인</h1>
         {tooltip("ℹ️", "중앙 서버 파이프 라인 연동 가이드", "팀원들이 개발한 Windows Agent(NexusGuardAgent.exe)와 Railway 클라우드 중앙 서버(Flask + PostgreSQL)의 실시간 수집 현황 및 연동 가이드입니다.")}
     </div>
     """, unsafe_allow_html=True)
