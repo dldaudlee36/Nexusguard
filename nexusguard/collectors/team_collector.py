@@ -16,7 +16,7 @@ RAILWAY_URL = "https://bountiful-nature-production-22ec.up.railway.app/events"
 RAILWAY_API_KEY = "20110313"
 
 _cached_railway_events: List[Dict[str, Any]] = []
-_railway_collection_enabled: bool = True
+_railway_collection_enabled: bool = False
 
 
 def set_railway_collection_enabled(enabled: bool):

@@ -710,21 +710,21 @@ with st.sidebar:
             st.markdown("<div style='font-size:12px; font-weight:700; color:#38bdf8; margin-bottom:4px;'>🌐 Railway 실시간 수집</div>", unsafe_allow_html=True)
             from nexusguard.collectors.team_collector import set_railway_collection_enabled, is_railway_collection_enabled
             if "railway_collection_active" not in st.session_state:
-                st.session_state["railway_collection_active"] = True
+                st.session_state["railway_collection_active"] = False
             if "sb_railway_toggle" not in st.session_state:
                 st.session_state["sb_railway_toggle"] = st.session_state["railway_collection_active"]
             if "view_railway_collection_toggle" not in st.session_state:
                 st.session_state["view_railway_collection_toggle"] = st.session_state["railway_collection_active"]
 
             def _on_sb_railway_toggle():
-                val = st.session_state.get("sb_railway_toggle", True)
+                val = st.session_state.get("sb_railway_toggle", False)
                 st.session_state["railway_collection_active"] = val
                 st.session_state["view_railway_collection_toggle"] = val
                 set_railway_collection_enabled(val)
 
             sb_railway_active = st.toggle(
                 "실시간 로그 수집 가동", 
-                value=st.session_state.get("railway_collection_active", True),
+                value=st.session_state.get("railway_collection_active", False),
                 key="sb_railway_toggle", 
                 on_change=_on_sb_railway_toggle, 
                 help="Railway 실시간 로그 수집을 켜거나 끕니다."
@@ -907,7 +907,7 @@ with st.sidebar:
     else:
         gemini_status_line = '<div style="color: #fbbf24; font-size:12px; margin-top:5px; display:flex; align-items:center;"><span class="pipeline-pulse-dot amber"></span> Gemini AI 판별 모듈 대기 (키 미등록)</div>'
 
-    railway_is_on = st.session_state.get("railway_collection_active", True)
+    railway_is_on = st.session_state.get("railway_collection_active", False)
     if railway_is_on:
         railway_status_line = '<div style="color: #62d487; font-size:12px; margin-top:6px; display:flex; align-items:center;"><span class="pipeline-pulse-dot"></span> 팀원 Agent & Railway 수집 중 (LIVE)</div>'
     else:
@@ -2107,19 +2107,19 @@ elif menu == "📡 팀원 Agent & Railway":
     # Railway 수집 활성화 여부
     from nexusguard.collectors.team_collector import set_railway_collection_enabled, is_railway_collection_enabled
     if "railway_collection_active" not in st.session_state:
-        st.session_state["railway_collection_active"] = True
+        st.session_state["railway_collection_active"] = False
     if "sb_railway_toggle" not in st.session_state:
         st.session_state["sb_railway_toggle"] = st.session_state["railway_collection_active"]
     if "view_railway_collection_toggle" not in st.session_state:
         st.session_state["view_railway_collection_toggle"] = st.session_state["railway_collection_active"]
 
     def _on_view_railway_toggle():
-        val = st.session_state.get("view_railway_collection_toggle", True)
+        val = st.session_state.get("view_railway_collection_toggle", False)
         st.session_state["railway_collection_active"] = val
         st.session_state["sb_railway_toggle"] = val
         set_railway_collection_enabled(val)
 
-    railway_active = st.session_state.get("railway_collection_active", True)
+    railway_active = st.session_state.get("railway_collection_active", False)
 
     # 상단 수집 상태 안내 배너 (전체 너비 박스로 복원)
     if railway_active:
@@ -2149,7 +2149,7 @@ elif menu == "📡 팀원 Agent & Railway":
         with col_ctrl1:
             st.toggle(
                 "⚡ Railway 실시간 수집 ON / OFF 스위치", 
-                value=st.session_state.get("railway_collection_active", True),
+                value=st.session_state.get("railway_collection_active", False),
                 key="view_railway_collection_toggle", 
                 on_change=_on_view_railway_toggle, 
                 help="클릭하여 Railway 실시간 로그 수집을 켜거나 끕니다."
