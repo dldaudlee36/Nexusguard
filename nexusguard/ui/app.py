@@ -2095,7 +2095,7 @@ elif menu == "AI·IT 거버넌스":
 # ==========================================
 elif menu == "중앙 서버 파이프 라인":
     from nexusguard.collectors.team_collector import (
-        fetch_railway_events, fetch_activity_log_events, load_team_guide_markdown, RAILWAY_URL, RAILWAY_API_KEY
+        fetch_railway_events, fetch_activity_log_events, RAILWAY_URL, RAILWAY_API_KEY
     )
 
     st.markdown(f"""
@@ -2209,105 +2209,42 @@ elif menu == "중앙 서버 파이프 라인":
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # 탭 구성: [실시간 수집 로그 테이블], [파이프라인 아키텍처], [팀원 가이드 원문]
-    tab_logs, tab_arch, tab_guide = st.tabs([
-        f"📋 Railway 실시간 수집 로그 ({len(r_events)}건)",
-        "🏗️ 4단계 데이터 파이프라인 구조",
-        "📖 팀원 공유 초간단 가이드 원문"
-    ])
+    st.markdown("### 🌐 Railway 중앙 서버 수집 이벤트 (/events)")
+    st.caption("각 PC에서 `NexusGuardAgent.exe`가 사이트 접속(DNS)을 자동 감지하여 중앙 서버에 전송한 실제 데이터입니다.")
 
-    with tab_logs:
-        st.markdown("### 🌐 Railway 중앙 서버 수집 이벤트 (/events)")
-        st.caption("각 PC에서 `NexusGuardAgent.exe`가 사이트 접속(DNS)을 자동 감지하여 중앙 서버에 전송한 실제 데이터입니다.")
+    col_btn_ref, _ = st.columns([1.5, 4])
+    with col_btn_ref:
+        if st.button("🔄 Railway 실제 로그 새로고침", use_container_width=True):
+            st.rerun()
 
-        col_btn_ref, _ = st.columns([1.5, 4])
-        with col_btn_ref:
-            if st.button("🔄 Railway 실제 로그 새로고침", use_container_width=True):
-                st.rerun()
+    if r_events:
+        df_rly = pd.DataFrame(r_events)
+        cols_order = [c for c in ["id", "event_time", "user_name", "pc_name", "event_type", "target", "source", "risk_score"] if c in df_rly.columns]
+        df_display = df_rly[cols_order].rename(columns={
+            "id": "ID",
+            "event_time": "발생 시각",
+            "user_name": "사용자",
+            "pc_name": "PC 이름",
+            "event_type": "이벤트 종류",
+            "target": "접속 사이트",
+            "source": "수집 소스",
+            "risk_score": "위험 점수"
+        })
+        st.dataframe(df_display, hide_index=True, use_container_width=True, height=350)
+    else:
+        st.warning("Railway 서버에서 수집된 로그가 없습니다.")
 
-        if r_events:
-            df_rly = pd.DataFrame(r_events)
-            cols_order = [c for c in ["id", "event_time", "user_name", "pc_name", "event_type", "target", "source", "risk_score"] if c in df_rly.columns]
-            df_display = df_rly[cols_order].rename(columns={
-                "id": "ID",
-                "event_time": "발생 시각",
-                "user_name": "사용자",
-                "pc_name": "PC 이름",
-                "event_type": "이벤트 종류",
-                "target": "접속 사이트",
-                "source": "수집 소스",
-                "risk_score": "위험 점수"
-            })
-            st.dataframe(df_display, hide_index=True, use_container_width=True, height=350)
-        else:
-            st.warning("Railway 서버에서 수집된 로그가 없습니다.")
-
-        st.markdown("---")
-        st.markdown("### 💾 사내 DB 감사 활동 로그 (activity.log)")
-        st.caption("사내 DB(company_db)의 민감 테이블(`customer_vault`, `customer_db`) 조회 활동 원천 로그입니다.")
-        if act_events:
-            df_act = pd.DataFrame(act_events).rename(columns={
-                "id": "ID",
-                "event_time": "발생 시각",
-                "user_name": "사용자",
-                "pc_name": "PC 이름",
-                "event_type": "수행 액션",
-                "target": "대상 테이블/도메인",
-                "rows": "조회 행 수"
-            })
-            st.dataframe(df_act, hide_index=True, use_container_width=True)
-
-    with tab_arch:
-        st.markdown("### 🔄 NexusGuard 전체 수집 파이프라인 흐름도")
-        st.markdown(f"""
-        <div style="background:#0b1523; border:1px solid #1e3a5f; border-radius:12px; padding:20px; margin-bottom:15px;">
-            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
-                <div style="background:#132238; border:1px solid #2563eb; border-radius:8px; padding:12px; flex:1; min-width:180px; text-align:center;">
-                    <div style="font-size:24px;">💻</div>
-                    <div style="font-weight:bold; color:#60a5fa; font-size:14px; margin-top:4px;">1. 사용자 PC</div>
-                    <div style="color:#94a3b8; font-size:12px;">NexusGuardAgent.exe</div>
-                    <div style="color:#cbd5e1; font-size:11px; margin-top:4px;">크롬/브라우저 사이트 접속 감지</div>
-                </div>
-                <div style="color:#38bdf8; font-size:20px; font-weight:bold;">➔</div>
-                <div style="background:#132238; border:1px solid #10b981; border-radius:8px; padding:12px; flex:1; min-width:180px; text-align:center;">
-                    <div style="font-size:24px;">⚡</div>
-                    <div style="font-weight:bold; color:#34d399; font-size:14px; margin-top:4px;">2. Railway 중앙 서버</div>
-                    <div style="color:#94a3b8; font-size:12px;">Flask /events API</div>
-                    <div style="color:#cbd5e1; font-size:11px; margin-top:4px;">인터넷 REST API로 수신</div>
-                </div>
-                <div style="color:#38bdf8; font-size:20px; font-weight:bold;">➔</div>
-                <div style="background:#132238; border:1px solid #a855f7; border-radius:8px; padding:12px; flex:1; min-width:180px; text-align:center;">
-                    <div style="font-size:24px;">🗄️</div>
-                    <div style="font-weight:bold; color:#c084fc; font-size:14px; margin-top:4px;">3. PostgreSQL DB</div>
-                    <div style="color:#94a3b8; font-size:12px;">events 테이블</div>
-                    <div style="color:#cbd5e1; font-size:11px; margin-top:4px;">클라우드 데이터 영구 저장</div>
-                </div>
-                <div style="color:#38bdf8; font-size:20px; font-weight:bold;">➔</div>
-                <div style="background:#132238; border:1px solid #f59e0b; border-radius:8px; padding:12px; flex:1; min-width:180px; text-align:center;">
-                    <div style="font-size:24px;">🛡️</div>
-                    <div style="font-weight:bold; color:#fbbf24; font-size:14px; margin-top:4px;">4. Streamlit UI</div>
-                    <div style="color:#94a3b8; font-size:12px;">NexusGuard 대시보드</div>
-                    <div style="color:#cbd5e1; font-size:11px; margin-top:4px;">실시간 상관분석 & 관제 화면</div>
-                </div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-
-        st.markdown("#### ⚙️ 실제 연동 코드 규격 (팀원 가이드 4번 항목)")
-        st.code(f"""
-import os
-import requests
-
-url = "{RAILWAY_URL}"
-headers = {{
-    "X-API-Key": os.getenv("RAILWAY_API_KEY")  # .env 보안 환경변수에서 로드
-}}
-
-response = requests.get(url, headers=headers, timeout=5)
-response.raise_for_status()
-logs = response.json()
-        """, language="python")
-
-    with tab_guide:
-        guide_text = load_team_guide_markdown()
-        st.markdown(guide_text)
+    st.markdown("---")
+    st.markdown("### 💾 사내 DB 감사 활동 로그 (activity.log)")
+    st.caption("사내 DB(company_db)의 민감 테이블(`customer_vault`, `customer_db`) 조회 활동 원천 로그입니다.")
+    if act_events:
+        df_act = pd.DataFrame(act_events).rename(columns={
+            "id": "ID",
+            "event_time": "발생 시각",
+            "user_name": "사용자",
+            "pc_name": "PC 이름",
+            "event_type": "수행 액션",
+            "target": "대상 테이블/도메인",
+            "rows": "조회 행 수"
+        })
+        st.dataframe(df_act, hide_index=True, use_container_width=True)
