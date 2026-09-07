@@ -16,14 +16,29 @@ RAILWAY_URL = "https://bountiful-nature-production-22ec.up.railway.app/events"
 RAILWAY_API_KEY = "20110313"
 
 _cached_railway_events: List[Dict[str, Any]] = []
+_railway_collection_enabled: bool = True
 
 
-def fetch_railway_events(timeout: int = 5) -> List[Dict[str, Any]]:
+def set_railway_collection_enabled(enabled: bool):
+    """Railway 로그 수집 켜기/끄기 설정"""
+    global _railway_collection_enabled
+    _railway_collection_enabled = enabled
+
+
+def is_railway_collection_enabled() -> bool:
+    """Railway 로그 수집 활성화 여부 확인"""
+    return _railway_collection_enabled
+
+
+def fetch_railway_events(timeout: int = 5, force: bool = False) -> List[Dict[str, Any]]:
     """
     Railway 중앙 서버의 /events API에서 실제 Agent 수집 로그를 조회.
-    팀원 가이드(초간단가이드.md 4번 항목) 규격 그대로 연동.
+    수집이 OFF 상태이고 force=False이면 네트워크 요청 없이 캐시 반환.
     """
     global _cached_railway_events
+    if not _railway_collection_enabled and not force:
+        return _cached_railway_events
+
     headers = {
         "X-API-Key": RAILWAY_API_KEY
     }

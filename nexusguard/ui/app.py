@@ -698,11 +698,36 @@ with st.sidebar:
         with col_s4:
             btn_reset = st.button("🔄 초기화\n시뮬 리셋", use_container_width=True, help="시뮬레이션 데이터 초기화")
 
-        if st.button("🌐 Railway 최신 로그 동기화", use_container_width=True, help="Railway 중앙 서버에서 최신 에이전트 수집 로그를 즉시 갱신합니다."):
-            from nexusguard.collectors.team_collector import fetch_railway_events
-            r_logs = fetch_railway_events(timeout=5)
-            st.toast(f"🔄 Railway 중앙 서버에서 최신 {len(r_logs)}개 에이전트 로그를 동기화했습니다.", icon="🌐")
-            st.rerun()
+        st.markdown("<div style='height:4px;'></div>", unsafe_allow_html=True)
+        from nexusguard.collectors.team_collector import set_railway_collection_enabled, is_railway_collection_enabled
+        if "railway_collection_active" not in st.session_state:
+            st.session_state["railway_collection_active"] = True
+        if "sb_railway_toggle" not in st.session_state:
+            st.session_state["sb_railway_toggle"] = st.session_state["railway_collection_active"]
+        if "view_railway_collection_toggle" not in st.session_state:
+            st.session_state["view_railway_collection_toggle"] = st.session_state["railway_collection_active"]
+
+        def _on_sb_railway_toggle():
+            val = st.session_state.get("sb_railway_toggle", True)
+            st.session_state["railway_collection_active"] = val
+            st.session_state["view_railway_collection_toggle"] = val
+            set_railway_collection_enabled(val)
+
+        col_t1, col_t2 = st.columns([1.1, 1])
+        with col_t1:
+            sb_railway_active = st.toggle(
+                "🌐 Railway 수집", 
+                key="sb_railway_toggle", 
+                on_change=_on_sb_railway_toggle, 
+                help="Railway 실시간 로그 수집을 켜거나 끕니다."
+            )
+            set_railway_collection_enabled(sb_railway_active)
+        with col_t2:
+            if st.button("🔄 즉시 동기화", disabled=not sb_railway_active, use_container_width=True, help="Railway 중앙 서버에서 최신 에이전트 수집 로그를 즉시 갱신합니다."):
+                from nexusguard.collectors.team_collector import fetch_railway_events
+                r_logs = fetch_railway_events(timeout=5, force=True)
+                st.toast(f"🔄 Railway 중앙 서버에서 최신 {len(r_logs)}개 에이전트 로그를 동기화했습니다.", icon="🌐")
+                st.rerun()
 
     from nexusguard.collectors.team_collector import get_team_sim_scenarios
     SIM_SCENARIOS = get_team_sim_scenarios()
@@ -865,6 +890,12 @@ with st.sidebar:
     else:
         gemini_status_line = '<div style="color: #fbbf24; font-size:12px; margin-top:5px; display:flex; align-items:center;"><span class="pipeline-pulse-dot amber"></span> Gemini AI 판별 모듈 대기 (키 미등록)</div>'
 
+    railway_is_on = st.session_state.get("railway_collection_active", True)
+    if railway_is_on:
+        railway_status_line = '<div style="color: #62d487; font-size:12px; margin-top:6px; display:flex; align-items:center;"><span class="pipeline-pulse-dot"></span> 팀원 Agent & Railway 수집 중 (LIVE)</div>'
+    else:
+        railway_status_line = '<div style="color: #94a3b8; font-size:12px; margin-top:6px; display:flex; align-items:center;"><span class="pipeline-pulse-dot" style="background:#64748b; box-shadow:none;"></span> Railway 수집 일시정지 (OFF)</div>'
+
     st.markdown(f"""
     <div style="background: #111e30; padding: 14px; border-radius: 10px; border: 1px solid #1e3352; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
@@ -875,9 +906,7 @@ with st.sidebar:
                 <span class="pipeline-pulse-dot"></span>LIVE
             </span>
         </div>
-        <div style="color: #62d487; font-size:12px; margin-top:6px; display:flex; align-items:center;">
-            <span class="pipeline-pulse-dot"></span> 팀원 Agent(NexusGuardAgent.exe) & Railway 정상 (LIVE)
-        </div>
+        {railway_status_line}
         <div style="color: #62d487; font-size:12px; margin-top:5px; display:flex; align-items:center;">
             <span class="pipeline-pulse-dot"></span> 이기종 로그 정규화 정상
         </div>
@@ -2058,16 +2087,72 @@ elif menu == "📡 팀원 Agent & Railway":
     st.markdown("<h2>📡 팀원 Agent & Railway 중앙 서버 파이프라인 연동</h2>", unsafe_allow_html=True)
     st.caption("팀원들이 개발한 Windows Agent(NexusGuardAgent.exe)와 Railway 클라우드 중앙 서버(Flask + PostgreSQL)의 실시간 수집 현황 및 연동 가이드입니다.")
 
+    # Railway 수집 활성화 여부
+    from nexusguard.collectors.team_collector import set_railway_collection_enabled, is_railway_collection_enabled
+    if "railway_collection_active" not in st.session_state:
+        st.session_state["railway_collection_active"] = True
+    if "sb_railway_toggle" not in st.session_state:
+        st.session_state["sb_railway_toggle"] = st.session_state["railway_collection_active"]
+    if "view_railway_collection_toggle" not in st.session_state:
+        st.session_state["view_railway_collection_toggle"] = st.session_state["railway_collection_active"]
+
+    def _on_view_railway_toggle():
+        val = st.session_state.get("view_railway_collection_toggle", True)
+        st.session_state["railway_collection_active"] = val
+        st.session_state["sb_railway_toggle"] = val
+        set_railway_collection_enabled(val)
+
+    railway_active = st.session_state.get("railway_collection_active", True)
+
+    # 실시간 수집 ON / OFF 스위치 카드
+    col_status_info, col_status_toggle = st.columns([3.2, 1.2])
+    with col_status_info:
+        if railway_active:
+            st.markdown("""
+            <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid #10b981; border-radius: 10px; padding: 12px 16px; display: flex; align-items: center;">
+                <span style="font-size: 22px; margin-right: 12px;">🟢</span>
+                <div>
+                    <b style="color: #34d399; font-size: 14px;">Railway 실시간 로그 수집 활성화 (ON)</b><br>
+                    <span style="color: #cbd5e1; font-size: 12px;">중앙 서버(bountiful-nature-production-22ec.up.railway.app/events)로부터 PC 에이전트 로그를 실시간 수집 중입니다.</span>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.markdown("""
+            <div style="background: rgba(100, 116, 139, 0.15); border: 1px solid #64748b; border-radius: 10px; padding: 12px 16px; display: flex; align-items: center;">
+                <span style="font-size: 22px; margin-right: 12px;">⏸️</span>
+                <div>
+                    <b style="color: #94a3b8; font-size: 14px;">Railway 실시간 로그 수집 일시 정지 (OFF)</b><br>
+                    <span style="color: #cbd5e1; font-size: 12px;">네트워크 API 질의가 중지되었습니다. 우측 스위치를 켜면 즉시 실시간 수집이 재개됩니다.</span>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+    with col_status_toggle:
+        st.markdown("<div style='height:4px;'></div>", unsafe_allow_html=True)
+        st.toggle(
+            "수집 ON / OFF 스위치", 
+            key="view_railway_collection_toggle", 
+            on_change=_on_view_railway_toggle, 
+            help="클릭하여 Railway 실시간 로그 수집을 켜거나 끕니다."
+        )
+
     r_events = fetch_railway_events(timeout=5)
     act_events = fetch_activity_log_events()
 
     # 상단 실시간 메트릭 카드 4종
     kpi_c1, kpi_c2, kpi_c3, kpi_c4 = st.columns(4)
     with kpi_c1:
+        if railway_active:
+            server_status_val = "🟢 수집 중 (ON)"
+            server_status_color = "#10b981"
+        else:
+            server_status_val = "⏸️ 수집 정지 (OFF)"
+            server_status_color = "#94a3b8"
+
         st.markdown(f"""
-        <div class="kpi-card" style="border-left: 4px solid #10b981;">
+        <div class="kpi-card" style="border-left: 4px solid {server_status_color};">
             <div class="kpi-title">Railway 서버 통신 상태</div>
-            <div class="kpi-value" style="color:#10b981; font-size:20px;">🟢 정상 (200 OK)</div>
+            <div class="kpi-value" style="color:{server_status_color}; font-size:20px;">{server_status_val}</div>
             <div class="kpi-sub">bountiful-nature...railway.app</div>
         </div>
         """, unsafe_allow_html=True)
