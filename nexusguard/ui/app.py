@@ -886,7 +886,13 @@ with st.sidebar:
         pass
 
     if "gemini_api_key" not in st.session_state:
-        st.session_state["gemini_api_key"] = os.environ.get("GEMINI_API_KEY", "")
+        st_sec_gemini = ""
+        try:
+            if hasattr(st, "secrets") and "GEMINI_API_KEY" in st.secrets:
+                st_sec_gemini = str(st.secrets["GEMINI_API_KEY"])
+        except Exception:
+            pass
+        st.session_state["gemini_api_key"] = os.environ.get("GEMINI_API_KEY", st_sec_gemini)
 
     has_gemini_key = bool(st.session_state.get("gemini_api_key"))
     use_local_ai = st.session_state.get("use_local_ai", True)

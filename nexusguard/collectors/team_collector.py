@@ -4,19 +4,39 @@ NexusGuard - Team Agent & Railway Pipeline Collector
 """
 
 import os
-import requests
-from dotenv import load_dotenv
+from pathlib import Path
 from datetime import datetime, timedelta
 from typing import List, Dict, Any, Optional
+import requests
+
+try:
+    from dotenv import load_dotenv
+    root_env = Path(__file__).resolve().parent.parent.parent / ".env"
+    if root_env.exists():
+        load_dotenv(root_env)
+    else:
+        load_dotenv()
+except Exception:
+    pass
+
+def _get_env_or_secret(key: str, default: str = "") -> str:
+    val = os.getenv(key, "")
+    if val:
+        return val
+    try:
+        import streamlit as st
+        if hasattr(st, "secrets") and key in st.secrets:
+            return str(st.secrets[key])
+    except Exception:
+        pass
+    return default
 
 from nexusguard.schemas.event import (
     SecurityEvent, LogSource, EventAction, Actor, Target, PayloadMetadata
 )
 
-load_dotenv()
-
-RAILWAY_URL = os.getenv("RAILWAY_URL", "https://bountiful-nature-production-22ec.up.railway.app/events")
-RAILWAY_API_KEY = os.getenv("RAILWAY_API_KEY", "")
+RAILWAY_URL = _get_env_or_secret("RAILWAY_URL", "https://bountiful-nature-production-22ec.up.railway.app/events")
+RAILWAY_API_KEY = _get_env_or_secret("RAILWAY_API_KEY", "")
 
 _cached_railway_events: List[Dict[str, Any]] = []
 _railway_collection_enabled: bool = False
