@@ -572,13 +572,13 @@ with st.sidebar:
     )
 
     st.markdown("---")
-    with st.expander("🧪 2단계 상태머신 실시간 시뮬레이터", expanded=True):
+    with st.expander("🧪 실시간 시뮬레이터", expanded=True):
         st.markdown("<div style='font-size:12px; color:#cbd5e1; margin-bottom:10px;'>사내 Shadow AI 기밀 유출 킬체인을 단계별로 실시간 시뮬레이션합니다.</div>", unsafe_allow_html=True)
         col_s1, col_s2 = st.columns(2)
         with col_s1:
             btn_watch = st.button("👁️ 1단계\n선제 감시", use_container_width=True, help="기밀 DB 조회 + 미승인 AI 질의 발생 -> 전송 전 WATCH 상태 승격")
         with col_s2:
-            btn_high = st.button("🚨 2단계\n유출 확정", use_container_width=True, help="WATCH 대상자의 48MB 대용량 외부 전송 발생 -> HIGH Incident 즉시 확정")
+            btn_high = st.button("🚨 2단계\n유출 확정", use_container_width=True, help="WATCH 대상자의 대용량 외부 전송 발생 -> HIGH Incident 즉시 확정")
             
         col_s3, col_s4 = st.columns(2)
         with col_s3:
@@ -586,78 +586,193 @@ with st.sidebar:
         with col_s4:
             btn_reset = st.button("🔄 초기화\n시뮬 리셋", use_container_width=True, help="시뮬레이션 데이터 초기화")
 
+    SIM_SCENARIOS = [
+        {
+            "user": "park_finance",
+            "name": "박재무 대리",
+            "ip": "192.168.10.77",
+            "table": "customer_vault",
+            "query": "SELECT user_id, rrn, balance FROM customer_vault WHERE balance > 100000000",
+            "service": "chatgpt.com",
+            "dst_domain": "api.openai.com",
+            "category": "Generative_AI",
+            "data_desc": "금융 VIP 고객 2.4만 건 RRN 및 자산 원장",
+            "bytes": 48500000
+        },
+        {
+            "user": "lee_dev",
+            "name": "이개발 책임",
+            "ip": "192.168.20.104",
+            "table": "core_infra_secrets",
+            "query": "SELECT repo_path, master_api_key, pem_cert FROM core_infra_secrets",
+            "service": "claude.ai",
+            "dst_domain": "api.anthropic.com",
+            "category": "Generative_AI",
+            "data_desc": "사내 클라우드 마스터 API 시크릿 및 SSL 인증서",
+            "bytes": 68200000
+        },
+        {
+            "user": "jung_sales",
+            "name": "정영업 차장",
+            "ip": "192.168.30.55",
+            "table": "corp_strategic_plan",
+            "query": "SELECT tender_pricing, partner_nda FROM confidential_tender_bid",
+            "service": "deepseek.com",
+            "dst_domain": "api.deepseek.com",
+            "category": "Generative_AI",
+            "data_desc": "2026 차세대 사업 비공개 수주 전략 및 입찰 단가표",
+            "bytes": 35600000
+        },
+        {
+            "user": "kang_hr",
+            "name": "강인사 과장",
+            "ip": "192.168.10.12",
+            "table": "payroll_vault",
+            "query": "SELECT emp_id, ssn, appraisal_score, salary FROM payroll_2026",
+            "service": "chatgpt.com",
+            "dst_domain": "chatgpt.com",
+            "category": "Generative_AI",
+            "data_desc": "전사 임직원 2026 연봉계약서 및 다면 인사평가표",
+            "bytes": 22400000
+        },
+        {
+            "user": "choi_intern",
+            "name": "최인턴 사원",
+            "ip": "192.168.40.89",
+            "table": "customer_leads",
+            "query": "SELECT email, phone, corporate_name FROM enterprise_leads",
+            "service": "notion.so",
+            "dst_domain": "file-upload.notion.so",
+            "category": "Cloud_Workspace",
+            "data_desc": "엔터프라이즈 리드 1,500개사 담당자 연락처 원장",
+            "bytes": 14200000
+        }
+    ]
+
     if btn_watch:
+        import random
+        # 현재 WATCH 상태가 아닌 시나리오를 우선 선별
+        active_watch_users = [u.get("user") for u in ctx.correlation_engine.get_watch_users() if u.get("state") == "WATCH"]
+        available_scenarios = [s for s in SIM_SCENARIOS if s["user"] not in active_watch_users]
+        sc = random.choice(available_scenarios) if available_scenarios else random.choice(SIM_SCENARIOS)
+        st.session_state["last_sim_scenario"] = sc
+        
         now = datetime.utcnow()
         ev1 = SecurityEvent(
-            event_id=f"EVT-SIM-DB-{int(now.timestamp())}",
+            event_id=f"EVT-SIM-DB-{int(now.timestamp())}-{random.randint(10,99)}",
             timestamp=now,
             log_source=LogSource.DB,
-            actor=Actor(user_id="park_finance", src_ip="192.168.10.77"),
+            actor=Actor(user_id=sc["user"], src_ip=sc["ip"]),
             target=Target(dst_ip="10.0.0.30", dst_port=3306),
             action=EventAction.SELECT,
-            payload=PayloadMetadata(table_name="customer_vault", query_string="SELECT user_id, rrn, balance FROM customer_vault")
+            payload=PayloadMetadata(table_name=sc["table"], query_string=sc["query"])
         )
         ev2 = SecurityEvent(
-            event_id=f"EVT-SIM-DNS-{int(now.timestamp())}",
+            event_id=f"EVT-SIM-DNS-{int(now.timestamp())}-{random.randint(10,99)}",
             timestamp=now + timedelta(seconds=5),
             log_source=LogSource.DNS,
-            actor=Actor(user_id="park_finance", src_ip="192.168.10.77"),
-            target=Target(domain="chatgpt.com"),
+            actor=Actor(user_id=sc["user"], src_ip=sc["ip"]),
+            target=Target(domain=sc["service"]),
             action=EventAction.QUERY,
-            payload=PayloadMetadata(category="Generative_AI")
+            payload=PayloadMetadata(category=sc["category"])
         )
         ctx.correlation_engine.update_user_risk(ev1)
         ctx.correlation_engine.update_user_risk(ev2)
-        st.toast("⚡ [1단계 선제 감시] 사용자 'park_finance'가 WATCH 상태로 승격되었습니다!", icon="👁️")
+        st.toast(f"⚡ [1단계 선제 감시] '{sc['user']}'({sc['name']}) WATCH 승격! ({sc['data_desc']} 접근 포착)", icon="👁️")
         st.rerun()
 
     if btn_high:
         now = datetime.utcnow()
+        active_watch_list = [u for u in ctx.correlation_engine.get_watch_users() if u.get("state") == "WATCH"]
+        target_user = None
+        sc = None
+        if active_watch_list:
+            target_user = active_watch_list[0]["user"]
+            for s in SIM_SCENARIOS:
+                if s["user"] == target_user:
+                    sc = s
+                    break
+        if not sc:
+            sc = st.session_state.get("last_sim_scenario", SIM_SCENARIOS[0])
+            # WATCH 상태가 아니라면 1단계를 선행 처리 후 2단계 전이
+            ev_pre1 = SecurityEvent(
+                event_id=f"EVT-PRE-DB-{int(now.timestamp())}",
+                timestamp=now - timedelta(minutes=2),
+                log_source=LogSource.DB,
+                actor=Actor(user_id=sc["user"], src_ip=sc["ip"]),
+                target=Target(dst_ip="10.0.0.30", dst_port=3306),
+                action=EventAction.SELECT,
+                payload=PayloadMetadata(table_name=sc["table"], query_string=sc["query"])
+            )
+            ev_pre2 = SecurityEvent(
+                event_id=f"EVT-PRE-DNS-{int(now.timestamp())}",
+                timestamp=now - timedelta(minutes=1),
+                log_source=LogSource.DNS,
+                actor=Actor(user_id=sc["user"], src_ip=sc["ip"]),
+                target=Target(domain=sc["service"]),
+                action=EventAction.QUERY,
+                payload=PayloadMetadata(category=sc["category"])
+            )
+            ctx.correlation_engine.update_user_risk(ev_pre1)
+            ctx.correlation_engine.update_user_risk(ev_pre2)
+
         ev3 = SecurityEvent(
             event_id=f"EVT-SIM-FW-{int(now.timestamp())}",
             timestamp=now,
             log_source=LogSource.FIREWALL,
-            actor=Actor(user_id="park_finance", src_ip="192.168.10.77"),
-            target=Target(domain="api.openai.com", dst_port=443),
+            actor=Actor(user_id=sc["user"], src_ip=sc["ip"]),
+            target=Target(domain=sc["dst_domain"], dst_port=443),
             action=EventAction.ALLOW,
-            payload=PayloadMetadata(bytes_sent=48500000)
+            payload=PayloadMetadata(bytes_sent=sc["bytes"])
         )
         ctx.correlation_engine.update_user_risk(ev3)
+        # 생성된 최신 인시던트로 자동 포커스
         for inc in ctx.correlation_engine.get_all_incidents():
-            if "park_finance" in inc.title or "park_finance" in inc.actor:
+            if sc["user"] in inc.title or sc["user"] in inc.actor:
                 st.session_state.selected_incident_id = inc.incident_id
                 break
-        st.toast("🚨 [2단계 유출 확정] 'park_finance' 외부 48.5MB 전송 포착! HIGH Incident 생성 완료!", icon="🚨")
+        st.toast(f"🚨 [2단계 유출 확정] '{sc['user']}'({sc['name']}) 외부 {sc['bytes']/(1024*1024):.1f}MB 전송 포착! HIGH Incident 생성 완료!", icon="🚨")
         st.rerun()
 
     if btn_heal:
         now = datetime.utcnow()
+        active_watch_list = [u for u in ctx.correlation_engine.get_watch_users() if u.get("state") == "WATCH"]
+        if active_watch_list:
+            heal_user = active_watch_list[0]["user"]
+        else:
+            heal_user = "choi_intern"
         ctx.correlation_engine.store.upsert_risk(
-            user="choi_intern",
+            user=heal_user,
             state="NORMAL",
             score=15,
             reasons=["30분 경과: 외부 데이터 전송 행위 없음 (오탐 자동 해제)"],
             expires_at=now + timedelta(hours=1)
         )
         ctx.correlation_engine.store.append_history(
-            user="choi_intern",
+            user=heal_user,
             from_state="WATCH",
             to_state="NORMAL",
             reason="30분 만료(TTL)로 인한 정상(NORMAL) 자가 치유"
         )
-        st.toast("⏱️ [오탐 자동 해제] 30분간 전송이 없었던 'choi_intern'이 NORMAL로 자가 치유되었습니다.", icon="⏱️")
+        st.toast(f"⏱️ [오탐 자동 해제] 30분간 전송이 없었던 '{heal_user}'이(가) NORMAL로 자가 치유되었습니다.", icon="⏱️")
         st.rerun()
 
     if btn_reset:
+        sim_usernames = [s["user"] for s in SIM_SCENARIOS] + ["park_finance", "choi_intern"]
         with ctx.correlation_engine.store._get_conn() as conn:
-            conn.execute("DELETE FROM user_risk WHERE user IN ('park_finance', 'choi_intern')")
-            conn.execute("DELETE FROM risk_history WHERE user IN ('park_finance', 'choi_intern')")
-            conn.execute("DELETE FROM incidents WHERE actor LIKE '%park_finance%'")
+            ph = ",".join(["?"] * len(sim_usernames))
+            conn.execute(f"DELETE FROM user_risk WHERE user IN ({ph})", sim_usernames)
+            conn.execute(f"DELETE FROM risk_history WHERE user IN ({ph})", sim_usernames)
+            for u in sim_usernames:
+                conn.execute("DELETE FROM incidents WHERE actor LIKE ? OR title LIKE ?", (f"%{u}%", f"%{u}%"))
             conn.commit()
-        remove_keys = [k for k, inc in list(ctx.correlation_engine.incidents.items()) if "park_finance" in inc.actor]
+        remove_keys = [k for k, inc in list(ctx.correlation_engine.incidents.items()) if any(u in inc.actor or u in inc.title for u in sim_usernames)]
         for k in remove_keys:
             del ctx.correlation_engine.incidents[k]
-        st.toast("🔄 시뮬레이션 상태가 리셋되었습니다.", icon="🔄")
+        rem_incs = ctx.correlation_engine.get_all_incidents()
+        if rem_incs:
+            st.session_state.selected_incident_id = rem_incs[0].incident_id
+        st.toast("🔄 시뮬레이션 상태 및 생성된 인시던트가 초기화되었습니다.", icon="🔄")
         st.rerun()
 
     st.markdown("---")
@@ -1408,8 +1523,8 @@ if menu == "대시보드 종합 관제":
         </div>
         """, unsafe_allow_html=True)
 
-    # 📈 실시간 2단계 상태 머신 감사 이력 (주식창 스타일 항시 노출 뷰)
-    hist = ctx.correlation_engine.store.get_risk_history(10)
+    # 📈 실시간 2단계 상태 머신 감사 이력 (주식창 스타일 항시 노출 뷰 - 확대)
+    hist = ctx.correlation_engine.store.get_risk_history(25)
     st.markdown("""
     <div style="background: #091322; border: 1.5px solid #1e3a5f; border-radius: 10px; padding: 14px 18px 8px 18px; margin-bottom: 16px; box-shadow: 0 4px 14px rgba(0,0,0,0.35);">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 10px;">
@@ -1422,7 +1537,7 @@ if menu == "대시보드 종합 관제":
     if hist:
         df_hist = pd.DataFrame(hist)[["at", "user", "from_state", "to_state", "reason"]]
         df_hist.columns = ["일시 (UTC)", "대상 계정/호스트", "이전 상태", "전이 상태", "판정 사유"]
-        st.dataframe(df_hist, use_container_width=True, height=155)
+        st.dataframe(df_hist, use_container_width=True, height=270)
     else:
         st.caption("💡 현재 기록된 상태 전이 이력이 없습니다. 좌측 사이드바 시뮬레이터를 통해 이벤트를 주입해보세요.")
     st.markdown("</div>", unsafe_allow_html=True)
@@ -1480,7 +1595,7 @@ if menu == "대시보드 종합 관제":
                 🎯 분석 대상 인시던트 통합 선택
             </span>
             <span style="font-size:13px; color:#cbd5e1; background:rgba(30,58,138,0.3); padding:4px 12px; border-radius:20px; border:1px solid #1e40af;">
-                🔴 긴급/고위험 &nbsp;·&nbsp; 🟡 NORMAL &nbsp;·&nbsp; 🟢 WATCH
+                🔴 CRITICAL / HIGH &nbsp;·&nbsp; 🟡 NORMAL &nbsp;·&nbsp; 🟢 WATCH
             </span>
         </div>
         """, unsafe_allow_html=True)
@@ -1567,7 +1682,7 @@ if menu == "대시보드 종합 관제":
                 {card_theme['header_label']}
             </div>
             <div style="font-size: 13px; color: #94a3b8;">
-                위협 분류: <b style="color: #c084fc; font-size:14px; margin-left:4px;">{selected_inc.category.value}</b>
+                위협 분류: <b style="color: {card_theme['header_color']}; font-size:14px; margin-left:4px;">{selected_inc.category.value}</b>
             </div>
         </div>
         <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 14px; flex-wrap: wrap;">
@@ -1589,74 +1704,36 @@ if menu == "대시보드 종합 관제":
     </div>
     """, unsafe_allow_html=True)
 
-    st.markdown("<hr style='border:none; border-top:1px solid #1c2e47; margin:20px 0 16px 0;'>", unsafe_allow_html=True)
+    # ⚡ SOAR 원클릭 긴급 보안 조치 및 관제 대응
+    st.markdown("<hr style='border:none; border-top:1.5px solid #1e3a5f; margin:20px 0 16px 0;'>", unsafe_allow_html=True)
     
-    map_title = f"""
+    soar_header = f"""
     <div class="box-title" style="display:flex; justify-content:space-between; align-items:center;">
-        <span>{tooltip("🌐", "네트워크 토폴로지 맵", "선택된 인시던트의 발원지, 경유지, 타깃 자산 간의 통신 포트와 공격 이동 경로를 실시간 시각화합니다. 마우스 휠로 확대/축소하고 드래그하여 지도를 자유롭게 이동할 수 있습니다.")} 네트워크 토폴로지 맵 (Network Map)</span>
-        <span style="font-size:12px; font-weight:normal; color:#64748b;">🔍 마우스 휠 확대/축소 & 드래그 이동 지원</span>
+        <span>{tooltip("⚡", "SOAR 원클릭 자동 대응", "보안관제 요원이 클릭 한 번으로 방화벽 차단 룰 배포 및 세션 격리를 수행할 수 있는 자동화 조치입니다.")} ⚡ SOAR 원클릭 긴급 보안 조치 및 관제 대응</span>
+        <span style="font-size:12px; font-weight:normal; color:#94a3b8;">분석 대상: <b style="color:#38bdf8;">{selected_inc.incident_id}</b> ({selected_inc.severity.value}) · 신뢰 점수: <b style="color:#ff5b6b;">{selected_inc.score}점</b></span>
     </div>
     """
-    st.markdown(map_title, unsafe_allow_html=True)
-    st.markdown(f"<div style='font-size:13px; color:#9fb0c8; margin-bottom:10px;'>현재 분석 대상: <b style='color:#38bdf8;'>{selected_inc.incident_id}</b> ({selected_inc.category.value}) — <b>{selected_inc.title}</b></div>", unsafe_allow_html=True)
+    st.markdown(soar_header, unsafe_allow_html=True)
 
-    raw_svg = generate_dynamic_network_svg(selected_inc)
-    render_interactive_map(raw_svg)
-
-    # 하단: 인시던트 상세 타임라인 & 판단 근거
-    st.markdown("<hr style='border:none; border-top:1px solid #1c2e47; margin:24px 0 16px 0;'>", unsafe_allow_html=True)
-    det_col1, det_col2 = st.columns([7, 3])
-
-    with det_col1:
-        sev_badge = {
-            Severity.CRITICAL: '<span class="badge badge-critical">CRITICAL (치명)</span>',
-            Severity.HIGH: '<span class="badge badge-high">HIGH (고위험)</span>',
-            Severity.MEDIUM: '<span class="badge badge-medium">MEDIUM (주의)</span>',
-            Severity.LOW: '<span class="badge badge-low">LOW (경미)</span>'
-        }.get(selected_inc.severity, "")
-        
-        detail_header = f"""
-        <div class="box-title">
-            {tooltip("🔍", "인시던트 상세 및 공격 킬체인", "해당 인시던트에 결합된 상세 이벤트 목록과 재구성된 킬체인 단계입니다.")} 인시던트 상세 — {selected_inc.incident_id} {sev_badge}
-        </div>
-        """
-        st.markdown(detail_header, unsafe_allow_html=True)
-        st.markdown(f"<p style='color:#c9d3e2; font-size:14px; margin-bottom:12px;'><b>공격 명칭:</b> {selected_inc.title}<br><b>상세 요약:</b> {selected_inc.summary}</p>", unsafe_allow_html=True)
-        
-        st.markdown(f"<span style='font-size:13px; font-weight:700; color:#9fb0c8;'>{tooltip('⏱️', '공격 시퀀스 순서', '공격자가 내부망에 침투하여 목적을 달성하기까지의 행위 순서입니다.')} 공격 행위 타임라인 (Attack Sequence):</span><br>", unsafe_allow_html=True)
-        
-        # 홉(Hop) 기반 타임라인 자동 생성
-        steps_html_parts = []
-        for idx, h in enumerate(selected_inc.network_hops):
-            steps_html_parts.append(f'<span class="timeline-step">{idx+1}. {h.from_node} ➔ {h.to_node} (:{h.port})</span>')
-        steps_html = f'<div style="margin-top:8px;">{" ".join(steps_html_parts)}</div>'
-        st.markdown(steps_html, unsafe_allow_html=True)
-
-        st.markdown(f"<br><span style='font-size:13px; font-weight:700; color:#9fb0c8;'>{tooltip('🛡️', '상관분석 판단 근거', '서로 다른 이기종 로그를 단일 공격으로 결합한 수학적/규칙적 판단 근거입니다.')} 상관분석 판단 근거 (Explainable Evidence):</span>", unsafe_allow_html=True)
-        for ev in selected_inc.evidences:
-            st.markdown(f"<div class='evidence-item'>✓ {ev}</div>", unsafe_allow_html=True)
-
-    with det_col2:
-        soar_header = f"""
-        <div class="box-title">
-            {tooltip("⚡", "SOAR 원클릭 자동 대응", "보안관제 요원이 클릭 한 번으로 방화벽 차단 룰 배포 및 세션 격리를 수행할 수 있는 자동화 조치입니다.")} SOAR 자동 대응
-        </div>
-        """
-        st.markdown(soar_header, unsafe_allow_html=True)
-        st.markdown(f"""
-        <div style="background:#132238; padding:14px; border-radius:10px; margin-bottom:12px;">
-            <div style="font-size:12px; color:#9fb0c8;">상관분석 신뢰 점수</div>
-            <div style="font-size:28px; font-weight:bold; color:#ff5b6b;">{selected_inc.score} / 100</div>
-            <div style="font-size:12px; color:#62d487;">최종 위험도: {selected_inc.severity.value}</div>
-        </div>
-        """, unsafe_allow_html=True)
-        
+    soar_col1, soar_col2, soar_col3, soar_col4 = st.columns(4)
+    with soar_col1:
         if st.button("🚨 방화벽 차단 룰 즉시 배포", key="btn_fw", use_container_width=True, help="해당 공격 발원지 IP 및 C2 목적지를 경계 방화벽 차단 목록에 영구 추가합니다."):
             st.success("✅ iptables / 방화벽 차단 정책이 즉시 배포되었습니다.")
+    with soar_col2:
         if st.button("🔒 활성 계정 세션 즉시 만료", key="btn_revoke", use_container_width=True, help="침해된 계정의 모든 SSO 세션 및 토큰을 무효화합니다."):
             st.success("✅ 해당 계정의 모든 SSO 세션이 강제 종료되었습니다.")
-        if st.button("📢 Slack 보안팀 긴급 채널 전파", key="btn_slack", use_container_width=True, help="Slack #incident-critical 채널로 경보 웹훅을 전파합니다."):
+    with soar_col3:
+        if st.button("📢 Slack 보안팀 긴급 전파", key="btn_slack", use_container_width=True, help="Slack #incident-critical 채널로 경보 웹훅을 전파합니다."):
             st.info("📨 Slack #incident-alert 채널로 웹훅 전파 완료!")
+    with soar_col4:
+        st.button(
+            "🔍 킬체인 심층 분석 바로가기 ➔",
+            key="btn_jump_kc",
+            on_click=navigate_to,
+            args=("침해사고 킬체인 분석", selected_inc.incident_id),
+            use_container_width=True,
+            help="해당 인시던트의 네트워크 토폴로지 맵 및 상세 킬체인 분석 탭으로 이동합니다."
+        )
 
 
 # ==========================================
@@ -1679,7 +1756,6 @@ elif menu == "침해사고 킬체인 분석":
     curr_target_id = st.session_state.get("selected_incident_id", incidents[0].incident_id)
     if curr_target_id not in incident_ids:
         curr_target_id = incident_ids[0]
-    curr_target_idx = incident_ids.index(curr_target_id)
 
     def format_inc_option(inc_id: str) -> str:
         inc = ctx.correlation_engine.get_incident(inc_id)
@@ -1687,9 +1763,9 @@ elif menu == "침해사고 킬체인 분석":
             return inc_id
         sev_badge = {
             Severity.CRITICAL: "🔴 [CRITICAL]",
-            Severity.HIGH: "🟠 [HIGH]",
-            Severity.MEDIUM: "🟡 [MEDIUM]",
-            Severity.LOW: "🟢 [LOW]"
+            Severity.HIGH: "🔴 [HIGH]",
+            Severity.MEDIUM: "🟡 [NORMAL]",
+            Severity.LOW: "🟢 [WATCH]"
         }.get(inc.severity, "⚪")
         return f"{sev_badge} {inc.incident_id} | {inc.title}"
 
@@ -1699,7 +1775,7 @@ elif menu == "침해사고 킬체인 분석":
     st.session_state.killchain_tab_selectbox = st.session_state.selected_incident_id
 
     sel_tab_id = st.selectbox(
-        "🔎 분석 대상 인시던트 선택 (드롭다운으로 변경 가능)",
+        "🔎 분석 대상 인시던트 선택",
         options=incident_ids,
         format_func=format_inc_option,
         key="killchain_tab_selectbox",
@@ -1710,11 +1786,47 @@ elif menu == "침해사고 킬체인 분석":
 
     st.info(f"**[{target_inc.incident_id}] {target_inc.title}**\n\n{target_inc.summary}")
 
-    # 침해사고 네트워크 토폴로지 맵
-    st.markdown(f'<div class="box-title">🌐 침해사고 네트워크 토폴로지 맵 ({target_inc.incident_id})</div>', unsafe_allow_html=True)
+    # 🌐 침해사고 네트워크 토폴로지 맵
+    map_title = f"""
+    <div class="box-title" style="display:flex; justify-content:space-between; align-items:center;">
+        <span>{tooltip("🌐", "네트워크 토폴로지 맵", "선택된 인시던트의 발원지, 경유지, 타깃 자산 간의 통신 포트와 공격 이동 경로를 실시간 시각화합니다. 마우스 휠로 확대/축소하고 드래그하여 지도를 자유롭게 이동할 수 있습니다.")} 네트워크 토폴로지 맵 (Network Map)</span>
+        <span style="font-size:12px; font-weight:normal; color:#64748b;">🔍 마우스 휠 확대/축소 & 드래그 이동 지원</span>
+    </div>
+    """
+    st.markdown(map_title, unsafe_allow_html=True)
+    st.markdown(f"<div style='font-size:13px; color:#9fb0c8; margin-bottom:10px;'>현재 분석 대상: <b style='color:#38bdf8;'>{target_inc.incident_id}</b> ({target_inc.category.value}) — <b>{target_inc.title}</b></div>", unsafe_allow_html=True)
+
     raw_svg = generate_dynamic_network_svg(target_inc)
     render_interactive_map(raw_svg)
 
+    # 🔍 인시던트 상세 타임라인 & 상관분석 판단 근거
+    st.markdown("<hr style='border:none; border-top:1px solid #1c2e47; margin:24px 0 16px 0;'>", unsafe_allow_html=True)
+    
+    det_col1, det_col2 = st.columns([6, 4])
+    with det_col1:
+        st.markdown(f"""
+        <div class="box-title">
+            {tooltip("⏱️", "공격 시퀀스 순서", "공격자가 내부망에 침투하여 목적을 달성하기까지의 행위 순서입니다.")} 공격 행위 타임라인 (Attack Sequence)
+        </div>
+        """, unsafe_allow_html=True)
+        # 홉(Hop) 기반 타임라인 자동 생성
+        steps_html_parts = []
+        for idx, h in enumerate(target_inc.network_hops):
+            steps_html_parts.append(f'<span class="timeline-step">{idx+1}. {h.from_node} ➔ {h.to_node} (:{h.port})</span>')
+        steps_html = f'<div style="margin-top:8px; margin-bottom:16px;">{" ".join(steps_html_parts)}</div>'
+        st.markdown(steps_html, unsafe_allow_html=True)
+
+    with det_col2:
+        st.markdown(f"""
+        <div class="box-title">
+            {tooltip("🛡️", "상관분석 판단 근거", "서로 다른 이기종 로그를 단일 공격으로 결합한 수학적/규칙적 판단 근거입니다.")} 상관분석 판단 근거 (Explainable Evidence)
+        </div>
+        """, unsafe_allow_html=True)
+        for ev in target_inc.evidences:
+            st.markdown(f"<div class='evidence-item'>✓ {ev}</div>", unsafe_allow_html=True)
+
+    # 하단: 홉 명세 및 Zero Trust 격리 상태
+    st.markdown("<hr style='border:none; border-top:1px solid #1c2e47; margin:16px 0 16px 0;'>", unsafe_allow_html=True)
     col1, col2 = st.columns([5, 5])
     with col1:
         st.markdown(f'<div class="box-title">📍 재구성된 네트워크 홉(Hop) 명세 ({target_inc.incident_id})</div>', unsafe_allow_html=True)
