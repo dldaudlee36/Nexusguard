@@ -893,6 +893,31 @@ with st.sidebar:
         st.rerun()
 
     st.markdown("---")
+    
+    # Gemini AI 상태 판별
+    import os
+    has_gemini_key = bool(st.session_state.get("gemini_api_key") or os.environ.get("GEMINI_API_KEY"))
+    use_local_ai = st.session_state.get("use_local_ai", True)
+
+    with st.expander("🔑 Gemini AI 엔진 연동 설정", expanded=False):
+        st.markdown("<div style='font-size:12px; color:#cbd5e1; margin-bottom:6px;'>미등록 외부 SaaS 및 Shadow AI 도메인을 자동 분류하고 데이터 재학습 위험도를 실시간 진단하는 AI 보강(Enrichment) 엔진입니다.</div>", unsafe_allow_html=True)
+        key_input = st.text_input("Gemini API Key", type="password", value=st.session_state.get("gemini_api_key", os.environ.get("GEMINI_API_KEY", "")), placeholder="AIzaSy... (Google AI Studio)", help="Google AI Studio에서 무료로 발급받은 API 키를 입력하면 실시간 Gemini 2.5 Flash 모델이 가동됩니다.")
+        if key_input != st.session_state.get("gemini_api_key", ""):
+            st.session_state["gemini_api_key"] = key_input
+            if key_input:
+                os.environ["GEMINI_API_KEY"] = key_input
+            has_gemini_key = bool(key_input)
+        enable_local = st.toggle("로컬 AI 지능형 엔진 활성화", value=use_local_ai, help="API 키가 없을 때도 패턴 인식 휴리스틱 AI로 상시 가동합니다.")
+        st.session_state["use_local_ai"] = enable_local
+        use_local_ai = enable_local
+
+    if has_gemini_key:
+        gemini_status_line = '<div style="color: #62d487; font-size:12px; margin-top:5px; display:flex; align-items:center;"><span class="pipeline-pulse-dot"></span> Gemini AI 판별 모듈 가동 중 (Cloud 2.5)</div>'
+    elif use_local_ai:
+        gemini_status_line = '<div style="color: #62d487; font-size:12px; margin-top:5px; display:flex; align-items:center;"><span class="pipeline-pulse-dot"></span> Gemini AI 판별 모듈 가동 중 (로컬 AI)</div>'
+    else:
+        gemini_status_line = '<div style="color: #fbbf24; font-size:12px; margin-top:5px; display:flex; align-items:center;"><span class="pipeline-pulse-dot amber"></span> Gemini AI 판별 모듈 대기 (키 미등록)</div>'
+
     st.markdown(f"""
     <div style="background: #111e30; padding: 14px; border-radius: 10px; border: 1px solid #1e3352; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
@@ -912,9 +937,7 @@ with st.sidebar:
         <div style="color: #62d487; font-size:12px; margin-top:5px; display:flex; align-items:center;">
             <span class="pipeline-pulse-dot"></span> 듀얼 상관분석 엔진 가동 중
         </div>
-        <div style="color: #fbbf24; font-size:12px; margin-top:5px; display:flex; align-items:center;">
-            <span class="pipeline-pulse-dot amber"></span> Gemini AI 판별 모듈 대기
-        </div>
+        {gemini_status_line}
     </div>
     """, unsafe_allow_html=True)
     
@@ -2010,17 +2033,27 @@ elif menu == "침해사고 킬체인 분석":
 # ==========================================
 elif menu == "섀도우 AI·IT 거버넌스":
     st.markdown("<h2>🤖 사내 섀도우 IT 및 생성형 AI 거버넌스 대시보드</h2>", unsafe_allow_html=True)
-    st.caption("DNS 질의를 실시간 감시하여 사내 미승인 SaaS/AI 서비스를 식별하고 '무조건 차단'이 아닌 '정식 승인 및 양성화'로 유도합니다.")
+    with st.expander("⚡ Gemini AI 실시간 미등록 외부 도메인 진단기 (즉시 테스트)", expanded=True):
+        st.markdown("""
+        <div style="color:#94a3b8; font-size:12.5px; margin-bottom:10px;">
+            사내 임직원이 새롭게 접속한 외부 사이트(도메인)를 입력하면, <b>Gemini LLM</b>이 서비스 성격과 <b>데이터 재학습 위험도</b>를 즉시 판별하고 사내 대체 도구를 추천합니다.
+        </div>
+        """, unsafe_allow_html=True)
+        col_in, col_btn = st.columns([3.5, 1.2])
+        with col_in:
+            test_domain_input = st.text_input("분석할 도메인 주소", value="perplexity.ai", placeholder="예: perplexity.ai, v0.dev, gamma.app, midjourney.com", label_visibility="collapsed")
+        with col_btn:
+            btn_run_gemini = st.button("🚀 AI 즉시 진단", use_container_width=True)
 
-    with st.expander("📡 원본 DNS 로그 스트림 실시간 유입 확인 (dnsmasq raw log)", expanded=False):
-        st.code("""
-09:12:04  192.168.10.45  slack.com       -> 정식 계약 협업 도구
-09:12:47  192.168.10.45  chatgpt.com     -> 생성형 AI (고위험 감지)
-09:15:22  192.168.10.88  dropbox.com     -> 개인 클라우드 저장소
-09:16:01  192.168.10.45  api.openai.com  -> AI API 대량 데이터 전송
-09:31:19  192.168.10.12  notion.so       -> 문서 도구 (관찰 대상)
-10:02:55  192.168.10.88  wetransfer.com  -> 일회성 대용량 전송 (차단 권고)
-        """, language="bash")
+        if btn_run_gemini and test_domain_input:
+            import os
+            active_key = st.session_state.get("gemini_api_key") or os.environ.get("GEMINI_API_KEY")
+            with st.spinner(f"'{test_domain_input}' 도메인의 보안 위험도를 Gemini AI로 진단 중..."):
+                new_asset = ctx.governance_engine.analyze_and_register_domain(test_domain_input, api_key=active_key)
+            st.success(f"'{new_asset.domain}' ({new_asset.service_name}) 분석 완료! [위험도: {new_asset.risk_level.value}] 사내 대체 권고: {new_asset.recommended_alternative}")
+            st.rerun()
+
+    shadow_assets = ctx.governance_engine.get_all_assets()
 
     for asset in shadow_assets:
         badge_style = "badge-high" if asset.risk_level == Severity.HIGH else ("badge-medium" if asset.risk_level == Severity.MEDIUM else "badge-low")
