@@ -2207,11 +2207,14 @@ elif menu == "📡 팀원 Agent & Railway":
         </div>
         """, unsafe_allow_html=True)
     with kpi_c4:
+        key_status_color = "#10b981" if RAILWAY_API_KEY else "#ef4444"
+        key_status_text = "● VERIFIED" if RAILWAY_API_KEY else "○ NOT SET"
+        key_sub_text = ".env 환경변수 보안 적용" if RAILWAY_API_KEY else ".env 설정 필요"
         st.markdown(f"""
-        <div class="kpi-card" style="border-left: 4px solid #f59e0b;">
-            <div class="kpi-title">팀 API Key 인증</div>
-            <div class="kpi-value" style="color:#f59e0b; font-size:22px;">{RAILWAY_API_KEY}</div>
-            <div class="kpi-sub">헤더 X-API-Key 인증 완료</div>
+        <div class="kpi-card" style="border-left: 4px solid {key_status_color};">
+            <div class="kpi-title">API Key 보안 인증</div>
+            <div class="kpi-value" style="color:{key_status_color}; font-size:18px; font-weight:800;">{key_status_text}</div>
+            <div class="kpi-sub">{key_sub_text}</div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -2303,11 +2306,12 @@ elif menu == "📡 팀원 Agent & Railway":
 
         st.markdown("#### ⚙️ 실제 연동 코드 규격 (팀원 가이드 4번 항목)")
         st.code(f"""
+import os
 import requests
 
 url = "{RAILWAY_URL}"
 headers = {{
-    "X-API-Key": "{RAILWAY_API_KEY}"
+    "X-API-Key": os.getenv("RAILWAY_API_KEY")  # .env 보안 환경변수에서 로드
 }}
 
 response = requests.get(url, headers=headers, timeout=5)

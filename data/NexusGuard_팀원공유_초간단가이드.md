@@ -91,12 +91,13 @@ Streamlit UI
 Streamlit 코드 안에서 아래처럼 사용하면 됩니다.
 
 ```python
+import os
 import requests
 
 url = "https://bountiful-nature-production-22ec.up.railway.app/events"
 
 headers = {
-    "X-API-Key": "20110313"
+    "X-API-Key": os.getenv("RAILWAY_API_KEY")  # .env 파일에서 보안 로드
 }
 
 response = requests.get(
@@ -143,7 +144,7 @@ logs = response.json()
 https://bountiful-nature-production-22ec.up.railway.app/events
 ```
 
-현재 팀 테스트용 API Key는 **`20110313`** 입니다.
+현재 팀 테스트용 API Key는 **`.env` 파일의 `RAILWAY_API_KEY` 환경변수로 보안 보관**되어 연동됩니다.
 
 ### 로그 수집 테스트만 하는 사람에게
 
@@ -249,4 +250,4 @@ UI 담당자는 서버를 새로 만들 필요 없습니다.
 
 > **지금 각 PC에서 NexusGuardAgent.exe를 실행하면 사이트 접속 기록이 Railway 중앙 서버에 자동으로 저장돼요.  
 > UI 쪽에서는 기존 더미로그 대신 `GET /events`로 실제 로그를 받아서 화면에 연결하면 됩니다.  
-> Railway를 직접 만질 필요는 없고, API 주소와 API Key(`20110313`)는 아래 문서에 같이 적어뒀어요.**
+> Railway를 직접 만질 필요는 없고, API 주소와 API Key는 .env 파일(`RAILWAY_API_KEY`)에 안전하게 보관되어 자동 인증됩니다.**

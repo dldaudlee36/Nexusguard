@@ -5,6 +5,7 @@ NexusGuard - Team Agent & Railway Pipeline Collector
 
 import os
 import requests
+from dotenv import load_dotenv
 from datetime import datetime, timedelta
 from typing import List, Dict, Any, Optional
 
@@ -12,8 +13,10 @@ from nexusguard.schemas.event import (
     SecurityEvent, LogSource, EventAction, Actor, Target, PayloadMetadata
 )
 
-RAILWAY_URL = "https://bountiful-nature-production-22ec.up.railway.app/events"
-RAILWAY_API_KEY = "20110313"
+load_dotenv()
+
+RAILWAY_URL = os.getenv("RAILWAY_URL", "https://bountiful-nature-production-22ec.up.railway.app/events")
+RAILWAY_API_KEY = os.getenv("RAILWAY_API_KEY", "")
 
 _cached_railway_events: List[Dict[str, Any]] = []
 _railway_collection_enabled: bool = False
