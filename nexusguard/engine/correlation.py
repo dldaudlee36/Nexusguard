@@ -112,7 +112,61 @@ class CorrelationEngine:
             ]
         )
 
-        for inc in [inc_1, inc_2]:
+        # INC-003 (NORMAL / MEDIUM: 사내 정규 협업 SaaS 정상 트래픽 및 정기 보안 정책 준수)
+        inc_3 = Incident(
+            incident_id="INC-003",
+            title="사내 정규 협업 SaaS(Slack/Zoom) 정상 트래픽 및 보안 정책 준수",
+            category=IncidentCategory.INSIDER_DATA_THEFT,
+            severity=Severity.MEDIUM,
+            score=45,
+            status=IncidentStatus.ACTIVE,
+            summary="사내 업무 목적 정규 클라우드 협업 도구 연동 트래픽으로 보안 이상 징후 없음 (정상 모니터링 단계)",
+            actor="192.168.10.15 (jung_sales)",
+            target_asset="Workplace SaaS -> api.slack.com",
+            created_at=datetime.utcnow() - timedelta(hours=1),
+            event_ids=["EVT-C-301", "EVT-C-302"],
+            evidences=[
+                "사내 결재 승인 소프트웨어 라이선스 보유 (+0점)",
+                "정상 업무 시간대 아웃바운드 세션 발생 (+0점)",
+                "단말 무결성 검증 통과 (+0점)"
+            ],
+            network_hops=[
+                NetworkHop(from_node="Employee PC (192.168.10.15)", to_node="Internal Gateway", port=443, hop_type="normal"),
+                NetworkHop(from_node="Internal Gateway", to_node="Cloud (api.slack.com)", port=443, hop_type="normal"),
+            ],
+            soar_actions=[
+                "정기 접속 감사 로그 아카이빙",
+                "사내 보안 정책 기준 정상 세션 유지"
+            ]
+        )
+
+        # INC-004 (WATCH / LOW: 인사팀 단말의 비인가 내부 서브넷 탐색 및 사전 관찰 대상 등록)
+        inc_4 = Incident(
+            incident_id="INC-004",
+            title="인사팀 단말의 비인가 내부 서브넷 탐색 징후 및 사전 관찰 대상(WATCH) 등록",
+            category=IncidentCategory.UNAUTHORIZED_PORT,
+            severity=Severity.LOW,
+            score=65,
+            status=IncidentStatus.ACTIVE,
+            summary="단말에서 비인가 내부 세그먼트 포트 질의가 포착되어 1단계 사전 감시(WATCH) 대상으로 등록됨",
+            actor="192.168.10.12 (kang_hr)",
+            target_asset="10.0.0.0/24 Core Segment",
+            created_at=datetime.utcnow() - timedelta(minutes=15),
+            event_ids=["EVT-D-401"],
+            evidences=[
+                "업무 범위를 벗어난 내부 서브넷 SYN 스캔 포착 (+2점)",
+                "1단계 선제 감시: 위험 행위 사전 관찰(WATCH) 상태 자동 등록 (+4점)"
+            ],
+            network_hops=[
+                NetworkHop(from_node="HR PC (192.168.10.12)", to_node="Internal Core Segment", port=445, hop_type="suspicious"),
+            ],
+            soar_actions=[
+                "단말 내부 세션 실시간 패킷 모니터링 강화",
+                "사용자 계정 상태 사전 감시(WATCH) 플래그 설정"
+            ]
+        )
+
+        for inc in [inc_1, inc_2, inc_3, inc_4]:
             self.incidents[inc.incident_id] = inc
 
     def ingest_events(self, events: List[SecurityEvent]):
@@ -244,6 +298,73 @@ class CorrelationEngine:
         self.store.save_incident(inc)
         return inc
 
+    def create_watch_incident(self, user: str, sc: Dict[str, Any]) -> Incident:
+        """1단계 선제 감시(WATCH) 인시던트 생성 및 등록"""
+        inc_id = f"INC-WATCH-{len(self.incidents) + 1:03d}"
+        now = datetime.utcnow()
+        inc = Incident(
+            incident_id=inc_id,
+            title=f"사용자 '{user}' 미승인 AI 접속 및 기밀 반출 위험 선제 감시 (WATCH)",
+            category=IncidentCategory.SHADOW_AI_EXFILTRATION,
+            severity=Severity.LOW,
+            score=68,
+            status=IncidentStatus.ACTIVE,
+            summary=f"사내 기밀 DB({sc.get('table', 'vault')}) 조회 후 15분 내 미승인 서비스({sc.get('service', 'AI')}) 접속 포착 — 데이터 외부 반출 전 선제 감시(WATCH) 승격",
+            actor=f"{sc.get('ip', '192.168.10.x')} ({user})",
+            target_asset=f"Core DB -> {sc.get('service', 'external-ai')}",
+            created_at=now,
+            event_ids=[f"EVT-WATCH-{int(now.timestamp())}"],
+            evidences=[
+                f"사내 기밀 DB({sc.get('table', 'vault')}) SELECT 조회 선행 (+2점)",
+                f"15분 내 미승인 외부 서비스({sc.get('service', 'AI')}) 접속 (+2점)",
+                "위험 상태 기계: 1단계 사전 감시(WATCH) 승격 완료 (+4점)"
+            ],
+            network_hops=[
+                NetworkHop(from_node=f"User PC ({sc.get('ip', '192.168.10.x')})", to_node="Internal DB", port=3306, hop_type="db_access"),
+                NetworkHop(from_node=f"User PC ({sc.get('ip', '192.168.10.x')})", to_node=f"Cloud ({sc.get('service', 'external-ai')})", port=443, hop_type="suspicious")
+            ],
+            soar_actions=[
+                f"단말({sc.get('ip', '192.168.10.x')}) 아웃바운드 트래픽 정밀 감시(DPI)",
+                f"사용자({user}) 세션 선제 감시 플래그 점등",
+                "사내 보안팀 1차 선제 감시 알림 전파"
+            ]
+        )
+        self.incidents[inc_id] = inc
+        self.store.save_incident(inc)
+        return inc
+
+    def create_heal_incident(self, user: str) -> Incident:
+        """3단계 오탐 자가 치유(NORMAL) 인시던트 생성 및 등록"""
+        inc_id = f"INC-NORM-{len(self.incidents) + 1:03d}"
+        now = datetime.utcnow()
+        inc = Incident(
+            incident_id=inc_id,
+            title=f"사용자 '{user}' 30분 무전송 만료(TTL)로 인한 정상(NORMAL) 자가 치유",
+            category=IncidentCategory.INSIDER_DATA_THEFT,
+            severity=Severity.MEDIUM,
+            score=20,
+            status=IncidentStatus.RESOLVED,
+            summary=f"사전 감시(WATCH) 대상자였으나 30분간 추가 외부 데이터 전송이 발생하지 않아 정상(NORMAL) 상태로 안전하게 자가 치유(Self-healing) 완료",
+            actor=f"Internal ({user})",
+            target_asset=f"Audited Asset ({user})",
+            created_at=now,
+            event_ids=[f"EVT-TTL-{int(now.timestamp())}"],
+            evidences=[
+                "사전 감시 등록 후 30분간 외부 대용량 전송 무발생 (+0점)",
+                "Self-Healing TTL 정책에 따른 안전한 NORMAL 자동 복귀 (+0점)"
+            ],
+            network_hops=[
+                NetworkHop(from_node=f"User PC ({user})", to_node="Internal Gateway", port=443, hop_type="normal")
+            ],
+            soar_actions=[
+                "선제 감시(WATCH) 플래그 정상 해제",
+                "SQLite 상태 전이 감사 로그 영구 기록 완료"
+            ]
+        )
+        self.incidents[inc_id] = inc
+        self.store.save_incident(inc)
+        return inc
+
     def get_all_incidents(self) -> List[Incident]:
         return sorted(list(self.incidents.values()), key=lambda x: x.created_at, reverse=True)
 
@@ -253,3 +374,4 @@ class CorrelationEngine:
     def get_watch_users(self) -> List[Dict[str, Any]]:
         """현재 WATCH 상태에 있는 감시 대상자 목록 반환"""
         return self.store.get_all_active_risks()
+

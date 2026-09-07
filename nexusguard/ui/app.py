@@ -508,6 +508,117 @@ st.markdown("""
         color: #ffffff !important;
         font-weight: 700 !important;
     }
+
+    /* 🌟 SOAR 긴급 대응 액션 버튼 시인성 극대화 (세로 높이 대폭 확장: 64px) */
+    div[class*="st-key-btn_fw"] button,
+    div[class*="st-key-btn_revoke"] button,
+    div[class*="st-key-btn_slack"] button,
+    div[class*="st-key-btn_jump_kc"] button {
+        min-height: 64px !important;
+        height: 64px !important;
+        padding: 16px 14px !important;
+        font-size: 14.5px !important;
+        font-weight: 700 !important;
+        border-radius: 10px !important;
+        line-height: 1.4 !important;
+        border: 1.5px solid #223c62 !important;
+        background: linear-gradient(180deg, #13233c 0%, #0c182b 100%) !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35) !important;
+        transition: all 0.2s ease-in-out !important;
+    }
+    div[class*="st-key-btn_fw"] button:hover,
+    div[class*="st-key-btn_revoke"] button:hover,
+    div[class*="st-key-btn_slack"] button:hover,
+    div[class*="st-key-btn_jump_kc"] button:hover {
+        transform: translateY(-2px) !important;
+        border-color: #38bdf8 !important;
+        box-shadow: 0 6px 18px rgba(56, 189, 248, 0.35) !important;
+    }
+
+    /* 🌟 사이드바 파이프라인 실시간 모니터링 애니메이션 (Live Radar & Pulsing) */
+    @keyframes live-pulse {
+        0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
+        70% { box-shadow: 0 0 0 7px rgba(34, 197, 94, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+    }
+    @keyframes live-pulse-amber {
+        0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7); }
+        70% { box-shadow: 0 0 0 7px rgba(245, 158, 11, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+    }
+    @keyframes live-glow {
+        0%, 100% { opacity: 1; filter: drop-shadow(0 0 5px #22c55e); }
+        50% { opacity: 0.65; filter: drop-shadow(0 0 2px #22c55e); }
+    }
+    .pipeline-pulse-dot {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background-color: #22c55e;
+        margin-right: 8px;
+        flex-shrink: 0;
+        animation: live-pulse 1.8s infinite;
+    }
+    .pipeline-pulse-dot.amber {
+        background-color: #f59e0b;
+        animation: live-pulse-amber 2.2s infinite;
+    }
+    .live-badge-radar {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        background: rgba(34, 197, 94, 0.12);
+        border: 1px solid rgba(34, 197, 94, 0.4);
+        color: #4ade80;
+        font-size: 11px;
+        font-weight: 800;
+        padding: 2px 8px;
+        border-radius: 12px;
+        animation: live-glow 2s infinite ease-in-out;
+    }
+
+    /* 🌟 포렌식 증적 및 Zero Trust 액션 카드 정렬 고도화 (줄맞춤 & 가독성) */
+    .zt-action-card {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        background: #0d1a2d;
+        border: 1px solid #1c3252;
+        border-radius: 9px;
+        padding: 11px 14px;
+        margin-bottom: 9px;
+        word-break: keep-all;
+        line-height: 1.55;
+    }
+    .zt-action-badge {
+        background: #1e3a8a;
+        color: #60a5fa;
+        font-size: 12px;
+        font-weight: 800;
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        margin-top: 2px;
+    }
+    .evidence-item {
+        background: #0d1a2d;
+        border: 1px solid #1c3252;
+        border-radius: 8px;
+        padding: 10px 14px;
+        margin-bottom: 8px;
+        font-size: 13px;
+        color: #e2e8f0;
+        word-break: keep-all;
+        line-height: 1.55;
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -678,6 +789,9 @@ with st.sidebar:
         )
         ctx.correlation_engine.update_user_risk(ev1)
         ctx.correlation_engine.update_user_risk(ev2)
+        # 1단계 선제 감시 인시던트 생성 (WATCH 카운트 및 드롭다운 실시간 연동)
+        watch_inc = ctx.correlation_engine.create_watch_incident(sc["user"], sc)
+        st.session_state.selected_incident_id = watch_inc.incident_id
         st.toast(f"⚡ [1단계 선제 감시] '{sc['user']}'({sc['name']}) WATCH 승격! ({sc['data_desc']} 접근 포착)", icon="👁️")
         st.rerun()
 
@@ -726,9 +840,14 @@ with st.sidebar:
             payload=PayloadMetadata(bytes_sent=sc["bytes"])
         )
         ctx.correlation_engine.update_user_risk(ev3)
-        # 생성된 최신 인시던트로 자동 포커스
+        # 해당 사용자의 기존 미완료 WATCH 인시던트 정리
+        for inc_id, inc in list(ctx.correlation_engine.incidents.items()):
+            if sc["user"] in inc.title and inc.severity == Severity.LOW:
+                inc.status = IncidentStatus.RESOLVED
+                ctx.correlation_engine.store.save_incident(inc)
+        # 생성된 최신 HIGH 인시던트로 자동 포커스
         for inc in ctx.correlation_engine.get_all_incidents():
-            if sc["user"] in inc.title or sc["user"] in inc.actor:
+            if (sc["user"] in inc.title or sc["user"] in inc.actor) and inc.severity == Severity.HIGH:
                 st.session_state.selected_incident_id = inc.incident_id
                 break
         st.toast(f"🚨 [2단계 유출 확정] '{sc['user']}'({sc['name']}) 외부 {sc['bytes']/(1024*1024):.1f}MB 전송 포착! HIGH Incident 생성 완료!", icon="🚨")
@@ -754,44 +873,47 @@ with st.sidebar:
             to_state="NORMAL",
             reason="30분 만료(TTL)로 인한 정상(NORMAL) 자가 치유"
         )
+        # 기존 미완료 WATCH 인시던트 종료
+        for inc_id, inc in list(ctx.correlation_engine.incidents.items()):
+            if heal_user in inc.title and inc.severity == Severity.LOW:
+                inc.status = IncidentStatus.RESOLVED
+                ctx.correlation_engine.store.save_incident(inc)
+        # 3단계 오탐 해제 인시던트 생성 (NORMAL 카운트 및 드롭다운 실시간 연동)
+        heal_inc = ctx.correlation_engine.create_heal_incident(heal_user)
+        st.session_state.selected_incident_id = heal_inc.incident_id
         st.toast(f"⏱️ [오탐 자동 해제] 30분간 전송이 없었던 '{heal_user}'이(가) NORMAL로 자가 치유되었습니다.", icon="⏱️")
         st.rerun()
 
     if btn_reset:
-        sim_usernames = [s["user"] for s in SIM_SCENARIOS] + ["park_finance", "choi_intern"]
-        with ctx.correlation_engine.store._get_conn() as conn:
-            ph = ",".join(["?"] * len(sim_usernames))
-            conn.execute(f"DELETE FROM user_risk WHERE user IN ({ph})", sim_usernames)
-            conn.execute(f"DELETE FROM risk_history WHERE user IN ({ph})", sim_usernames)
-            for u in sim_usernames:
-                conn.execute("DELETE FROM incidents WHERE actor LIKE ? OR title LIKE ?", (f"%{u}%", f"%{u}%"))
-            conn.commit()
-        remove_keys = [k for k, inc in list(ctx.correlation_engine.incidents.items()) if any(u in inc.actor or u in inc.title for u in sim_usernames)]
-        for k in remove_keys:
-            del ctx.correlation_engine.incidents[k]
-        rem_incs = ctx.correlation_engine.get_all_incidents()
-        if rem_incs:
-            st.session_state.selected_incident_id = rem_incs[0].incident_id
-        st.toast("🔄 시뮬레이션 상태 및 생성된 인시던트가 초기화되었습니다.", icon="🔄")
+        ctx.correlation_engine.store.clear_all()
+        ctx.correlation_engine.incidents.clear()
+        ctx.correlation_engine._init_mock_incidents()
+        st.session_state.selected_incident_id = "INC-001"
+        st.toast("🔄 시뮬레이션 상태 및 인시던트가 초기화되었습니다.", icon="🔄")
         st.rerun()
 
     st.markdown("---")
     st.markdown(f"""
-    <div style="background: #111e30; padding: 14px; border-radius: 10px; border: 1px solid #1e3352;">
-        <span style="font-size:12px; font-weight:700; color:#9fb0c8;">
-            {tooltip("⚙️", "시스템 데몬 상태", "백그라운드에서 실행 중인 4대 핵심 파이프라인 데몬의 헬스체크 상태입니다.")} 파이프라인 상태 모니터링
-        </span>
-        <div style="color: #62d487; font-size:12px; margin-top:8px;">
-            {tooltip("●", "DNS 수집기 (dnsmasq)", "사내 DNS 서버로부터 실시간 도메인 질의 로그를 무중단 수집 중")} DNS 수집기 (dnsmasq) 정상
+    <div style="background: #111e30; padding: 14px; border-radius: 10px; border: 1px solid #1e3352; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+            <span style="font-size:12px; font-weight:700; color:#9fb0c8;">
+                {tooltip("⚙️", "시스템 데몬 상태", "백그라운드에서 실행 중인 4대 핵심 파이프라인 데몬의 헬스체크 상태입니다.")} 파이프라인 상태 모니터링
+            </span>
+            <span class="live-badge-radar">
+                <span class="pipeline-pulse-dot"></span>LIVE
+            </span>
         </div>
-        <div style="color: #62d487; font-size:12px; margin-top:4px;">
-            {tooltip("●", "통합 정규화 파서", "Auth, FW, DB, Web 로그를 단일 표준 JSON으로 정규화 변환 중")} 이기종 로그 정규화 정상
+        <div style="color: #62d487; font-size:12px; margin-top:6px; display:flex; align-items:center;">
+            <span class="pipeline-pulse-dot"></span> DNS 수집기 (dnsmasq) 정상
         </div>
-        <div style="color: #62d487; font-size:12px; margin-top:4px;">
-            {tooltip("●", "상관분석 엔진", "슬라이딩 윈도우 기반 킬체인 및 데이터 유출 시퀀스 실시간 연산 중")} 듀얼 상관분석 엔진 가동 중
+        <div style="color: #62d487; font-size:12px; margin-top:5px; display:flex; align-items:center;">
+            <span class="pipeline-pulse-dot"></span> 이기종 로그 정규화 정상
         </div>
-        <div style="color: #62d487; font-size:12px; margin-top:4px;">
-            {tooltip("●", "Gemini AI 모듈", "미등록 도메인 식별 및 데이터 재학습 위험도 진단 대기 중")} Gemini AI 판별 모듈 대기
+        <div style="color: #62d487; font-size:12px; margin-top:5px; display:flex; align-items:center;">
+            <span class="pipeline-pulse-dot"></span> 듀얼 상관분석 엔진 가동 중
+        </div>
+        <div style="color: #fbbf24; font-size:12px; margin-top:5px; display:flex; align-items:center;">
+            <span class="pipeline-pulse-dot amber"></span> Gemini AI 판별 모듈 대기
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -1545,9 +1667,10 @@ if menu == "대시보드 종합 관제":
     # 🌟 [상단 분계선] 3대 KPI 카드 위 분계선
     st.markdown('<hr style="border: 0; border-top: 1.5px solid #1e3a5f; margin: 18px 0 16px 0;">', unsafe_allow_html=True)
 
-    # 3대 위험도별 KPI 카드 (CRITICAL/HIGH, NORMAL, WATCH) - 실시간 2단계 상태 머신과 완벽 동기화
-    watch_count = len(active_watch) + len(low_ids)
-    normal_count = len([u for u in watch_users if u.get("state") == "NORMAL"]) + len(med_ids)
+    # 3대 위험도별 KPI 카드 (CRITICAL/HIGH, NORMAL, WATCH) - 실시간 2단계 상태 머신 및 인시던트와 100% 동기화
+    crit_high_count = len(crit_high_ids)
+    normal_count = len(med_ids)
+    watch_count = len(low_ids)
 
     kpi1, kpi2, kpi3 = st.columns(3)
 
@@ -1557,7 +1680,7 @@ if menu == "대시보드 종합 관제":
             <div class="kpi-title critical-text">
                 {tooltip("🚨", "CRITICAL / HIGH 긴급 경보", "즉각적인 격리 또는 차단이 요구되는 활성 공격 및 기밀 유출 사건입니다.")} CRITICAL / HIGH
             </div>
-            <div class="kpi-value critical-text">{len(crit_high_ids)}</div>
+            <div class="kpi-value critical-text">{crit_high_count}</div>
             <div class="kpi-sub">긴급 대응 필요 침해 킬체인</div>
         </div>
         """, unsafe_allow_html=True)
@@ -1799,11 +1922,12 @@ elif menu == "침해사고 킬체인 분석":
     raw_svg = generate_dynamic_network_svg(target_inc)
     render_interactive_map(raw_svg)
 
-    # 🔍 인시던트 상세 타임라인 & 상관분석 판단 근거
-    st.markdown("<hr style='border:none; border-top:1px solid #1c2e47; margin:24px 0 16px 0;'>", unsafe_allow_html=True)
+    # 🔍 인시던트 상세 타임라인 & 상관분석 판단 근거 & Zero Trust 대응
+    st.markdown("<hr style='border:none; border-top:1.5px solid #1c2e47; margin:24px 0 20px 0;'>", unsafe_allow_html=True)
     
-    det_col1, det_col2 = st.columns([6, 4])
-    with det_col1:
+    col_left, col_right = st.columns([1, 1])
+    
+    with col_left:
         st.markdown(f"""
         <div class="box-title">
             {tooltip("⏱️", "공격 시퀀스 순서", "공격자가 내부망에 침투하여 목적을 달성하기까지의 행위 순서입니다.")} 공격 행위 타임라인 (Attack Sequence)
@@ -1813,22 +1937,9 @@ elif menu == "침해사고 킬체인 분석":
         steps_html_parts = []
         for idx, h in enumerate(target_inc.network_hops):
             steps_html_parts.append(f'<span class="timeline-step">{idx+1}. {h.from_node} ➔ {h.to_node} (:{h.port})</span>')
-        steps_html = f'<div style="margin-top:8px; margin-bottom:16px;">{" ".join(steps_html_parts)}</div>'
+        steps_html = f'<div style="margin-top:8px; margin-bottom:20px; display:flex; flex-wrap:wrap; gap:8px;">{" ".join(steps_html_parts)}</div>'
         st.markdown(steps_html, unsafe_allow_html=True)
 
-    with det_col2:
-        st.markdown(f"""
-        <div class="box-title">
-            {tooltip("🛡️", "상관분석 판단 근거", "서로 다른 이기종 로그를 단일 공격으로 결합한 수학적/규칙적 판단 근거입니다.")} 상관분석 판단 근거 (Explainable Evidence)
-        </div>
-        """, unsafe_allow_html=True)
-        for ev in target_inc.evidences:
-            st.markdown(f"<div class='evidence-item'>✓ {ev}</div>", unsafe_allow_html=True)
-
-    # 하단: 홉 명세 및 Zero Trust 격리 상태
-    st.markdown("<hr style='border:none; border-top:1px solid #1c2e47; margin:16px 0 16px 0;'>", unsafe_allow_html=True)
-    col1, col2 = st.columns([5, 5])
-    with col1:
         st.markdown(f'<div class="box-title">📍 재구성된 네트워크 홉(Hop) 명세 ({target_inc.incident_id})</div>', unsafe_allow_html=True)
         if target_inc.network_hops:
             hops_data = []
@@ -1849,13 +1960,50 @@ elif menu == "침해사고 킬체인 분석":
             </div>
             """, unsafe_allow_html=True)
 
-    with col2:
-        st.markdown('<div class="box-title">🛡️ Zero Trust 대응 조치 및 격리 상태</div>', unsafe_allow_html=True)
+    with col_right:
         st.markdown(f"""
-        1. **발원지/단말 제어:** `{target_inc.actor}` 관련 활성 세션 강제 만료 및 EDR 격리 대기
-        2. **타깃 자산 보호:** `{target_inc.target_asset}` 대상 접근 정책 긴급 강화 및 Direct 접근 차단
-        3. **포렌식 아티팩트 보존:** 해당 호스트 메모리 덤프 및 Syslog 스냅샷 생성 완료
-        """)
+        <div class="box-title">
+            {tooltip("🛡️", "상관분석 판단 근거", "서로 다른 이기종 로그를 단일 공격으로 결합한 수학적/규칙적 판단 근거입니다.")} 상관분석 판단 근거 (Explainable Evidence)
+        </div>
+        """, unsafe_allow_html=True)
+        for ev in target_inc.evidences:
+            st.markdown(f"""
+            <div class="evidence-item">
+                <span style="color:#38bdf8; font-weight:700;">✓</span>
+                <span>{ev}</span>
+            </div>
+            """, unsafe_allow_html=True)
+
+        st.markdown(f"""
+        <div class="box-title" style="margin-top:20px;">
+            {tooltip("🔒", "Zero Trust 대응", "침해 의심 단말 및 타깃 자산에 대한 단계별 자동화 방어 조치 내역입니다.")} Zero Trust 대응 조치 및 격리 상태
+        </div>
+        """, unsafe_allow_html=True)
+        st.markdown(f"""
+        <div class="zt-action-card">
+            <div class="zt-action-badge">1</div>
+            <div>
+                <b style="color:#38bdf8;">발원지/단말 제어:</b>
+                <code style="color:#4ade80; background:#07111e; padding:2px 6px; border-radius:4px; font-size:12px;">{target_inc.actor}</code>
+                관련 활성 세션 강제 만료 및 EDR 격리 대기
+            </div>
+        </div>
+        <div class="zt-action-card">
+            <div class="zt-action-badge">2</div>
+            <div>
+                <b style="color:#38bdf8;">타깃 자산 보호:</b>
+                <code style="color:#38bdf8; background:#07111e; padding:2px 6px; border-radius:4px; font-size:12px;">{target_inc.target_asset}</code>
+                대상 접근 정책 긴급 강화 및 Direct 접근 차단
+            </div>
+        </div>
+        <div class="zt-action-card">
+            <div class="zt-action-badge">3</div>
+            <div>
+                <b style="color:#38bdf8;">포렌식 아티팩트 보존:</b>
+                해당 호스트 메모리 덤프 및 Syslog 스냅샷 생성 완료
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
 
 
 # VIEW 3: 섀도우 AI·IT 거버넌스 (Shadow IT/AI)

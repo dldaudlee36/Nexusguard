@@ -116,6 +116,29 @@ class SQLiteStore:
                 results.append(d)
             return results
 
+    def get_all_risks(self) -> List[Dict[str, Any]]:
+        """모든 사용자 상태 목록 (NORMAL, WATCH, HIGH, CRITICAL 포함)"""
+        now_str = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+        with self._get_conn() as conn:
+            rows = conn.execute(
+                "SELECT * FROM user_risk WHERE expires_at > ? ORDER BY entered_at DESC",
+                (now_str,)
+            ).fetchall()
+            results = []
+            for r in rows:
+                d = dict(r)
+                d["reasons"] = json.loads(d["reasons"]) if d["reasons"] else []
+                results.append(d)
+            return results
+
+    def clear_all(self):
+        """시뮬레이션 위험 상태, 이력 및 인시던트 완전 초기화"""
+        with self._get_conn() as conn:
+            conn.execute("DELETE FROM user_risk")
+            conn.execute("DELETE FROM risk_history")
+            conn.execute("DELETE FROM incidents")
+            conn.commit()
+
     def upsert_risk(self, user: str, state: str, score: int, reasons: List[str], expires_at: datetime):
         now_str = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
         exp_str = expires_at.strftime("%Y-%m-%d %H:%M:%S")
