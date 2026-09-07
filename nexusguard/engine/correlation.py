@@ -230,7 +230,7 @@ class CorrelationEngine:
         )
 
         if is_exfil:
-            # 사용자가 현재 WATCH 상태인 경우 -> 🌟 [2단계] HIGH Incident 확정!
+            # 1) 사용자가 현재 WATCH 상태인 경우 -> 🌟 [2단계] HIGH Incident 확정!
             if old_state == "WATCH":
                 new_state = "HIGH"
                 score = 92
@@ -244,6 +244,35 @@ class CorrelationEngine:
                 inc = self._create_dynamic_incident(user, event, bytes_out)
                 self._apply_state_transition(user, old_state, new_state, score, reasons, event, incident=inc)
                 return
+            else:
+                # 2) 사용자가 NORMAL 상태인 경우 -> 🌟 [단독 이상 징후 및 잠복형 유출 탐지]
+                has_prior_watch = self.store.has_user_prior_watch_history(user) if hasattr(self.store, "has_user_prior_watch_history") else False
+                if has_prior_watch:
+                    # 30분 만료(TTL) 후 지연 발생한 잠복형 유출(Dormant Exfiltration / Evasion) 포착 -> 즉시 HIGH 직행!
+                    new_state = "HIGH"
+                    score = 94
+                    reasons = [
+                        "과거 기밀 DB 조회 및 WATCH 이력 보유자의 외부 대용량 전송 감지",
+                        "30분 감시 만료(TTL)를 노린 지연 잠복형 유출(Dormant Exfiltration) 시도 포착",
+                        f"전송 볼륨: {bytes_out / (1024*1024):.2f} MB"
+                    ]
+                    inc = self._create_dynamic_incident(
+                        user, event, bytes_out,
+                        title_prefix="[잠복형 유출 의심]",
+                        evidence_note="과거 WATCH 이력 소급 분석: TTL 만료 후 발생한 지연 유출(Evasion) 감지 (+4점)"
+                    )
+                    self._apply_state_transition(user, old_state, new_state, score, reasons, event, incident=inc)
+                    return
+                elif bytes_out >= 1_000_000:
+                    # 사전 등록 없는 단독 대용량 이상 전송 감지 (Outbound Spike)
+                    new_state = "WATCH"
+                    score = 72
+                    reasons = [
+                        f"비인가 외부 서비스로의 단독 비정상 대용량 전송 포착 ({bytes_out / (1024*1024):.2f} MB)",
+                        "임계치(1MB) 초과 Outbound Traffic Spike 단독 이상 징후 감지"
+                    ]
+                    self._apply_state_transition(user, old_state, new_state, score, reasons, event)
+                    return
 
     def _apply_state_transition(self, user: str, old_state: str, new_state: str,
                                 score: int, reasons: List[str], event: SecurityEvent, incident=None):
@@ -262,13 +291,15 @@ class CorrelationEngine:
         # SOAR 알림 훅 호출
         on_risk_state_changed(user, old_state, new_state, reasons, incident)
 
-    def _create_dynamic_incident(self, user: str, event: SecurityEvent, bytes_out: int) -> Incident:
+    def _create_dynamic_incident(self, user: str, event: SecurityEvent, bytes_out: int,
+                                 title_prefix: str = "", evidence_note: Optional[str] = None) -> Incident:
         inc_id = f"INC-SEC-{len(self.incidents) + 1:03d}"
         target_domain = event.target.domain or event.target.dst_ip or "external-cloud"
+        prefix_str = f"{title_prefix} " if title_prefix else ""
         
         inc = Incident(
             incident_id=inc_id,
-            title=f"사용자 '{user}' 미승인 서비스({target_domain})를 통한 기밀 데이터 유출 확정",
+            title=f"{prefix_str}사용자 '{user}' 미승인 서비스({target_domain})를 통한 기밀 데이터 유출 확정",
             category=IncidentCategory.SHADOW_AI_EXFILTRATION,
             severity=Severity.HIGH,
             score=92,
@@ -280,8 +311,8 @@ class CorrelationEngine:
             event_ids=[event.event_id],
             evidences=[
                 f"동일 사용자/단말({user}) 행위 체인 100% 일치 (+2점)",
-                f"기밀 DB 조회 직후 15분 내 미승인 서비스({target_domain}) 접근 (+2점)",
-                f"위험 상태 기계: WATCH 상태에서 외부 대용량 전송({bytes_out / 1024:.1f} KB) 감지 (+4점)",
+                evidence_note or f"기밀 DB 조회 직후 15분 내 미승인 서비스({target_domain}) 접근 (+2점)",
+                f"위험 상태 기계: 외부 대용량 전송({bytes_out / 1024:.1f} KB) 감지 (+4점)",
                 "동적 2단계 유출 상관분석 시퀀스 최종 완성 (+2점)"
             ],
             network_hops=[

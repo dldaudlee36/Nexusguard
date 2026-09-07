@@ -175,6 +175,15 @@ class SQLiteStore:
             ).fetchall()
             return [dict(r) for r in rows]
 
+    def has_user_prior_watch_history(self, user: str) -> bool:
+        """해당 사용자가 과거에 WATCH 상태로 승격된 이력이 있는지 확인 (지연 잠복형 유출 Evasion 감지용)"""
+        with self._get_conn() as conn:
+            row = conn.execute(
+                "SELECT 1 FROM risk_history WHERE user = ? AND to_state = 'WATCH' LIMIT 1",
+                (user,)
+            ).fetchone()
+            return row is not None
+
     # --- 인시던트 CRUD ---
     def save_incident(self, inc: Incident):
         hops_json = json.dumps([h.dict() for h in inc.network_hops], ensure_ascii=False)
