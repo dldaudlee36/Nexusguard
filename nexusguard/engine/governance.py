@@ -209,8 +209,8 @@ class ShadowAIGovernanceEngine:
             )
 
     def process_dns_event(self, event: SecurityEvent):
-        """새로운 DNS 이벤트 수신 시 통계 누적 및 판별"""
-        if event.log_source != LogSource.DNS or not event.target.domain:
+        """새로운 DNS/웹/에이전트/확장프로그램 이벤트 수신 시 통계 누적 및 판별"""
+        if event.log_source not in [LogSource.DNS, LogSource.WEB, LogSource.WINDOWS_AGENT, LogSource.CHROME_EXTENSION] or not event.target.domain:
             return
 
         domain = event.target.domain.lower()

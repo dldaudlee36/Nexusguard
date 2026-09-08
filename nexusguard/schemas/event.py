@@ -16,6 +16,8 @@ class LogSource(str, Enum):
     DB = "db"
     WEB = "web"
     SYSTEM = "system"
+    CHROME_EXTENSION = "chrome-extension"
+    WINDOWS_AGENT = "windows-agent"
 
 
 class EventAction(str, Enum):
@@ -36,6 +38,8 @@ class EventAction(str, Enum):
     # Web / Proxy
     HTTP_GET = "HTTP_GET"
     HTTP_POST = "HTTP_POST"
+    WEB_ACCESS = "WEB_ACCESS"
+    FILE_UPLOAD_ATTEMPT = "FILE_UPLOAD_ATTEMPT"
 
 
 class Actor(BaseModel):
@@ -56,6 +60,8 @@ class PayloadMetadata(BaseModel):
     table_name: Optional[str] = Field(default=None, description="접근 테이블명 (예: customer_info)")
     rows_affected: Optional[int] = Field(default=None, description="영향받은 행 수")
     bytes_sent: Optional[int] = Field(default=None, description="전송 바이트 수")
+    file_name: Optional[str] = Field(default=None, description="첨부/업로드 대상 파일명 (예: report.pdf, dump.zip)")
+    file_size: Optional[int] = Field(default=None, description="첨부/업로드 파일 크기 (바이트)")
     category: Optional[str] = Field(default=None, description="서비스 카테고리 (예: Generative_AI, File_Sharing)")
     extra: Dict[str, Any] = Field(default_factory=dict, description="기타 확장 메타데이터")
 

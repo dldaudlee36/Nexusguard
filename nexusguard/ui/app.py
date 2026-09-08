@@ -1106,15 +1106,34 @@ with st.sidebar:
             ctx.correlation_engine.update_user_risk(ev_pre1)
             ctx.correlation_engine.update_user_risk(ev_pre2)
 
-        ev3 = SecurityEvent(
-            event_id=f"EVT-SIM-FW-{int(now.timestamp())}",
-            timestamp=now,
-            log_source=LogSource.FIREWALL,
-            actor=Actor(user_id=sc["user"], src_ip=sc["ip"]),
-            target=Target(domain=sc["dst_domain"], dst_port=443),
-            action=EventAction.ALLOW,
-            payload=PayloadMetadata(bytes_sent=sc["bytes"])
-        )
+        file_name = sc.get("file_name")
+        file_size = sc.get("file_size") or sc.get("bytes", 24500000)
+
+        if file_name:
+            ev3 = SecurityEvent(
+                event_id=f"EVT-SIM-UPLOAD-{int(now.timestamp())}",
+                timestamp=now,
+                log_source=LogSource.CHROME_EXTENSION,
+                actor=Actor(user_id=sc["user"], src_ip=sc["ip"]),
+                target=Target(domain=sc["dst_domain"], hostname="DESKTOP-OF0CMDB"),
+                action=EventAction.FILE_UPLOAD_ATTEMPT,
+                payload=PayloadMetadata(
+                    file_name=file_name,
+                    file_size=file_size,
+                    bytes_sent=file_size,
+                    category="Shadow_AI_Exfiltration"
+                )
+            )
+        else:
+            ev3 = SecurityEvent(
+                event_id=f"EVT-SIM-FW-{int(now.timestamp())}",
+                timestamp=now,
+                log_source=LogSource.FIREWALL,
+                actor=Actor(user_id=sc["user"], src_ip=sc["ip"]),
+                target=Target(domain=sc["dst_domain"], dst_port=443),
+                action=EventAction.ALLOW,
+                payload=PayloadMetadata(bytes_sent=sc["bytes"])
+            )
         ctx.correlation_engine.update_user_risk(ev3)
         # 해당 사용자의 기존 미완료 WATCH 인시던트 정리
         for inc_id, inc in list(ctx.correlation_engine.incidents.items()):
@@ -1126,7 +1145,10 @@ with st.sidebar:
             if (sc["user"] in inc.title or sc["user"] in inc.actor) and inc.severity == Severity.HIGH:
                 st.session_state.selected_incident_id = inc.incident_id
                 break
-        st.toast(f"🚨 [2단계 유출 확정] '{sc['user']}'({sc['name']}) 외부 {sc['bytes']/(1024*1024):.1f}MB 전송 포착! HIGH Incident 생성 완료!", icon="🚨")
+        if file_name:
+            st.toast(f"🚨 [2단계 유출 확정] '{sc['user']}'({sc['name']}) '{file_name}'({file_size/(1024*1024):.1f}MB) 파일 첨부 포착! HIGH Incident 생성 완료!", icon="🚨")
+        else:
+            st.toast(f"🚨 [2단계 유출 확정] '{sc['user']}'({sc['name']}) 외부 {sc['bytes']/(1024*1024):.1f}MB 전송 포착! HIGH Incident 생성 완료!", icon="🚨")
         st.rerun()
 
     if btn_heal:
@@ -2527,10 +2549,11 @@ elif menu == "중앙 서버 파이프라인":
         </div>
         """, unsafe_allow_html=True)
     with kpi_c3:
+        upload_count = sum(1 for e in r_events if e.get("event_type") == "FILE_UPLOAD_ATTEMPT")
         st.markdown(f"""
-        <div class="kpi-card" style="border-left: 4px solid #a855f7; text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center;">
-            <div class="kpi-title" style="text-align: center; width: 100%; margin-bottom: 8px;">실시간 수집 PC</div>
-            <div class="kpi-value" style="color:#a855f7; font-size:17px; text-align: center; width: 100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">DESKTOP-OF0CMDB</div>
+        <div class="kpi-card" style="border-left: 4px solid #f59e0b; text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+            <div class="kpi-title" style="text-align: center; width: 100%; margin-bottom: 8px;">브라우저 파일 첨부 감지</div>
+            <div class="kpi-value" style="color:#f59e0b; font-size:24px; text-align: center; width: 100%;">{upload_count} 건 (Chrome Ext)</div>
         </div>
         """, unsafe_allow_html=True)
     with kpi_c4:
@@ -2546,7 +2569,7 @@ elif menu == "중앙 서버 파이프라인":
     st.markdown("<br>", unsafe_allow_html=True)
 
     st.markdown("### 🌐 Railway 중앙 서버 수집 이벤트 (/events)")
-    st.caption("각 PC에서 `NexusGuardAgent.exe`가 사이트 접속(DNS)을 자동 감지하여 중앙 서버에 전송한 실제 데이터입니다.")
+    st.caption("각 PC에서 `NexusGuardAgent.exe` 및 Chrome 확장 프로그램(`Upload Detector`)이 사이트 접속(WEB_ACCESS) 및 파일 첨부 시도(FILE_UPLOAD_ATTEMPT)를 실시간 감지하여 중앙 서버에 전송한 실제 데이터입니다.")
 
     col_btn_ref, _ = st.columns([1.5, 4])
     with col_btn_ref:
@@ -2555,18 +2578,21 @@ elif menu == "중앙 서버 파이프라인":
 
     if r_events:
         df_rly = pd.DataFrame(r_events)
-        cols_order = [c for c in ["id", "event_time", "user_name", "pc_name", "event_type", "target", "source", "risk_score"] if c in df_rly.columns]
+        cols_order = [c for c in ["id", "event_time", "user_name", "pc_name", "local_ip", "event_type", "target", "file_name", "file_size_formatted", "source", "risk_score"] if c in df_rly.columns]
         df_display = df_rly[cols_order].rename(columns={
             "id": "ID",
             "event_time": "발생 시각",
             "user_name": "사용자",
             "pc_name": "PC 이름",
+            "local_ip": "로컬 IP",
             "event_type": "이벤트 종류",
-            "target": "접속 사이트",
+            "target": "대상 사이트",
+            "file_name": "첨부 파일명",
+            "file_size_formatted": "파일 크기",
             "source": "수집 소스",
             "risk_score": "위험 점수"
         })
-        st.dataframe(df_display, hide_index=True, use_container_width=True, height=350)
+        st.dataframe(df_display, hide_index=True, use_container_width=True, height=380)
     else:
         st.warning("Railway 서버에서 수집된 로그가 없습니다.")
 

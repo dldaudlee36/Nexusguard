@@ -200,10 +200,98 @@ class CorrelationEngine:
                 self.user_sensitive_db_touch[user] = event.timestamp
                 return
 
-        # 2.2 미승인 AI / 외부 SaaS 접근 포착
+        # 2.2 파일 업로드 시도 또는 외부 데이터 전송 발생 포착 (Chrome Extension / Firewall ALLOW / Web POST)
         target_domain = event.target.domain or ""
-        is_ai_or_cloud = target_domain in KNOWN_AI_DOMAINS or "ai" in target_domain or "transfer" in target_domain
-        if (event.log_source in [LogSource.DNS, LogSource.WEB]) and is_ai_or_cloud:
+        is_ai_or_cloud = target_domain in KNOWN_AI_DOMAINS or any(k in target_domain.lower() for k in ["ai", "gpt", "claude", "gemini", "transfer", "dropbox", "box", "drive"])
+        file_name = event.payload.file_name or ""
+        file_size = event.payload.file_size or event.payload.bytes_sent or 0
+        bytes_out = event.payload.bytes_sent or file_size or 0
+
+        is_file_upload = (
+            event.action == EventAction.FILE_UPLOAD_ATTEMPT or
+            event.log_source == LogSource.CHROME_EXTENSION or
+            bool(file_name)
+        )
+        is_exfil = (
+            is_file_upload or
+            (event.log_source == LogSource.FIREWALL and event.action == EventAction.ALLOW and bytes_out > 50000) or
+            (event.log_source == LogSource.WEB and event.action == EventAction.HTTP_POST and bytes_out > 50000)
+        )
+
+        if is_exfil:
+            # 1) 사용자가 현재 WATCH 상태인 경우 -> 🌟 [2단계] HIGH Incident 확정!
+            if old_state == "WATCH":
+                new_state = "HIGH"
+                score = 95 if is_file_upload else 92
+                if is_file_upload:
+                    reasons = [
+                        "사전 감시(WATCH) 등록 사용자의 브라우저 파일 업로드 시도 실시간 감지 (Chrome Extension)",
+                        f"첨부 파일: '{file_name}' ({file_size / 1024:.1f} KB)" if file_size else f"첨부 파일: '{file_name}'",
+                        f"대상 서비스: {target_domain}",
+                        "사내 기밀 DB 조회 후 외부 AI/SaaS 파일 업로드 시도로 유출 킬체인 100% 충족"
+                    ]
+                else:
+                    reasons = [
+                        "사전 감시(WATCH) 등록 사용자의 외부 대용량 데이터 전송 감지",
+                        f"전송 볼륨: {bytes_out / (1024*1024):.2f} MB",
+                        "민감정보 외부 반출 킬체인 시퀀스 100% 충족"
+                    ]
+                
+                # 동적 Incident 생성
+                inc = self._create_dynamic_incident(user, event, bytes_out, file_name=file_name, file_size=file_size)
+                self._apply_state_transition(user, old_state, new_state, score, reasons, event, incident=inc)
+                return
+            else:
+                # 2) 사용자가 NORMAL 상태인 경우 -> 🌟 [단독 이상 징후 및 잠복형 유출 탐지]
+                has_prior_watch = self.store.has_user_prior_watch_history(user) if hasattr(self.store, "has_user_prior_watch_history") else False
+                if has_prior_watch:
+                    # 30분 만료(TTL) 후 지연 발생한 잠복형 유출(Dormant Exfiltration / Evasion) 포착 -> 즉시 HIGH 직행!
+                    new_state = "HIGH"
+                    score = 96 if is_file_upload else 94
+                    if is_file_upload:
+                        reasons = [
+                            "과거 기밀 DB 조회 및 WATCH 이력 보유자의 브라우저 파일 업로드 시도 감지",
+                            "30분 감시 만료(TTL)를 노린 지연 잠복형 유출(Dormant Exfiltration) 시도 포착",
+                            f"업로드 시도: '{file_name}' ({file_size / 1024:.1f} KB) -> {target_domain}"
+                        ]
+                    else:
+                        reasons = [
+                            "과거 기밀 DB 조회 및 WATCH 이력 보유자의 외부 대용량 전송 감지",
+                            "30분 감시 만료(TTL)를 노린 지연 잠복형 유출(Dormant Exfiltration) 시도 포착",
+                            f"전송 볼륨: {bytes_out / (1024*1024):.2f} MB"
+                        ]
+                    inc = self._create_dynamic_incident(
+                        user, event, bytes_out,
+                        file_name=file_name, file_size=file_size,
+                        title_prefix="[잠복형 유출 의심]",
+                        evidence_note="과거 WATCH 이력 소급 분석: TTL 만료 후 발생한 지연 파일 업로드 유출(Evasion) 감지 (+4점)"
+                    )
+                    self._apply_state_transition(user, old_state, new_state, score, reasons, event, incident=inc)
+                    return
+                elif is_file_upload and is_ai_or_cloud:
+                    # 미승인 AI 사이트에 파일 업로드 시도한 경우 -> 단독 고위험 징후로 즉시 WATCH 승격
+                    new_state = "WATCH"
+                    score = 82
+                    reasons = [
+                        f"미승인 생성형 AI({target_domain})로의 파일 첨부 시도 감지 (Chrome Extension)",
+                        f"첨부 파일: '{file_name}' ({file_size / 1024:.1f} KB)" if file_size else f"첨부 파일: '{file_name}'",
+                        "프롬프트 및 문서 업로드를 통한 비인가 사내 자산 외부 유출 위험 선제 감시"
+                    ]
+                    self._apply_state_transition(user, old_state, new_state, score, reasons, event)
+                    return
+                elif bytes_out >= 1_000_000:
+                    # 사전 등록 없는 단독 대용량 이상 전송 감지 (Outbound Spike)
+                    new_state = "WATCH"
+                    score = 72
+                    reasons = [
+                        f"비인가 외부 서비스로의 단독 비정상 대용량 전송 포착 ({bytes_out / (1024*1024):.2f} MB)",
+                        "임계치(1MB) 초과 Outbound Traffic Spike 단독 이상 징후 감지"
+                    ]
+                    self._apply_state_transition(user, old_state, new_state, score, reasons, event)
+                    return
+
+        # 2.3 미승인 AI / 외부 SaaS 단순 접근 및 질의 포착 (전송 이전 선제 감시)
+        if (event.log_source in [LogSource.DNS, LogSource.WEB, LogSource.WINDOWS_AGENT]) and is_ai_or_cloud:
             self.user_visited_unapproved_ai[user] = {
                 "domain": target_domain,
                 "time": event.timestamp
@@ -221,58 +309,6 @@ class CorrelationEngine:
                 ]
                 self._apply_state_transition(user, old_state, new_state, score, reasons, event)
                 return
-
-        # 2.3 외부 데이터 전송 발생 포착 (Firewall ALLOW / Web POST)
-        bytes_out = event.payload.bytes_sent or 0
-        is_exfil = (
-            (event.log_source == LogSource.FIREWALL and event.action == EventAction.ALLOW and bytes_out > 50000) or
-            (event.log_source == LogSource.WEB and event.action == EventAction.HTTP_POST and bytes_out > 50000)
-        )
-
-        if is_exfil:
-            # 1) 사용자가 현재 WATCH 상태인 경우 -> 🌟 [2단계] HIGH Incident 확정!
-            if old_state == "WATCH":
-                new_state = "HIGH"
-                score = 92
-                reasons = [
-                    "사전 감시(WATCH) 등록 사용자의 외부 대용량 데이터 전송 감지",
-                    f"전송 볼륨: {bytes_out / (1024*1024):.2f} MB",
-                    "민감정보 외부 반출 킬체인 시퀀스 100% 충족"
-                ]
-                
-                # 동적 Incident 생성
-                inc = self._create_dynamic_incident(user, event, bytes_out)
-                self._apply_state_transition(user, old_state, new_state, score, reasons, event, incident=inc)
-                return
-            else:
-                # 2) 사용자가 NORMAL 상태인 경우 -> 🌟 [단독 이상 징후 및 잠복형 유출 탐지]
-                has_prior_watch = self.store.has_user_prior_watch_history(user) if hasattr(self.store, "has_user_prior_watch_history") else False
-                if has_prior_watch:
-                    # 30분 만료(TTL) 후 지연 발생한 잠복형 유출(Dormant Exfiltration / Evasion) 포착 -> 즉시 HIGH 직행!
-                    new_state = "HIGH"
-                    score = 94
-                    reasons = [
-                        "과거 기밀 DB 조회 및 WATCH 이력 보유자의 외부 대용량 전송 감지",
-                        "30분 감시 만료(TTL)를 노린 지연 잠복형 유출(Dormant Exfiltration) 시도 포착",
-                        f"전송 볼륨: {bytes_out / (1024*1024):.2f} MB"
-                    ]
-                    inc = self._create_dynamic_incident(
-                        user, event, bytes_out,
-                        title_prefix="[잠복형 유출 의심]",
-                        evidence_note="과거 WATCH 이력 소급 분석: TTL 만료 후 발생한 지연 유출(Evasion) 감지 (+4점)"
-                    )
-                    self._apply_state_transition(user, old_state, new_state, score, reasons, event, incident=inc)
-                    return
-                elif bytes_out >= 1_000_000:
-                    # 사전 등록 없는 단독 대용량 이상 전송 감지 (Outbound Spike)
-                    new_state = "WATCH"
-                    score = 72
-                    reasons = [
-                        f"비인가 외부 서비스로의 단독 비정상 대용량 전송 포착 ({bytes_out / (1024*1024):.2f} MB)",
-                        "임계치(1MB) 초과 Outbound Traffic Spike 단독 이상 징후 감지"
-                    ]
-                    self._apply_state_transition(user, old_state, new_state, score, reasons, event)
-                    return
 
     def _apply_state_transition(self, user: str, old_state: str, new_state: str,
                                 score: int, reasons: List[str], event: SecurityEvent, incident=None):
@@ -292,38 +328,69 @@ class CorrelationEngine:
         on_risk_state_changed(user, old_state, new_state, reasons, incident)
 
     def _create_dynamic_incident(self, user: str, event: SecurityEvent, bytes_out: int,
+                                 file_name: Optional[str] = None, file_size: Optional[int] = None,
                                  title_prefix: str = "", evidence_note: Optional[str] = None) -> Incident:
         inc_id = f"INC-SEC-{len(self.incidents) + 1:03d}"
         target_domain = event.target.domain or event.target.dst_ip or "external-cloud"
         prefix_str = f"{title_prefix} " if title_prefix else ""
         
-        inc = Incident(
-            incident_id=inc_id,
-            title=f"{prefix_str}사용자 '{user}' 미승인 서비스({target_domain})를 통한 기밀 데이터 유출 확정",
-            category=IncidentCategory.SHADOW_AI_EXFILTRATION,
-            severity=Severity.HIGH,
-            score=92,
-            status=IncidentStatus.ACTIVE,
-            summary=f"기밀 DB 조회 후 미승인 사이트({target_domain})로 {bytes_out / (1024*1024):.2f}MB 대용량 외부 전송이 발생하여 2단계 상관분석으로 HIGH Incident 생성",
-            actor=f"{event.actor.src_ip} ({user})",
-            target_asset=f"Core DB -> {target_domain}",
-            created_at=datetime.utcnow(),
-            event_ids=[event.event_id],
-            evidences=[
+        fname = file_name or event.payload.file_name
+        fsize = file_size or event.payload.file_size or bytes_out
+        size_kb = fsize / 1024.0 if fsize else 0
+
+        if fname:
+            title = f"{prefix_str}사용자 '{user}' 미승인 서비스({target_domain})로 기밀 파일('{fname}') 업로드 유출 확정"
+            summary = f"사용자 '{user}'({event.actor.src_ip})가 {target_domain}에 기밀 파일('{fname}', {size_kb:.1f} KB) 업로드를 시도하여 Chrome 확장 프로그램 및 에이전트에 의해 실시간 포착/차단되었습니다."
+            evidences = [
+                f"Chrome 확장 프로그램(NexusGuard Upload Detector) 실시간 첨부 감지: '{fname}' ({fsize:,} bytes) (+4점)",
+                f"단말 Windows Agent(NexusGuardAgent.exe) 로컬 브릿지 연동 및 Railway 중앙 서버 실시간 전송 검증 (+2점)",
+                f"동일 사용자/단말({user} / {event.actor.src_ip}) 킬체인 100% 일치 (+2점)",
+                evidence_note or f"기밀 DB 조회 직후 15분 내 미승인 서비스({target_domain}) 파일 업로드 연계 (+2점)"
+            ]
+            network_hops = [
+                NetworkHop(from_node=f"User PC ({event.actor.src_ip})", to_node="Internal DB", port=3306, hop_type="db_access"),
+                NetworkHop(from_node=f"User PC ({event.actor.src_ip})", to_node="Chrome Extension (Upload Detector)", port=8765, hop_type="lateral"),
+                NetworkHop(from_node="Chrome Extension (Upload Detector)", to_node=f"Cloud ({target_domain})", port=443, hop_type="exfiltration")
+            ]
+            soar_actions = [
+                f"단말({event.actor.src_ip}) 브라우저 파일 업로드 세션 즉시 차단",
+                f"업로드 대상 파일('{fname}') 해시 기반 전사 DLP 차단 정책 등록",
+                f"사용자({user}) 계정 긴급 감사 및 보안팀 통보 완료"
+            ]
+        else:
+            title = f"{prefix_str}사용자 '{user}' 미승인 서비스({target_domain})를 통한 기밀 데이터 유출 확정"
+            summary = f"기밀 DB 조회 후 미승인 사이트({target_domain})로 {bytes_out / (1024*1024):.2f}MB 대용량 외부 전송이 발생하여 2단계 상관분석으로 HIGH Incident 생성"
+            evidences = [
                 f"동일 사용자/단말({user}) 행위 체인 100% 일치 (+2점)",
                 evidence_note or f"기밀 DB 조회 직후 15분 내 미승인 서비스({target_domain}) 접근 (+2점)",
                 f"위험 상태 기계: 외부 대용량 전송({bytes_out / 1024:.1f} KB) 감지 (+4점)",
                 "동적 2단계 유출 상관분석 시퀀스 최종 완성 (+2점)"
-            ],
-            network_hops=[
+            ]
+            network_hops = [
                 NetworkHop(from_node=f"User PC ({event.actor.src_ip})", to_node="Internal DB", port=3306, hop_type="db_access"),
                 NetworkHop(from_node=f"User PC ({event.actor.src_ip})", to_node=f"Cloud ({target_domain})", port=443, hop_type="attack")
-            ],
-            soar_actions=[
+            ]
+            soar_actions = [
                 f"단말({event.actor.src_ip}) 외부 아웃바운드 세션 일시 차단",
                 f"계정({user}) MFA 재인증 요구 및 세션 감사",
                 "사내 보안팀 긴급 슬랙 알림 웹훅 발행 완료"
             ]
+
+        inc = Incident(
+            incident_id=inc_id,
+            title=title,
+            category=IncidentCategory.SHADOW_AI_EXFILTRATION,
+            severity=Severity.HIGH,
+            score=95 if fname else 92,
+            status=IncidentStatus.ACTIVE,
+            summary=summary,
+            actor=f"{event.actor.src_ip} ({user})",
+            target_asset=f"Core DB -> {target_domain}" if not fname else f"Core DB -> {target_domain} ({fname})",
+            created_at=datetime.utcnow(),
+            event_ids=[event.event_id],
+            evidences=evidences,
+            network_hops=network_hops,
+            soar_actions=soar_actions
         )
         self.incidents[inc_id] = inc
         self.store.save_incident(inc)

@@ -28,6 +28,7 @@ walkthroughs/
 *_backup*.py
 *.db
 *.sqlite3
+*.exe
 .env
 .env.*
 !.env.example
