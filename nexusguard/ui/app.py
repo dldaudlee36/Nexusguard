@@ -2456,7 +2456,7 @@ elif menu == "AI·IT 거버넌스":
 # ==========================================
 elif menu == "중앙 서버 파이프라인":
     from nexusguard.collectors.team_collector import (
-        fetch_railway_events, fetch_activity_log_events, RAILWAY_URL, RAILWAY_API_KEY
+        fetch_railway_events, fetch_activity_log_events, RAILWAY_URL, RAILWAY_API_KEY, get_railway_api_key
     )
 
     st.markdown(f"""
@@ -2557,8 +2557,9 @@ elif menu == "중앙 서버 파이프라인":
         </div>
         """, unsafe_allow_html=True)
     with kpi_c4:
-        key_status_color = "#10b981" if RAILWAY_API_KEY else "#ef4444"
-        key_status_text = "● VERIFIED" if RAILWAY_API_KEY else "○ NOT SET"
+        effective_key = get_railway_api_key()
+        key_status_color = "#10b981" if effective_key else "#ef4444"
+        key_status_text = "● VERIFIED" if effective_key else "○ NOT SET"
         st.markdown(f"""
         <div class="kpi-card" style="border-left: 4px solid {key_status_color}; text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center;">
             <div class="kpi-title" style="text-align: center; width: 100%; margin-bottom: 8px;">API Key 보안 인증</div>
@@ -2568,12 +2569,12 @@ elif menu == "중앙 서버 파이프라인":
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    st.markdown("### 🌐 Railway 중앙 서버 수집 이벤트 (/events)")
+    st.markdown("### 🌐 Railway 중앙 서버 수집 이벤트")
     st.caption("각 PC에서 `NexusGuardAgent.exe` 및 Chrome 확장 프로그램(`Upload Detector`)이 사이트 접속(WEB_ACCESS) 및 파일 첨부 시도(FILE_UPLOAD_ATTEMPT)를 실시간 감지하여 중앙 서버에 전송한 실제 데이터입니다.")
 
-    col_btn_ref, _ = st.columns([1.5, 4])
+    col_btn_ref, _ = st.columns([1, 6])
     with col_btn_ref:
-        if st.button("🔄 Railway 실제 로그 새로고침", use_container_width=True):
+        if st.button("🔄 로그 새로고침", use_container_width=True):
             st.rerun()
 
     if r_events:
@@ -2597,8 +2598,7 @@ elif menu == "중앙 서버 파이프라인":
         st.warning("Railway 서버에서 수집된 로그가 없습니다.")
 
     st.markdown("---")
-    st.markdown("### 💾 사내 DB 감사 활동 로그 (activity.log)")
-    st.caption("사내 DB(company_db)의 민감 테이블(`customer_vault`, `customer_db`) 조회 활동 원천 로그입니다.")
+    st.markdown("### 사내 DB 감사 활동 로그")
     if act_events:
         df_act = pd.DataFrame(act_events).rename(columns={
             "id": "ID",

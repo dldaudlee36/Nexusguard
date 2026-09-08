@@ -38,8 +38,22 @@ from nexusguard.schemas.event import (
     SecurityEvent, LogSource, EventAction, Actor, Target, PayloadMetadata
 )
 
+DEFAULT_RAILWAY_API_KEY = "20110313"
 RAILWAY_URL = _get_env_or_secret("RAILWAY_URL", "https://bountiful-nature-production-22ec.up.railway.app/events")
-RAILWAY_API_KEY = _get_env_or_secret("RAILWAY_API_KEY", "")
+
+def get_railway_api_key() -> str:
+    """
+    Railway 인증 키 조회:
+    1. 환경변수 RAILWAY_API_KEY
+    2. Streamlit Secrets (st.secrets["RAILWAY_API_KEY"])
+    3. 팀 프로젝트 기본 키 (20110313) 자동 폴백
+    """
+    key = _get_env_or_secret("RAILWAY_API_KEY", "")
+    if not key:
+        key = DEFAULT_RAILWAY_API_KEY
+    return key
+
+RAILWAY_API_KEY = get_railway_api_key()
 
 _cached_railway_events: List[Dict[str, Any]] = []
 _railway_collection_enabled: bool = False
@@ -128,8 +142,9 @@ def fetch_railway_events(timeout: int = 5, force: bool = False) -> List[Dict[str
     if not _railway_collection_enabled and not force:
         return _cached_railway_events
 
+    api_key = get_railway_api_key()
     headers = {
-        "X-API-Key": RAILWAY_API_KEY
+        "X-API-Key": api_key
     }
     try:
         response = requests.get(RAILWAY_URL, headers=headers, timeout=timeout)
