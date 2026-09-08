@@ -2342,6 +2342,11 @@ elif menu == "킬체인 분석":
 # VIEW 3: AI·IT 거버넌스 (Shadow IT/AI)
 # ==========================================
 elif menu == "AI·IT 거버넌스":
+    from nexusguard.collectors.team_collector import fetch_railway_events
+    r_events = fetch_railway_events(force=True)
+    ctx.governance_engine.sync_railway_events(r_events)
+    r_stats = ctx.governance_engine.get_railway_domain_stats()
+
     st.markdown("""
     <div class="nexus-page-title-box">
         <h1 class="nexus-page-title">🤖 사내 섀도우 IT 및 생성형 AI 거버넌스 대시보드</h1>
@@ -2349,27 +2354,43 @@ elif menu == "AI·IT 거버넌스":
     """, unsafe_allow_html=True)
 
     # ⚡ Gemini AI 실시간 미등록 외부 도메인 진단기 (오픈형 인라인 바)
-    st.markdown("""
+    st.markdown(f"""
     <div style="background:#0c1626; border:1px solid #1e3a5f; border-radius:12px; padding:18px 20px 14px 20px; margin-bottom:14px; box-shadow:0 4px 14px rgba(0,0,0,0.25);">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
             <span style="font-size:15px; font-weight:800; color:#38bdf8; display:flex; align-items:center; gap:6px;">
                 ⚡ Gemini AI 실시간 미등록 외부 도메인 진단기
             </span>
             <span style="font-size:12px; color:#94a3b8;">
-                사내 임직원 신규 접속 AI·SaaS 위험도 즉시 판별 & 대체재 추천
+                사내 임직원 신규 접속 AI·SaaS 위험도 및 보안 영향도 실시간 판별
             </span>
         </div>
-        <div style="color:#cbd5e1; font-size:12.5px; margin-bottom:12px;">
-            임직원이 사내에서 새롭게 접속한 미승인 도메인을 입력하고 즉시 진단 버튼을 누르면, <b>Gemini LLM</b>이 데이터 재학습 여부와 보안 위험도를 실시간 분석합니다.
+        <div style="color:#cbd5e1; font-size:12.5px; margin-bottom:10px;">
+            임직원 단말(Railway Agent)에서 실시간 수집된 외부 도메인을 기반으로, <b>Gemini LLM</b>이 데이터 재학습 여부와 보안 위험도를 실시간 분석합니다.
+        </div>
+        <div style="display:flex; align-items:center; gap:8px; font-size:12px; color:#38bdf8; background:rgba(56, 189, 248, 0.08); padding:7px 12px; border-radius:6px; border-left:3px solid #38bdf8;">
+            <span>📡 <b>실시간 소스 연동:</b> Railway 중앙 수집 서버 (/events) 실시간 로그 {len(r_events)}건 분석 중 · 감지된 외부 도메인 {len(r_stats)}개</span>
         </div>
     </div>
     """, unsafe_allow_html=True)
 
-    col_in, col_btn = st.columns([4.2, 1.2])
+    sorted_rly_domains = sorted(r_stats.items(), key=lambda x: x[1]["count"], reverse=True)
+    domain_options = ["직접 입력 (perplexity.ai 등)"] + [f"{d} (실시간 {s['count']}건 감지)" for d, s in sorted_rly_domains]
+
+    col_pick, col_in, col_btn = st.columns([2.0, 2.5, 1.2])
+    with col_pick:
+        selected_option = st.selectbox(
+            "Railway 수집 도메인 선택",
+            options=domain_options,
+            label_visibility="collapsed",
+            key="gemini_rly_domain_selector"
+        )
     with col_in:
+        default_val = "perplexity.ai"
+        if selected_option and not selected_option.startswith("직접 입력"):
+            default_val = selected_option.split(" (실시간")[0]
         test_domain_input = st.text_input(
             "분석할 도메인 주소",
-            value="perplexity.ai",
+            value=default_val,
             placeholder="예: perplexity.ai, v0.dev, gamma.app, midjourney.com",
             label_visibility="collapsed",
             key="gemini_test_domain_input"
@@ -2380,12 +2401,23 @@ elif menu == "AI·IT 거버넌스":
     if btn_run_gemini and test_domain_input:
         import os
         active_key = st.session_state.get("gemini_api_key") or os.environ.get("GEMINI_API_KEY")
-        with st.spinner(f"'{test_domain_input}' 도메인의 보안 위험도를 Gemini AI로 진단 중..."):
-            new_asset = ctx.governance_engine.analyze_and_register_domain(test_domain_input, api_key=active_key)
-        st.success(f"'{new_asset.domain}' ({new_asset.service_name}) 분석 완료! [위험도: {new_asset.risk_level.value}] 사내 대체 권고: {new_asset.recommended_alternative}")
+        target_domain_clean = test_domain_input.strip().lower()
+        if "://" in target_domain_clean:
+            target_domain_clean = target_domain_clean.split("://")[1]
+        if "/" in target_domain_clean:
+            target_domain_clean = target_domain_clean.split("/")[0]
+        
+        domain_live_context = r_stats.get(target_domain_clean)
+        with st.spinner(f"'{target_domain_clean}' 도메인의 보안 위험도를 Gemini AI로 진단 중..."):
+            new_asset = ctx.governance_engine.analyze_and_register_domain(
+                target_domain_clean, 
+                api_key=active_key,
+                live_context=domain_live_context
+            )
+        st.success(f"'{new_asset.domain}' ({new_asset.service_name}) Gemini AI 진단 완료! [위험 등급: {new_asset.risk_level.value}] 소견: {new_asset.ai_diagnosis}")
         st.rerun()
 
-    st.markdown("<div style='margin-bottom:32px; border-bottom:1px solid #16253a;'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='margin-bottom:28px; border-bottom:1px solid #16253a;'></div>", unsafe_allow_html=True)
 
     shadow_assets = ctx.governance_engine.get_all_assets()
 
@@ -2393,6 +2425,8 @@ elif menu == "AI·IT 거버넌스":
         badge_style = "badge-high" if asset.risk_level == Severity.HIGH else ("badge-medium" if asset.risk_level == Severity.MEDIUM else "badge-low")
         status_text = "정식 승인됨" if asset.sanction_status == SanctionStatus.APPROVED else ("명시적 차단" if asset.sanction_status == SanctionStatus.BLOCKED else "미승인 검토중")
         
+        user_list_str = ", ".join(asset.active_users) if asset.active_users else "사내 단말"
+
         # 🌟 도메인 일체형 카드 컨테이너
         with st.container(border=True):
             st.markdown(f"""
@@ -2407,30 +2441,26 @@ elif menu == "AI·IT 거버넌스":
                         <span class="badge" style="background:#1b2a3f; color:#9fb0c8; margin-left:4px;">{status_text}</span>
                     </div>
                 </div>
-                <div style="font-size:13px; color:#c9d3e2; margin-top:8px;">
-                    👥 사용 현황: <b>{asset.department_count}개 부서</b> / <b>{asset.user_count}명 임직원 사용</b> | 사용 빈도: {asset.usage_frequency}
+                <div style="font-size:13px; color:#c9d3e2; margin-top:8px; line-height:1.7;">
+                    📊 <b>사용 현황:</b> 실시간 누적 <span style="color:#38bdf8; font-weight:700;">{asset.access_count}건</span> 접속 ({asset.department_count}개 부서 감지) &nbsp;|&nbsp; 
+                    👥 <span style="color:#38bdf8; font-weight:700;">{asset.user_count}명 임직원 사용</span> ({user_list_str}) &nbsp;|&nbsp; 
+                    ⏱️ <b>사용 빈도:</b> <span style="color:#f59e0b; font-weight:700;">{asset.usage_frequency}</span>
                 </div>
-                <div style="font-size:13px; color:#9ee0b2; margin-top:5px;">
+                <div style="font-size:13px; color:#9ee0b2; margin-top:6px; line-height:1.5;">
                     💡 <b>Gemini AI 진단:</b> {asset.ai_diagnosis}
-                </div>
-                <div style="font-size:13px; color:#ffd169; margin-top:3px;">
-                    🔄 <b>사내 대체 도구:</b> {asset.recommended_alternative or '사내 표준 도구 유지'}
                 </div>
             </div>
             <div style="border-top: 1px dashed #1e3352; margin: 12px 0 10px 0;"></div>
             """, unsafe_allow_html=True)
 
-            # 🌟 도메인 조치 액션 버튼 (카드 내부 일체화)
-            act_col1, act_col2, act_col3 = st.columns([1.15, 1, 0.9])
+            # 🌟 도메인 조치 액션 버튼 (대체 도구 보기 제외된 2열 버튼 구성)
+            act_col1, act_col2 = st.columns([1, 1])
             with act_col1:
                 if st.button(f"✅ 정식 승인(양성화)", key=f"app_{asset.domain}", use_container_width=True, help="해당 SaaS를 회사 승인 소프트웨어 목록에 등록하고 정식 라이선스 계약을 추진합니다."):
                     ctx.governance_engine.update_sanction_status(asset.domain, SanctionStatus.APPROVED)
                     st.success(f"'{asset.domain}' 서비스가 사내 승인 목록으로 전환되었습니다.")
                     st.rerun()
             with act_col2:
-                if st.button("💡 대체 도구 보기", key=f"guide_{asset.domain}", use_container_width=True, help="승인된 사내 대체 도구와 전환 권고를 화면에서 확인합니다."):
-                    st.info(f"권장 대체 도구: {asset.recommended_alternative or '사내 표준 도구 유지'}")
-            with act_col3:
                 if st.button("⛔ 차단 검토", key=f"blk_{asset.domain}", use_container_width=True, help="영향 범위를 확인한 뒤 별도 확인 단계에서 차단합니다."):
                     st.session_state["pending_block_domain"] = asset.domain
 

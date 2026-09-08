@@ -95,3 +95,5 @@ class ShadowAIAsset(BaseModel):
     sanction_status: SanctionStatus = Field(default=SanctionStatus.UNAPPROVED)
     recommended_alternative: Optional[str] = Field(default=None, description="사내 권장 대체 도구")
     detected_at: datetime = Field(default_factory=datetime.now)
+    access_count: int = Field(default=0, description="실시간 누적 접근 건수")
+    active_users: List[str] = Field(default_factory=list, description="실시간 접속 사용자 목록")
