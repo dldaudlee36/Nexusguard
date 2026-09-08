@@ -20,6 +20,7 @@ env/
 Thumbs.db
 
 # Exclude README & walkthroughs per user request
+README.md
 walkthroughs/
 *.bat
 *.ps1
