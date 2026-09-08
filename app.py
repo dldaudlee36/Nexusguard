@@ -11,10 +11,8 @@ root_dir = Path(__file__).resolve().parent
 if str(root_dir) not in sys.path:
     sys.path.insert(0, str(root_dir))
 
-import importlib
-
-# NexusGuard 메인 대시보드 로드 (Streamlit 재실행 시 모듈 리로드 보장)
-if "nexusguard.ui.app" in sys.modules:
-    importlib.reload(sys.modules["nexusguard.ui.app"])
-else:
-    import nexusguard.ui.app
+# Execute in Streamlit's script namespace so timed fragments keep the same
+# script identity across navigation and automatic reruns.
+dashboard_file = root_dir / "nexusguard" / "ui" / "app.py"
+__file__ = str(dashboard_file)
+exec(compile(dashboard_file.read_text(encoding="utf-8"), str(dashboard_file), "exec"), globals())

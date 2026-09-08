@@ -57,6 +57,11 @@ RAILWAY_API_KEY = get_railway_api_key()
 
 _cached_railway_events: List[Dict[str, Any]] = []
 _railway_collection_enabled: bool = False
+_railway_fetch_status = {"ok": None, "last_success": None, "error": None}
+
+
+def get_railway_fetch_status() -> Dict[str, Any]:
+    return dict(_railway_fetch_status)
 
 
 def set_railway_collection_enabled(enabled: bool):
@@ -95,6 +100,8 @@ def _parse_event_time(t_str: Optional[str]) -> datetime:
 
 def _parse_raw_data(raw: Any) -> Dict[str, Any]:
     """Railway DB에 문자열로 저장된 raw_data(JSON 또는 Python dict) 파싱"""
+    if isinstance(raw, dict):
+        return raw
     if not raw or not isinstance(raw, str):
         return {}
     raw_str = raw.strip()
@@ -165,7 +172,9 @@ def fetch_railway_events(timeout: int = 5, force: bool = False) -> List[Dict[str
                         pass
                 
                 # 2. 로컬 IP 추출
-                local_ip = item.get("local_ip") or raw_info.get("local_ip") or "192.168.100.99"
+                local_ip = item.get("local_ip")
+                if not local_ip or str(local_ip).strip().lower() in ("unknown", "none", "null", "-"):
+                    local_ip = raw_info.get("local_ip") or "unknown"
                 
                 # 3. 이벤트 타입 정규화
                 ev_type = item.get("event_type") or raw_info.get("event_type") or "WEB_ACCESS"
@@ -184,8 +193,11 @@ def fetch_railway_events(timeout: int = 5, force: bool = False) -> List[Dict[str
                 enriched.append(item)
 
             _cached_railway_events = enriched
+            _railway_fetch_status.update(ok=True, last_success=datetime.utcnow().isoformat() + "Z", error=None)
             return enriched
+        raise ValueError("서버 응답이 로그 목록 형식이 아닙니다.")
     except Exception as e:
+        _railway_fetch_status.update(ok=False, error=type(e).__name__)
         print(f"[Railway Collector] 서버 연동 오류: {e}")
     return _cached_railway_events
 

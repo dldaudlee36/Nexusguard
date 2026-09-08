@@ -1026,11 +1026,13 @@ with st.sidebar:
                     on_change=_on_sb_railway_toggle, 
                     help="Railway 실시간 로그 수집을 켜거나 끕니다."
                 )
-                set_railway_collection_enabled(sb_railway_active)
                 if st.button("🔄 최신 로그 즉시 동기화", disabled=not sb_railway_active, use_container_width=True, key="btn_sb_sync_now", help="Railway 중앙 서버에서 최신 에이전트 수집 로그를 즉시 갱신합니다."):
-                    from nexusguard.collectors.team_collector import fetch_railway_events
+                    from nexusguard.collectors.team_collector import fetch_railway_events, get_railway_fetch_status
                     r_logs = fetch_railway_events(timeout=5, force=True)
-                    st.toast(f"🔄 Railway 중앙 서버에서 최신 {len(r_logs)}개 에이전트 로그를 동기화했습니다.", icon="🌐")
+                    if get_railway_fetch_status().get("ok"):
+                        st.toast(f"🔄 Railway 중앙 서버에서 최신 {len(r_logs)}개 에이전트 로그를 동기화했습니다.", icon="🌐")
+                    else:
+                        st.toast("Railway 조회 실패: 마지막 성공 기록을 유지합니다.", icon="⚠️")
                     st.rerun()
 
     from nexusguard.collectors.team_collector import get_team_sim_scenarios
@@ -2515,98 +2517,137 @@ elif menu == "중앙 서버 파이프라인":
             )
         with col_ctrl2:
             if st.button("🔄 최신 로그 즉시 동기화", disabled=not railway_active, use_container_width=True, key="btn_view_sync_now", help="Railway 중앙 서버에서 최신 에이전트 수집 로그를 즉시 갱신합니다."):
-                from nexusguard.collectors.team_collector import fetch_railway_events
+                from nexusguard.collectors.team_collector import fetch_railway_events, get_railway_fetch_status
                 r_logs = fetch_railway_events(timeout=5, force=True)
-                st.toast(f"🔄 Railway 중앙 서버에서 최신 {len(r_logs)}개 에이전트 로그를 동기화했습니다.", icon="🌐")
+                if get_railway_fetch_status().get("ok"):
+                    st.toast(f"🔄 Railway 중앙 서버에서 최신 {len(r_logs)}개 에이전트 로그를 동기화했습니다.", icon="🌐")
+                else:
+                    st.toast("Railway 조회 실패: 마지막 성공 기록을 유지합니다.", icon="⚠️")
                 st.rerun()
 
     st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
 
-    r_events = fetch_railway_events(timeout=5)
-    act_events = fetch_activity_log_events()
+    @st.fragment(run_every=5 if railway_active else None)
+    def render_live_pipeline():
+        r_events = fetch_railway_events(timeout=5, force=railway_active)
+        from nexusguard.collectors.team_collector import get_railway_fetch_status
+        fetch_status = get_railway_fetch_status()
+        act_events = fetch_activity_log_events()
 
-    # 상단 실시간 메트릭 카드 4종 (높이 및 규격 100% 동일 통일)
-    kpi_c1, kpi_c2, kpi_c3, kpi_c4 = st.columns(4)
-    with kpi_c1:
+        # 상단 실시간 메트릭 카드 4종 (높이 및 규격 100% 동일 통일)
+        kpi_c1, kpi_c2, kpi_c3, kpi_c4 = st.columns(4)
+        with kpi_c1:
+            if railway_active and fetch_status.get("ok") is False:
+                server_status_val = "🔴 조회 실패"
+                server_status_color = "#ef4444"
+            elif railway_active:
+                server_status_val = "🟢 수집 중 (ON)"
+                server_status_color = "#10b981"
+            else:
+                server_status_val = "⏸️ 수집 정지 (OFF)"
+                server_status_color = "#94a3b8"
+
+            st.markdown(f"""
+            <div class="kpi-card" style="border-left: 4px solid {server_status_color}; text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+                <div class="kpi-title" style="text-align: center; width: 100%; margin-bottom: 8px;">Railway 서버 통신 상태</div>
+                <div class="kpi-value" style="color:{server_status_color}; font-size:20px; text-align: center; width: 100%;">{server_status_val}</div>
+            </div>
+            """, unsafe_allow_html=True)
+        with kpi_c2:
+            st.markdown(f"""
+            <div class="kpi-card" style="border-left: 4px solid #38bdf8; text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+                <div class="kpi-title" style="text-align: center; width: 100%; margin-bottom: 8px;">수집된 실제 에이전트 로그</div>
+                <div class="kpi-value" style="color:#38bdf8; font-size:26px; text-align: center; width: 100%;">{len(r_events)} 건</div>
+            </div>
+            """, unsafe_allow_html=True)
+        with kpi_c3:
+            upload_count = sum(1 for e in r_events if e.get("event_type") == "FILE_UPLOAD_ATTEMPT")
+            st.markdown(f"""
+            <div class="kpi-card" style="border-left: 4px solid #f59e0b; text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+                <div class="kpi-title" style="text-align: center; width: 100%; margin-bottom: 8px;">브라우저 파일 첨부 감지</div>
+                <div class="kpi-value" style="color:#f59e0b; font-size:24px; text-align: center; width: 100%;">{upload_count} 건 (Chrome Ext)</div>
+            </div>
+            """, unsafe_allow_html=True)
+        with kpi_c4:
+            effective_key = get_railway_api_key()
+            key_status_color = "#10b981" if effective_key else "#ef4444"
+            key_status_text = "● VERIFIED" if (fetch_status.get("ok") or effective_key) else "○ NOT SET"
+            st.markdown(f"""
+            <div class="kpi-card" style="border-left: 4px solid {key_status_color}; text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+                <div class="kpi-title" style="text-align: center; width: 100%; margin-bottom: 8px;">API Key 보안 인증</div>
+                <div class="kpi-value" style="color:{key_status_color}; font-size:18px; font-weight:800; text-align: center; width: 100%;">{key_status_text}</div>
+            </div>
+            """, unsafe_allow_html=True)
+
+        st.markdown("<br>", unsafe_allow_html=True)
+
+        st.markdown("### 🌐 Railway 중앙 서버 수집 이벤트")
+        st.caption("각 PC에서 `NexusGuardAgent.exe` 및 Chrome 확장 프로그램(`Upload Detector`)이 사이트 접속(WEB_ACCESS) 및 파일 첨부 시도(FILE_UPLOAD_ATTEMPT)를 실시간 감지하여 중앙 서버에 전송한 실제 데이터입니다.")
+
+        col_btn_ref, _ = st.columns([1, 6])
+        with col_btn_ref:
+            if st.button("🔄 로그 새로고침", use_container_width=True):
+                st.rerun()
+
         if railway_active:
-            server_status_val = "🟢 수집 중 (ON)"
-            server_status_color = "#10b981"
+            st.caption("5초마다 자동 조회 · 모든 PC를 합친 최신 100건 · 조회 성공은 Agent의 현재 실행 여부를 뜻하지 않습니다.")
+        if fetch_status.get("last_success"):
+            last_success = pd.Timestamp(fetch_status["last_success"]).tz_convert("Asia/Seoul").strftime("%Y-%m-%d %H:%M:%S")
+            st.caption(f"마지막 서버 조회 성공: {last_success} (한국 시각)")
+        if railway_active and fetch_status.get("ok") is False:
+            st.error("Railway 조회에 실패했습니다. 아래 로그는 마지막 조회에 성공했을 때의 기록입니다. 인터넷 연결과 API 설정을 확인하세요.")
+
+        if r_events:
+            df_rly = pd.DataFrame(r_events)
+            event_times = pd.to_datetime(df_rly["event_time"], format="mixed", utc=True, errors="coerce")
+            df_rly["event_time"] = event_times.dt.tz_convert("Asia/Seoul").dt.strftime("%Y-%m-%d %H:%M:%S").fillna("시각 확인 불가")
+            for field in ("pc_name", "local_ip"):
+                if field not in df_rly:
+                    df_rly[field] = "unknown"
+                df_rly[field] = df_rly[field].fillna("unknown").astype(str)
+            st.markdown("#### 🖥️ PC·IP별 수집 내역")
+            summary = df_rly.groupby(["pc_name", "local_ip"], dropna=False).agg(
+                log_count=("event_time", "size"), last_event=("event_time", "max")
+            ).reset_index().rename(columns={"pc_name":"PC 이름", "local_ip":"로컬 IP", "log_count":"조회된 건수", "last_event":"마지막 발생 시각 (한국)"})
+            st.dataframe(summary, hide_index=True, use_container_width=True)
+            st.caption("PC 이름이 같을 수 있으므로 IP도 함께 확인하세요. 내부 IP도 네트워크마다 중복될 수 있습니다.")
+            ip_options = ["전체"] + sorted(df_rly["local_ip"].unique().tolist())
+            if st.session_state.get("pipeline_ip_filter") not in ip_options:
+                st.session_state["pipeline_ip_filter"] = "전체"
+            selected_ip = st.selectbox("로컬 IP로 로그 골라 보기", ip_options, key="pipeline_ip_filter")
+            if selected_ip != "전체":
+                df_rly = df_rly[df_rly["local_ip"] == selected_ip]
+
+            cols_order = [c for c in ["id", "event_time", "user_name", "pc_name", "local_ip", "event_type", "target", "file_name", "file_size_formatted", "source", "risk_score"] if c in df_rly.columns]
+            df_display = df_rly[cols_order].rename(columns={
+                "id": "ID",
+                "event_time": "발생 시각 (한국)",
+                "user_name": "사용자",
+                "pc_name": "PC 이름",
+                "local_ip": "로컬 IP",
+                "event_type": "이벤트 종류",
+                "target": "대상 사이트",
+                "file_name": "첨부 파일명",
+                "file_size_formatted": "파일 크기",
+                "source": "수집 소스",
+                "risk_score": "위험 점수"
+            })
+            st.dataframe(df_display, hide_index=True, use_container_width=True, height=380)
         else:
-            server_status_val = "⏸️ 수집 정지 (OFF)"
-            server_status_color = "#94a3b8"
+            st.warning("Railway 서버에서 수집된 로그가 없습니다.")
 
-        st.markdown(f"""
-        <div class="kpi-card" style="border-left: 4px solid {server_status_color}; text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center;">
-            <div class="kpi-title" style="text-align: center; width: 100%; margin-bottom: 8px;">Railway 서버 통신 상태</div>
-            <div class="kpi-value" style="color:{server_status_color}; font-size:20px; text-align: center; width: 100%;">{server_status_val}</div>
-        </div>
-        """, unsafe_allow_html=True)
-    with kpi_c2:
-        st.markdown(f"""
-        <div class="kpi-card" style="border-left: 4px solid #38bdf8; text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center;">
-            <div class="kpi-title" style="text-align: center; width: 100%; margin-bottom: 8px;">수집된 실제 에이전트 로그</div>
-            <div class="kpi-value" style="color:#38bdf8; font-size:26px; text-align: center; width: 100%;">{len(r_events)} 건</div>
-        </div>
-        """, unsafe_allow_html=True)
-    with kpi_c3:
-        upload_count = sum(1 for e in r_events if e.get("event_type") == "FILE_UPLOAD_ATTEMPT")
-        st.markdown(f"""
-        <div class="kpi-card" style="border-left: 4px solid #f59e0b; text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center;">
-            <div class="kpi-title" style="text-align: center; width: 100%; margin-bottom: 8px;">브라우저 파일 첨부 감지</div>
-            <div class="kpi-value" style="color:#f59e0b; font-size:24px; text-align: center; width: 100%;">{upload_count} 건 (Chrome Ext)</div>
-        </div>
-        """, unsafe_allow_html=True)
-    with kpi_c4:
-        effective_key = get_railway_api_key()
-        key_status_color = "#10b981" if effective_key else "#ef4444"
-        key_status_text = "● VERIFIED" if effective_key else "○ NOT SET"
-        st.markdown(f"""
-        <div class="kpi-card" style="border-left: 4px solid {key_status_color}; text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center;">
-            <div class="kpi-title" style="text-align: center; width: 100%; margin-bottom: 8px;">API Key 보안 인증</div>
-            <div class="kpi-value" style="color:{key_status_color}; font-size:18px; font-weight:800; text-align: center; width: 100%;">{key_status_text}</div>
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown("---")
+        st.markdown("### 사내 DB 감사 활동 로그")
+        if act_events:
+            df_act = pd.DataFrame(act_events).rename(columns={
+                "id": "ID",
+                "event_time": "발생 시각",
+                "user_name": "사용자",
+                "pc_name": "PC 이름",
+                "event_type": "수행 액션",
+                "target": "대상 테이블/도메인",
+                "rows": "조회 행 수"
+            })
+            st.dataframe(df_act, hide_index=True, use_container_width=True)
 
-    st.markdown("<br>", unsafe_allow_html=True)
-
-    st.markdown("### 🌐 Railway 중앙 서버 수집 이벤트")
-    st.caption("각 PC에서 `NexusGuardAgent.exe` 및 Chrome 확장 프로그램(`Upload Detector`)이 사이트 접속(WEB_ACCESS) 및 파일 첨부 시도(FILE_UPLOAD_ATTEMPT)를 실시간 감지하여 중앙 서버에 전송한 실제 데이터입니다.")
-
-    col_btn_ref, _ = st.columns([1, 6])
-    with col_btn_ref:
-        if st.button("🔄 로그 새로고침", use_container_width=True):
-            st.rerun()
-
-    if r_events:
-        df_rly = pd.DataFrame(r_events)
-        cols_order = [c for c in ["id", "event_time", "user_name", "pc_name", "local_ip", "event_type", "target", "file_name", "file_size_formatted", "source", "risk_score"] if c in df_rly.columns]
-        df_display = df_rly[cols_order].rename(columns={
-            "id": "ID",
-            "event_time": "발생 시각",
-            "user_name": "사용자",
-            "pc_name": "PC 이름",
-            "local_ip": "로컬 IP",
-            "event_type": "이벤트 종류",
-            "target": "대상 사이트",
-            "file_name": "첨부 파일명",
-            "file_size_formatted": "파일 크기",
-            "source": "수집 소스",
-            "risk_score": "위험 점수"
-        })
-        st.dataframe(df_display, hide_index=True, use_container_width=True, height=380)
-    else:
-        st.warning("Railway 서버에서 수집된 로그가 없습니다.")
-
-    st.markdown("---")
-    st.markdown("### 사내 DB 감사 활동 로그")
-    if act_events:
-        df_act = pd.DataFrame(act_events).rename(columns={
-            "id": "ID",
-            "event_time": "발생 시각",
-            "user_name": "사용자",
-            "pc_name": "PC 이름",
-            "event_type": "수행 액션",
-            "target": "대상 테이블/도메인",
-            "rows": "조회 행 수"
-        })
-        st.dataframe(df_act, hide_index=True, use_container_width=True)
+    render_live_pipeline()
