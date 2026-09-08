@@ -668,23 +668,111 @@ st.markdown("""
         white-space: nowrap !important;
     }
 
-    /* 🌟 거버넌스 테이블 전용 자동 너비 조절 및 컬럼 겹침 원천 방지 컨테이너 */
-    div[class*="st-key-gov_table_container"] {
+    /* 🌟 거버넌스 테이블 - 중앙 서버 파이프라인 스타일 데이터프레임 박스 & 고정 헤더 */
+    div[class*="st-key-gov_table_box"] {
+        border: 1px solid #1e293b !important;
+        border-radius: 8px !important;
+        background-color: #0b1120 !important;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35) !important;
         overflow-x: auto !important;
-        width: 100% !important;
-        padding-bottom: 6px !important;
+        overflow-y: auto !important;
+        max-height: 560px !important;
+        margin-top: 8px !important;
+        padding: 0 !important;
     }
-    div[class*="st-key-gov_table_container"] div[data-testid="stHorizontalBlock"] {
-        min-width: 920px !important;
+    div[class*="st-key-gov_table_box"]::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+    }
+    div[class*="st-key-gov_table_box"]::-webkit-scrollbar-track {
+        background: #0b1120;
+    }
+    div[class*="st-key-gov_table_box"]::-webkit-scrollbar-thumb {
+        background: #1e293b;
+        border-radius: 3px;
+    }
+    div[class*="st-key-gov_table_box"]::-webkit-scrollbar-thumb:hover {
+        background: #334155;
+    }
+
+    div[class*="st-key-gov_table_box"] div[data-testid="stHorizontalBlock"] {
+        min-width: 950px !important;
         gap: 6px !important;
         align-items: center !important;
     }
-    /* 위험도 및 거버넌스 상태 컬럼 최소 너비 절대 보장 (모바일/작은 창 겹침 원천 방지) */
-    div[class*="st-key-gov_table_container"] div[data-testid="stHorizontalBlock"] > div:nth-child(2) {
+
+    /* 상단 고정 헤더 (스크롤 시에도 상단 고정) */
+    div[class*="st-key-gov_hdr_row"] {
+        position: sticky !important;
+        top: 0 !important;
+        z-index: 20 !important;
+        background: #111827 !important;
+        border-bottom: 2px solid #1e293b !important;
+        padding: 6px 8px !important;
+        margin-bottom: 0 !important;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.3) !important;
+    }
+
+    /* 테이블 헤더 정렬 버튼 (데이터프레임 컬럼 헤더 룩앤필) */
+    div[class*="st-key-hdr_"] button {
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        color: #94a3b8 !important;
+        font-size: 12px !important;
+        font-weight: 700 !important;
+        letter-spacing: -0.2px !important;
+        padding: 6px 2px !important;
+        height: 36px !important;
+        min-height: 36px !important;
+        width: 100% !important;
+        text-align: center !important;
+        border-radius: 4px !important;
+        transition: all 0.15s ease !important;
+    }
+    div[class*="st-key-hdr_"] button:hover {
+        background: rgba(30, 41, 59, 0.7) !important;
+        color: #38bdf8 !important;
+    }
+    div[class*="st-key-hdr_"] button p {
+        font-size: 12px !important;
+        font-weight: 700 !important;
+        color: #94a3b8 !important;
+        margin: 0 !important;
+    }
+    div[class*="st-key-hdr_"] button:hover p {
+        color: #38bdf8 !important;
+    }
+    
+    /* 현재 정렬 활성화된 컬럼 헤더 강조 (스카이블루) */
+    div[class*="st-key-hdr_active_"] button p {
+        color: #38bdf8 !important;
+        font-weight: 800 !important;
+    }
+    div[class*="st-key-hdr_active_"] button {
+        background: rgba(56, 189, 248, 0.08) !important;
+    }
+
+    /* 데이터 행 스타일 */
+    div[class*="st-key-gov_row_"] {
+        padding: 8px 8px !important;
+        border-bottom: 1px solid #162032 !important;
+        transition: background-color 0.15s ease !important;
+    }
+    div[class*="st-key-gov_row_"]:hover {
+        background-color: rgba(30, 41, 59, 0.45) !important;
+    }
+
+    /* 컬럼 최소 너비 보장 가드 */
+    div[class*="st-key-gov_table_box"] div[data-testid="stHorizontalBlock"] > div:nth-child(2) {
         min-width: 75px !important;
     }
-    div[class*="st-key-gov_table_container"] div[data-testid="stHorizontalBlock"] > div:nth-child(3) {
+    div[class*="st-key-gov_table_box"] div[data-testid="stHorizontalBlock"] > div:nth-child(3) {
         min-width: 105px !important;
+    }
+    div[class*="st-key-gov_table_box"] div[data-testid="stHorizontalBlock"] > div:nth-child(8),
+    div[class*="st-key-gov_table_box"] div[data-testid="stHorizontalBlock"] > div:nth-child(9) {
+        min-width: 60px !important;
     }
 
     /* 🌟 승인 버튼 - 선명하고 품격 있는 에메랄드 그린 강조 */
@@ -2558,107 +2646,109 @@ elif menu == "AI·IT 거버넌스":
     # 🌟 자산 목록 획득
     shadow_assets = ctx.governance_engine.get_all_assets()
 
-    # 🌟 상단 툴바: 정렬(Sort) & 길이 조절(Height / Limit) 컨트롤
-    col_ctrl1, col_ctrl2, col_ctrl3, col_ctrl4 = st.columns([2.0, 1.2, 1.4, 1.4])
-    with col_ctrl1:
-        sort_by = st.selectbox(
-            "🔄 정렬 기준",
-            ["위험도 높은 순", "실시간 접속 많은 순", "사용자 많은 순", "도메인명 (A-Z)", "거버넌스 상태순"],
-            index=0,
-            key="gov_sort_by"
-        )
-    with col_ctrl2:
-        sort_order = st.radio(
-            "정렬 방향",
-            ["내림차순 ↓", "오름차순 ↑"],
-            index=0,
-            horizontal=True,
-            key="gov_sort_order"
-        )
-    with col_ctrl3:
-        limit_view = st.selectbox(
-            "📏 목록 표시 개수",
-            ["5개씩 보기", "10개씩 보기", "전체 보기"],
-            index=2,
-            key="gov_limit_view"
-        )
-    with col_ctrl4:
-        container_height = st.selectbox(
-            "↕️ 목록 스크롤 높이",
-            ["자동 맞춤 (Full)", "350px (컴팩트)", "500px (표준)", "650px (확장)"],
-            index=0,
-            key="gov_container_height"
-        )
+    # 🌟 상단 헤더 정렬 상태 관리
+    if "gov_sort_col" not in st.session_state:
+        st.session_state["gov_sort_col"] = "risk"
+    if "gov_sort_dir" not in st.session_state:
+        st.session_state["gov_sort_dir"] = "desc"
 
-    # 정렬 로직
-    def get_sort_key(a):
-        if sort_by == "위험도 높은 순":
+    def toggle_gov_sort(col):
+        if st.session_state["gov_sort_col"] == col:
+            st.session_state["gov_sort_dir"] = "asc" if st.session_state["gov_sort_dir"] == "desc" else "desc"
+        else:
+            st.session_state["gov_sort_col"] = col
+            st.session_state["gov_sort_dir"] = "desc" if col in ["risk", "connections", "users"] else "asc"
+
+    def gov_sort_icon(col):
+        if st.session_state["gov_sort_col"] == col:
+            return " ▼" if st.session_state["gov_sort_dir"] == "desc" else " ▲"
+        return " ⇅"
+
+    # 정렬 값 추출 로직
+    def get_gov_sort_val(asset):
+        col = st.session_state["gov_sort_col"]
+        if col == "domain":
+            return asset.domain.lower()
+        elif col == "risk":
             order = {Severity.CRITICAL: 0, Severity.HIGH: 1, Severity.MEDIUM: 2, Severity.LOW: 3}
-            return order.get(a.risk_level, 4)
-        elif sort_by == "실시간 접속 많은 순":
-            return ctx.governance_engine.get_connection_count(a.domain)
-        elif sort_by == "사용자 많은 순":
-            return a.user_count
-        elif sort_by == "도메인명 (A-Z)":
-            return a.domain.lower()
-        elif sort_by == "거버넌스 상태순":
+            return order.get(asset.risk_level, 4)
+        elif col == "status":
             order = {SanctionStatus.UNAPPROVED: 0, SanctionStatus.BLOCKED: 1, SanctionStatus.APPROVED: 2}
-            return order.get(a.sanction_status, 3)
+            return order.get(asset.sanction_status, 3)
+        elif col == "connections":
+            return ctx.governance_engine.get_connection_count(asset.domain)
+        elif col == "users":
+            return asset.user_count
+        elif col == "frequency":
+            return asset.usage_frequency or ""
         return 0
 
-    reverse_flag = True if (sort_order == "내림차순 ↓" and sort_by in ["실시간 접속 많은 순", "사용자 많은 순"]) else False
-    if sort_by == "위험도 높은 순" and sort_order == "오름차순 ↑":
-        reverse_flag = True
-    if sort_by == "도메인명 (A-Z)" and sort_order == "내림차순 ↓":
-        reverse_flag = True
+    is_desc = (st.session_state["gov_sort_dir"] == "desc")
+    if st.session_state["gov_sort_col"] in ["risk", "status"]:
+        # 위험도와 상태는 정의된 순서상 인덱스가 낮을수록 고위험/미승인이므로 반전
+        is_desc = not is_desc
 
-    sorted_assets = sorted(shadow_assets, key=get_sort_key, reverse=reverse_flag)
+    sorted_assets = sorted(shadow_assets, key=get_gov_sort_val, reverse=is_desc)
 
-    # 개수 제한 적용
-    if limit_view == "5개씩 보기":
-        sorted_assets = sorted_assets[:5]
-    elif limit_view == "10개씩 보기":
-        sorted_assets = sorted_assets[:10]
-
-    # 테이블 헤더 및 목록 컨테이너 (자동 창 크기 조절 & 뱃지 겹침 원천 방지)
-    col_widths = [1.55, 0.9, 1.35, 1.05, 0.8, 1.15, 2.35, 0.68, 0.68]
-
-    with st.container(key="gov_table_container"):
-        st.markdown("""
-        <div style="
-            display: flex;
-            align-items: center;
-            padding: 14px 10px 10px 10px;
-            border-bottom: 2px solid #0284c7;
-            font-size: 13px;
-            font-weight: 700;
-            color: #cbd5e1;
-            letter-spacing: 0.2px;
-            min-width: 920px;
-        ">
-            <div style="flex: 1.55;">도메인 / 서비스</div>
-            <div style="flex: 0.9; text-align: center;">위험도</div>
-            <div style="flex: 1.35; text-align: center;">거버넌스 상태</div>
-            <div style="flex: 1.05;">실시간 접속</div>
-            <div style="flex: 0.8;">사용자</div>
-            <div style="flex: 1.15;">사용 빈도</div>
-            <div style="flex: 2.35;">Gemini AI 진단 소견</div>
-            <div style="flex: 1.36; text-align: center;">조치</div>
+    # 🌟 상단 요약 바 & 빠른 검색
+    col_top_l, col_top_r = st.columns([3, 1], vertical_alignment="center")
+    with col_top_l:
+        st.markdown(f"""
+        <div style="font-size: 13px; color: #94a3b8; padding: 4px 0;">
+            총 <b style="color: #38bdf8;">{len(sorted_assets)}개</b> 감지된 외부 클라우드 / AI 서비스 · <span style="color: #cbd5e1;">각 열 헤더를 클릭하여 실시간 정렬(Sort)할 수 있습니다.</span>
         </div>
         """, unsafe_allow_html=True)
+    with col_top_r:
+        search_gov = st.text_input("🔍 도메인 검색", placeholder="도메인/서비스 검색...", label_visibility="collapsed", key="gov_quick_search")
 
-        # 목록 스크롤 높이 스타일
-        scroll_style = ""
-        if container_height == "350px (컴팩트)":
-            scroll_style = "max-height: 350px; overflow-y: auto; overflow-x: hidden; padding-right: 4px; resize: vertical;"
-        elif container_height == "500px (표준)":
-            scroll_style = "max-height: 500px; overflow-y: auto; overflow-x: hidden; padding-right: 4px; resize: vertical;"
-        elif container_height == "650px (확장)":
-            scroll_style = "max-height: 650px; overflow-y: auto; overflow-x: hidden; padding-right: 4px; resize: vertical;"
+    if search_gov:
+        sorted_assets = [a for a in sorted_assets if search_gov.lower() in a.domain.lower() or search_gov.lower() in (a.service_name or "").lower()]
 
-        if scroll_style:
-            st.markdown(f'<div style="{scroll_style}">', unsafe_allow_html=True)
+    # 🌟 테이블 렌더링 (중앙 서버 파이프라인 스타일 데이터프레임 그리드)
+    col_widths = [1.7, 0.85, 1.15, 1.0, 0.75, 1.05, 2.35, 0.75, 0.75]
 
+    with st.container(key="gov_table_box"):
+        # 상단 고정 헤더 행 (Sticky Header)
+        with st.container(key="gov_hdr_row"):
+            h1, h2, h3, h4, h5, h6, h7, h8, h9 = st.columns(col_widths, vertical_alignment="center")
+            with h1:
+                k = "hdr_active_domain" if st.session_state["gov_sort_col"] == "domain" else "hdr_domain"
+                if st.button(f"도메인 / 서비스{gov_sort_icon('domain')}", key=k, use_container_width=True, help="도메인명 기준 오름차순/내림차순 정렬"):
+                    toggle_gov_sort("domain")
+                    st.rerun()
+            with h2:
+                k = "hdr_active_risk" if st.session_state["gov_sort_col"] == "risk" else "hdr_risk"
+                if st.button(f"위험도{gov_sort_icon('risk')}", key=k, use_container_width=True, help="보안 위험도 기준 정렬"):
+                    toggle_gov_sort("risk")
+                    st.rerun()
+            with h3:
+                k = "hdr_active_status" if st.session_state["gov_sort_col"] == "status" else "hdr_status"
+                if st.button(f"거버넌스 상태{gov_sort_icon('status')}", key=k, use_container_width=True, help="사내 거버넌스 승인/차단 상태순 정렬"):
+                    toggle_gov_sort("status")
+                    st.rerun()
+            with h4:
+                k = "hdr_active_conn" if st.session_state["gov_sort_col"] == "connections" else "hdr_conn"
+                if st.button(f"실시간 접속{gov_sort_icon('connections')}", key=k, use_container_width=True, help="실시간 접속 건수 기준 정렬"):
+                    toggle_gov_sort("connections")
+                    st.rerun()
+            with h5:
+                k = "hdr_active_users" if st.session_state["gov_sort_col"] == "users" else "hdr_users"
+                if st.button(f"사용자{gov_sort_icon('users')}", key=k, use_container_width=True, help="사용자 수 기준 정렬"):
+                    toggle_gov_sort("users")
+                    st.rerun()
+            with h6:
+                k = "hdr_active_freq" if st.session_state["gov_sort_col"] == "frequency" else "hdr_freq"
+                if st.button(f"사용 빈도{gov_sort_icon('frequency')}", key=k, use_container_width=True, help="사용 빈도순 정렬"):
+                    toggle_gov_sort("frequency")
+                    st.rerun()
+            with h7:
+                st.markdown("<div style='text-align: center; color: #94a3b8; font-size: 12px; font-weight: 700; padding: 6px 0;'>Gemini AI 진단 소견</div>", unsafe_allow_html=True)
+            with h8:
+                st.markdown("<div style='text-align: center; color: #10b981; font-size: 12px; font-weight: 700; padding: 6px 0;'>승인</div>", unsafe_allow_html=True)
+            with h9:
+                st.markdown("<div style='text-align: center; color: #ef4444; font-size: 12px; font-weight: 700; padding: 6px 0;'>차단</div>", unsafe_allow_html=True)
+
+        # 데이터 행 렌더링
         for asset in sorted_assets:
             badge_style = "badge-high" if asset.risk_level == Severity.HIGH else ("badge-medium" if asset.risk_level == Severity.MEDIUM else "badge-low")
             if asset.risk_level == Severity.CRITICAL:
@@ -2670,78 +2760,74 @@ elif menu == "AI·IT 거버넌스":
             conn_count = ctx.governance_engine.get_connection_count(asset.domain)
             device_count = asset.department_count  # n개 기기
 
-            c1, c2, c3, c4, c5, c6, c7, c8, c9 = st.columns(col_widths, vertical_alignment="center")
+            with st.container(key=f"gov_row_{asset.domain.replace('.', '_')}"):
+                c1, c2, c3, c4, c5, c6, c7, c8, c9 = st.columns(col_widths, vertical_alignment="center")
 
-            with c1:
-                st.markdown(f"""
-                <div style="line-height: 1.3;">
-                    <b style="color: #ffffff; font-size: 15px;">{asset.domain}</b><br>
-                    <span style="color: #94a3b8; font-size: 12px;">{asset.service_name} · {asset.category}</span>
-                </div>
-                """, unsafe_allow_html=True)
+                with c1:
+                    st.markdown(f"""
+                    <div style="line-height: 1.35; padding: 2px 0;">
+                        <b style="color: #ffffff; font-size: 14.5px;">{asset.domain}</b><br>
+                        <span style="color: #94a3b8; font-size: 12px;">{asset.service_name} · {asset.category}</span>
+                    </div>
+                    """, unsafe_allow_html=True)
 
-            with c2:
-                st.markdown(f"""
-                <div style="display: flex; justify-content: center; align-items: center; width: 100%;">
-                    <span class="badge {badge_style}">{asset.risk_level.value}</span>
-                </div>
-                """, unsafe_allow_html=True)
+                with c2:
+                    st.markdown(f"""
+                    <div style="display: flex; justify-content: center; align-items: center; width: 100%;">
+                        <span class="badge {badge_style}">{asset.risk_level.value}</span>
+                    </div>
+                    """, unsafe_allow_html=True)
 
-            with c3:
-                st.markdown(f"""
-                <div style="display: flex; justify-content: center; align-items: center; width: 100%;">
-                    <span class="badge {status_style}">{status_text}</span>
-                </div>
-                """, unsafe_allow_html=True)
+                with c3:
+                    st.markdown(f"""
+                    <div style="display: flex; justify-content: center; align-items: center; width: 100%;">
+                        <span class="badge {status_style}">{status_text}</span>
+                    </div>
+                    """, unsafe_allow_html=True)
 
-            with c4:
-                st.markdown(f"""
-                <div style="line-height: 1.3;">
-                    <b style="color: #38bdf8; font-size: 14px;">{conn_count}건</b> <span style="color: #94a3b8; font-size: 12px;">({device_count}개 기기)</span>
-                </div>
-                """, unsafe_allow_html=True)
+                with c4:
+                    st.markdown(f"""
+                    <div style="line-height: 1.3;">
+                        <b style="color: #38bdf8; font-size: 14px;">{conn_count}건</b> <span style="color: #94a3b8; font-size: 12px;">({device_count}개 기기)</span>
+                    </div>
+                    """, unsafe_allow_html=True)
 
-            with c5:
-                st.markdown(f"""
-                <div style="line-height: 1.2;">
-                    <b style="color: #f8fafc; font-size: 14px;">{asset.user_count}명</b><br>
-                    <span style="color: #94a3b8; font-size: 11px;">(User)</span>
-                </div>
-                """, unsafe_allow_html=True)
+                with c5:
+                    st.markdown(f"""
+                    <div style="line-height: 1.2;">
+                        <b style="color: #f8fafc; font-size: 14px;">{asset.user_count}명</b><br>
+                        <span style="color: #94a3b8; font-size: 11px;">(User)</span>
+                    </div>
+                    """, unsafe_allow_html=True)
 
-            with c6:
-                freq_str = asset.usage_frequency or "실시간 감지"
-                if "실시간 감지" in freq_str and "누적" not in freq_str:
-                    freq_str = f"실시간 감지 (누적 {conn_count}건)"
-                st.markdown(f"""
-                <div>
-                    <span style="color: #fb923c; font-weight: 700; font-size: 13px;">{freq_str}</span>
-                </div>
-                """, unsafe_allow_html=True)
+                with c6:
+                    freq_str = asset.usage_frequency or "실시간 감지"
+                    if "실시간 감지" in freq_str and "누적" not in freq_str:
+                        freq_str = f"실시간 감지 (누적 {conn_count}건)"
+                    st.markdown(f"""
+                    <div>
+                        <span style="color: #fb923c; font-weight: 700; font-size: 13px;">{freq_str}</span>
+                    </div>
+                    """, unsafe_allow_html=True)
 
-            with c7:
-                st.markdown(f"""
-                <div style="color: #fef08a; font-size: 12.5px; line-height: 1.4;">
-                    💡 {asset.ai_diagnosis}
-                </div>
-                """, unsafe_allow_html=True)
+                with c7:
+                    st.markdown(f"""
+                    <div style="color: #fef08a; font-size: 12px; line-height: 1.45; padding-right: 14px; word-break: break-word;">
+                        💡 {asset.ai_diagnosis}
+                    </div>
+                    """, unsafe_allow_html=True)
 
-            with c8:
-                if st.button("승인", key=f"gov_app_{asset.domain}", use_container_width=True, help=f"{asset.domain} 서비스를 사내 정식 승인 목록으로 전환합니다."):
-                    ctx.governance_engine.update_sanction_status(asset.domain, SanctionStatus.APPROVED)
-                    st.toast(f"'{asset.domain}' 정식 승인(양성화) 완료", icon="✅")
-                    st.rerun()
+                with c8:
+                    if st.button("승인", key=f"gov_app_{asset.domain}", use_container_width=True, help=f"{asset.domain} 서비스를 사내 정식 승인 목록으로 전환합니다."):
+                        ctx.governance_engine.update_sanction_status(asset.domain, SanctionStatus.APPROVED)
+                        st.toast(f"'{asset.domain}' 정식 승인(양성화) 완료", icon="✅")
+                        st.rerun()
 
-            with c9:
-                if st.button("차단", key=f"gov_blk_{asset.domain}", use_container_width=True, help=f"{asset.domain} 접근을 방화벽 및 DNS 싱크홀로 차단합니다."):
-                    ctx.governance_engine.update_sanction_status(asset.domain, SanctionStatus.BLOCKED)
-                    st.toast(f"'{asset.domain}' 차단 정책 적용 완료", icon="⛔")
-                    st.rerun()
-
-            st.markdown("<div style='border-bottom: 1px solid #16253a; margin: 4px 0 6px 0;'></div>", unsafe_allow_html=True)
-
-        if scroll_style:
-            st.markdown('</div>', unsafe_allow_html=True)
+                with c9:
+                    if st.button("차단", key=f"gov_blk_{asset.domain}", use_container_width=True, help=f"{asset.domain} 접근을 방화벽 및 DNS 싱크홀로 차단합니다."):
+                        ctx.governance_engine.update_sanction_status(asset.domain, SanctionStatus.BLOCKED)
+                        st.toast(f"'{asset.domain}' 차단 정책 적용 완료", icon="⛔")
+                        st.rerun()
 
     st.markdown("<div style='margin-bottom: 30px;'></div>", unsafe_allow_html=True)
 elif menu == "중앙 서버 파이프라인":
