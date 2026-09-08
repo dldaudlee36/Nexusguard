@@ -321,6 +321,12 @@ class ShadowAIGovernanceEngine:
         """Railway에서 수집된 도메인별 집계 통계 반환"""
         return dict(self._railway_domain_stats)
 
+    def get_connection_count(self, domain: str) -> int:
+        """도메인별 실시간 접속/질의 누적 건수 반환"""
+        if domain in self.assets and getattr(self.assets[domain], "access_count", 0):
+            return self.assets[domain].access_count
+        return self._domain_counts.get(domain, 1)
+
     def process_dns_event(self, event: SecurityEvent):
         """새로운 DNS/웹/에이전트/확장프로그램 이벤트 수신 시 통계 누적 및 판별"""
         if event.log_source not in [LogSource.DNS, LogSource.WEB, LogSource.WINDOWS_AGENT, LogSource.CHROME_EXTENSION] or not event.target.domain:
@@ -332,7 +338,8 @@ class ShadowAIGovernanceEngine:
 
         if domain not in self._domain_users:
             self._domain_users[domain] = set()
-            self._domain_counts[domain] = 0
+            if domain not in self._domain_counts:
+                self._domain_counts[domain] = 0
 
         self._domain_users[domain].add(user or src_ip)
         self._domain_counts[domain] += 1

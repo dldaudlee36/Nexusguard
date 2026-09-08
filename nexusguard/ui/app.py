@@ -641,9 +641,71 @@ st.markdown("""
         letter-spacing: -0.3px !important;
         color: #ffffff !important;
     }
-    div[class*="st-key-blk_"] button p {
-        color: #fecaca !important;
+    /* 🌟 거버넌스 상태 뱃지 스타일 */
+    .badge-status-unapproved {
+        background: #17253b !important;
+        color: #93c5fd !important;
+        border: 1px solid #233857 !important;
     }
+    .badge-status-approved {
+        background: #064e3b !important;
+        color: #6ee7b7 !important;
+        border: 1px solid #059669 !important;
+    }
+    .badge-status-blocked {
+        background: #3f1519 !important;
+        color: #fca5a5 !important;
+        border: 1px solid #7f1d1d !important;
+    }
+
+    /* 🌟 승인 버튼 - 선명하고 품격 있는 에메랄드 그린 강조 */
+    div[class*="st-key-gov_app_"] button {
+        background: linear-gradient(135deg, #059669 0%, #10b981 100%) !important;
+        color: #ffffff !important;
+        border: 1px solid #34d399 !important;
+        font-weight: 800 !important;
+        font-size: 13px !important;
+        box-shadow: 0 2px 8px rgba(16, 185, 129, 0.4) !important;
+        transition: all 0.2s ease !important;
+        padding: 5px 8px !important;
+        border-radius: 6px !important;
+        min-height: 34px !important;
+    }
+    div[class*="st-key-gov_app_"] button:hover {
+        background: linear-gradient(135deg, #047857 0%, #059669 100%) !important;
+        border-color: #6ee7b7 !important;
+        box-shadow: 0 4px 14px rgba(16, 185, 129, 0.65) !important;
+        transform: translateY(-1px) !important;
+    }
+    div[class*="st-key-gov_app_"] button p {
+        color: #ffffff !important;
+        font-weight: 800 !important;
+    }
+
+    /* 🌟 차단 버튼 - 강렬하고 명확한 크림슨 레드 강조 */
+    div[class*="st-key-gov_blk_"] button {
+        background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%) !important;
+        color: #ffffff !important;
+        border: 1px solid #f87171 !important;
+        font-weight: 800 !important;
+        font-size: 13px !important;
+        box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4) !important;
+        transition: all 0.2s ease !important;
+        padding: 5px 8px !important;
+        border-radius: 6px !important;
+        min-height: 34px !important;
+    }
+    div[class*="st-key-gov_blk_"] button:hover {
+        background: linear-gradient(135deg, #b91c1c 0%, #dc2626 100%) !important;
+        border-color: #fca5a5 !important;
+        box-shadow: 0 4px 14px rgba(239, 68, 68, 0.65) !important;
+        transform: translateY(-1px) !important;
+    }
+    div[class*="st-key-gov_blk_"] button p {
+        color: #ffffff !important;
+        font-weight: 800 !important;
+    }
+
 
     div[class*="st-key-confirm_blk_"] button {
         background: #b91c1c !important;
@@ -2452,81 +2514,205 @@ elif menu == "AI·IT 거버넌스":
         if "/" in target_domain_clean:
             target_domain_clean = target_domain_clean.split("/")[0]
         
-        domain_live_context = r_stats.get(target_domain_clean)
+        domain_live_context = r_stats.get(target_domain_clean) if 'r_stats' in locals() else None
         with st.spinner(f"'{target_domain_clean}' 도메인의 보안 위험도를 Gemini AI로 진단 중..."):
             new_asset = ctx.governance_engine.analyze_and_register_domain(
                 target_domain_clean, 
                 api_key=active_key,
                 live_context=domain_live_context
             )
-        st.success(f"'{new_asset.domain}' ({new_asset.service_name}) Gemini AI 진단 완료! [위험 등급: {new_asset.risk_level.value}] 소견: {new_asset.ai_diagnosis}")
+        st.toast(f"'{new_asset.domain}' ({new_asset.service_name}) 분석 완료! [위험도: {new_asset.risk_level.value}]", icon="🤖")
         st.rerun()
 
-    st.markdown("<div style='margin-bottom:24px; border-bottom:1px solid #16253a;'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='margin-bottom: 24px; border-bottom: 1px solid #16253a;'></div>", unsafe_allow_html=True)
 
+    # 🌟 자산 목록 획득
     shadow_assets = ctx.governance_engine.get_all_assets()
 
-    cols_ratio = [1.6, 0.6, 0.85, 1.1, 1.1, 1.1, 2.6, 1.05]
+    # 🌟 상단 툴바: 정렬(Sort) & 길이 조절(Height / Limit) 컨트롤
+    col_ctrl1, col_ctrl2, col_ctrl3, col_ctrl4 = st.columns([2.0, 1.2, 1.4, 1.4])
+    with col_ctrl1:
+        sort_by = st.selectbox(
+            "🔄 정렬 기준",
+            ["위험도 높은 순", "실시간 접속 많은 순", "사용자 많은 순", "도메인명 (A-Z)", "거버넌스 상태순"],
+            index=0,
+            key="gov_sort_by"
+        )
+    with col_ctrl2:
+        sort_order = st.radio(
+            "정렬 방향",
+            ["내림차순 ↓", "오름차순 ↑"],
+            index=0,
+            horizontal=True,
+            key="gov_sort_order"
+        )
+    with col_ctrl3:
+        limit_view = st.selectbox(
+            "📏 목록 표시 개수",
+            ["5개씩 보기", "10개씩 보기", "전체 보기"],
+            index=2,
+            key="gov_limit_view"
+        )
+    with col_ctrl4:
+        container_height = st.selectbox(
+            "↕️ 목록 스크롤 높이",
+            ["자동 맞춤 (Full)", "350px (컴팩트)", "500px (표준)", "650px (확장)"],
+            index=0,
+            key="gov_container_height"
+        )
 
-    with st.container():
-        h = st.columns(cols_ratio)
-        h[0].markdown("<div style='font-size:12.5px; font-weight:700; color:#94a3b8;'>도메인 / 서비스</div>", unsafe_allow_html=True)
-        h[1].markdown("<div style='font-size:12.5px; font-weight:700; color:#94a3b8; text-align:center;'>위험도</div>", unsafe_allow_html=True)
-        h[2].markdown("<div style='font-size:12.5px; font-weight:700; color:#94a3b8; text-align:center;'>거버넌스 상태</div>", unsafe_allow_html=True)
-        h[3].markdown("<div style='font-size:12.5px; font-weight:700; color:#94a3b8;'>실시간 접속</div>", unsafe_allow_html=True)
-        h[4].markdown("<div style='font-size:12.5px; font-weight:700; color:#94a3b8;'>사용자</div>", unsafe_allow_html=True)
-        h[5].markdown("<div style='font-size:12.5px; font-weight:700; color:#94a3b8;'>사용 빈도</div>", unsafe_allow_html=True)
-        h[6].markdown("<div style='font-size:12.5px; font-weight:700; color:#94a3b8;'>Gemini AI 진단 소견</div>", unsafe_allow_html=True)
-        h[7].markdown("<div style='font-size:12.5px; font-weight:700; color:#94a3b8; text-align:center;'>조치</div>", unsafe_allow_html=True)
-        st.markdown("<div style='border-bottom: 2px solid #38bdf8; margin-bottom: 10px;'></div>", unsafe_allow_html=True)
+    # 정렬 로직
+    def get_sort_key(a):
+        if sort_by == "위험도 높은 순":
+            order = {Severity.CRITICAL: 0, Severity.HIGH: 1, Severity.MEDIUM: 2, Severity.LOW: 3}
+            return order.get(a.risk_level, 4)
+        elif sort_by == "실시간 접속 많은 순":
+            return ctx.governance_engine.get_connection_count(a.domain)
+        elif sort_by == "사용자 많은 순":
+            return a.user_count
+        elif sort_by == "도메인명 (A-Z)":
+            return a.domain.lower()
+        elif sort_by == "거버넌스 상태순":
+            order = {SanctionStatus.UNAPPROVED: 0, SanctionStatus.BLOCKED: 1, SanctionStatus.APPROVED: 2}
+            return order.get(a.sanction_status, 3)
+        return 0
 
-        for asset in shadow_assets:
-            badge_style = "badge-high" if asset.risk_level == Severity.HIGH else ("badge-medium" if asset.risk_level == Severity.MEDIUM else "badge-low")
-            status_text = "정식 승인됨" if asset.sanction_status == SanctionStatus.APPROVED else ("명시적 차단" if asset.sanction_status == SanctionStatus.BLOCKED else "미승인 검토중")
-            user_list_str = ", ".join(asset.active_users) if asset.active_users else "사내 단말"
+    reverse_flag = True if (sort_order == "내림차순 ↓" and sort_by in ["실시간 접속 많은 순", "사용자 많은 순"]) else False
+    if sort_by == "위험도 높은 순" and sort_order == "오름차순 ↑":
+        reverse_flag = True
+    if sort_by == "도메인명 (A-Z)" and sort_order == "내림차순 ↓":
+        reverse_flag = True
 
-            row = st.columns(cols_ratio)
-            row[0].markdown(f"<div style='font-weight:700; color:#ffffff; font-size:14px;'>{asset.domain}</div><div style='color:#64748b; font-size:11.5px;'>{asset.service_name} · {asset.category}</div>", unsafe_allow_html=True)
-            row[1].markdown(f"<div style='text-align:center;'><span class='badge {badge_style}'>{asset.risk_level.value}</span></div>", unsafe_allow_html=True)
-            row[2].markdown(f"<div style='text-align:center;'><span class='badge' style='background:#1b2a3f; color:#9fb0c8;'>{status_text}</span></div>", unsafe_allow_html=True)
-            row[3].markdown(f"<div style='font-size:13px;'><b style='color:#38bdf8;'>{asset.access_count}건</b> <span style='color:#64748b; font-size:11px;'>({asset.department_count}개 부서)</span></div>", unsafe_allow_html=True)
-            row[4].markdown(f"<div style='font-size:13px; color:#cbd5e1;'><b>{asset.user_count}명</b><br><span style='color:#64748b; font-size:11px;'>({user_list_str})</span></div>", unsafe_allow_html=True)
-            row[5].markdown(f"<div style='font-size:12.5px; color:#f59e0b; font-weight:600;'>{asset.usage_frequency}</div>", unsafe_allow_html=True)
-            row[6].markdown(f"<div style='font-size:12px; color:#9ee0b2; line-height:1.45;'>💡 {asset.ai_diagnosis}</div>", unsafe_allow_html=True)
+    sorted_assets = sorted(shadow_assets, key=get_sort_key, reverse=reverse_flag)
 
-            with row[7]:
-                c1, c2 = st.columns(2)
-                with c1:
-                    if st.button("승인", key=f"tbl_app_{asset.domain}", use_container_width=True, help=f"'{asset.domain}' 서비스를 사내 정식 승인 목록으로 전환합니다."):
-                        ctx.governance_engine.update_sanction_status(asset.domain, SanctionStatus.APPROVED)
-                        st.success(f"'{asset.domain}' 서비스가 사내 승인 목록으로 전환되었습니다.")
-                        st.rerun()
-                with c2:
-                    if st.button("차단", key=f"tbl_blk_{asset.domain}", use_container_width=True, help=f"'{asset.domain}' 접근 차단 영향 범위를 확인하고 차단합니다."):
-                        st.session_state["pending_block_domain"] = asset.domain
-                        st.rerun()
+    # 개수 제한 적용
+    if limit_view == "5개씩 보기":
+        sorted_assets = sorted_assets[:5]
+    elif limit_view == "10개씩 보기":
+        sorted_assets = sorted_assets[:10]
 
-            if st.session_state.get("pending_block_domain") == asset.domain:
-                st.error(f"⚠️ {asset.domain} 접근 차단 정책을 적용하시겠습니까? 연결 중인 임직원의 접근이 즉시 차단됩니다.")
-                confirm_col, cancel_col = st.columns([1, 1])
-                with confirm_col:
-                    if st.button("차단 정책 적용", key=f"confirm_blk_{asset.domain}", use_container_width=True):
-                        ctx.governance_engine.update_sanction_status(asset.domain, SanctionStatus.BLOCKED)
-                        st.session_state.pop("pending_block_domain", None)
-                        st.warning(f"'{asset.domain}' 차단 정책이 적용되었습니다.")
-                        st.rerun()
-                with cancel_col:
-                    if st.button("취소", key=f"cancel_blk_{asset.domain}", use_container_width=True):
-                        st.session_state.pop("pending_block_domain", None)
-                        st.rerun()
+    # 테이블 헤더 렌더링
+    col_widths = [1.8, 0.8, 1.1, 1.1, 0.9, 1.4, 3.1, 0.75, 0.75]
 
-            st.markdown("<div style='border-bottom: 1px solid #16253a; margin: 6px 0 8px 0;'></div>", unsafe_allow_html=True)
+    st.markdown("""
+    <div style="
+        display: flex;
+        align-items: center;
+        padding: 14px 10px 10px 10px;
+        border-bottom: 2px solid #0284c7;
+        font-size: 13px;
+        font-weight: 700;
+        color: #cbd5e1;
+        letter-spacing: 0.2px;
+    ">
+        <div style="flex: 1.8;">도메인 / 서비스</div>
+        <div style="flex: 0.8; text-align: center;">위험도</div>
+        <div style="flex: 1.1; text-align: center;">거버넌스 상태</div>
+        <div style="flex: 1.1;">실시간 접속</div>
+        <div style="flex: 0.9;">사용자</div>
+        <div style="flex: 1.4;">사용 빈도</div>
+        <div style="flex: 3.1;">Gemini AI 진단 소견</div>
+        <div style="flex: 1.5; text-align: center;">조치</div>
+    </div>
+    """, unsafe_allow_html=True)
 
+    # 목록 스크롤 높이 스타일
+    scroll_style = ""
+    if container_height == "350px (컴팩트)":
+        scroll_style = "max-height: 350px; overflow-y: auto; overflow-x: hidden; padding-right: 4px; resize: vertical;"
+    elif container_height == "500px (표준)":
+        scroll_style = "max-height: 500px; overflow-y: auto; overflow-x: hidden; padding-right: 4px; resize: vertical;"
+    elif container_height == "650px (확장)":
+        scroll_style = "max-height: 650px; overflow-y: auto; overflow-x: hidden; padding-right: 4px; resize: vertical;"
 
-# ==========================================
-# ==========================================
-# VIEW 4: 중앙 서버 파이프라인
-# ==========================================
+    if scroll_style:
+        st.markdown(f'<div style="{scroll_style}">', unsafe_allow_html=True)
+
+    for asset in sorted_assets:
+        badge_style = "badge-high" if asset.risk_level == Severity.HIGH else ("badge-medium" if asset.risk_level == Severity.MEDIUM else "badge-low")
+        if asset.risk_level == Severity.CRITICAL:
+            badge_style = "badge-critical"
+            
+        status_text = "정식 승인됨" if asset.sanction_status == SanctionStatus.APPROVED else ("명시적 차단" if asset.sanction_status == SanctionStatus.BLOCKED else "미승인 검토중")
+        status_style = "badge-status-approved" if asset.sanction_status == SanctionStatus.APPROVED else ("badge-status-blocked" if asset.sanction_status == SanctionStatus.BLOCKED else "badge-status-unapproved")
+
+        conn_count = ctx.governance_engine.get_connection_count(asset.domain)
+        device_count = asset.department_count  # n개 기기
+
+        c1, c2, c3, c4, c5, c6, c7, c8, c9 = st.columns(col_widths, vertical_alignment="center")
+
+        with c1:
+            st.markdown(f"""
+            <div style="line-height: 1.3;">
+                <b style="color: #ffffff; font-size: 15px;">{asset.domain}</b><br>
+                <span style="color: #94a3b8; font-size: 12px;">{asset.service_name} · {asset.category}</span>
+            </div>
+            """, unsafe_allow_html=True)
+
+        with c2:
+            st.markdown(f"""
+            <div style="text-align: center;">
+                <span class="badge {badge_style}">{asset.risk_level.value}</span>
+            </div>
+            """, unsafe_allow_html=True)
+
+        with c3:
+            st.markdown(f"""
+            <div style="text-align: center;">
+                <span class="badge {status_style}">{status_text}</span>
+            </div>
+            """, unsafe_allow_html=True)
+
+        with c4:
+            st.markdown(f"""
+            <div style="line-height: 1.3;">
+                <b style="color: #38bdf8; font-size: 14px;">{conn_count}건</b> <span style="color: #94a3b8; font-size: 12px;">({device_count}개 기기)</span>
+            </div>
+            """, unsafe_allow_html=True)
+
+        with c5:
+            st.markdown(f"""
+            <div style="line-height: 1.2;">
+                <b style="color: #f8fafc; font-size: 14px;">{asset.user_count}명</b><br>
+                <span style="color: #94a3b8; font-size: 11px;">(User)</span>
+            </div>
+            """, unsafe_allow_html=True)
+
+        with c6:
+            freq_str = asset.usage_frequency or "실시간 감지"
+            if "실시간 감지" in freq_str and "누적" not in freq_str:
+                freq_str = f"실시간 감지 (누적 {conn_count}건)"
+            st.markdown(f"""
+            <div>
+                <span style="color: #fb923c; font-weight: 700; font-size: 13px;">{freq_str}</span>
+            </div>
+            """, unsafe_allow_html=True)
+
+        with c7:
+            st.markdown(f"""
+            <div style="color: #fef08a; font-size: 12.5px; line-height: 1.4;">
+                💡 {asset.ai_diagnosis}
+            </div>
+            """, unsafe_allow_html=True)
+
+        with c8:
+            if st.button("승인", key=f"gov_app_{asset.domain}", use_container_width=True, help=f"{asset.domain} 서비스를 사내 정식 승인 목록으로 전환합니다."):
+                ctx.governance_engine.update_sanction_status(asset.domain, SanctionStatus.APPROVED)
+                st.toast(f"'{asset.domain}' 정식 승인(양성화) 완료", icon="✅")
+                st.rerun()
+
+        with c9:
+            if st.button("차단", key=f"gov_blk_{asset.domain}", use_container_width=True, help=f"{asset.domain} 접근을 방화벽 및 DNS 싱크홀로 차단합니다."):
+                ctx.governance_engine.update_sanction_status(asset.domain, SanctionStatus.BLOCKED)
+                st.toast(f"'{asset.domain}' 차단 정책 적용 완료", icon="⛔")
+                st.rerun()
+
+        st.markdown("<div style='border-bottom: 1px solid #16253a; margin: 4px 0 6px 0;'></div>", unsafe_allow_html=True)
+
+    if scroll_style:
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    st.markdown("<div style='margin-bottom: 30px;'></div>", unsafe_allow_html=True)
 elif menu == "중앙 서버 파이프라인":
     from nexusguard.collectors.team_collector import (
         fetch_railway_events, fetch_activity_log_events, RAILWAY_URL, RAILWAY_API_KEY, get_railway_api_key
