@@ -41,6 +41,32 @@ from nexusguard.schemas.event import (
 DEFAULT_RAILWAY_API_KEY = "20110313"
 RAILWAY_URL = _get_env_or_secret("RAILWAY_URL", "https://bountiful-nature-production-22ec.up.railway.app/events")
 
+# ---------------------------------------------------------------------------
+# P1: DB 유저 ↔ Windows 에이전트 계정 매핑 테이블
+# MySQL general_log의 user_host(예: test_user) → Windows Agent 계정(예: User)
+# 동일 인물로 식별하여 상관분석 킬체인을 연결한다.
+# ---------------------------------------------------------------------------
+USER_HOST_MAPPING: dict = {
+    "test_user":    "User",        # MySQL Workbench 테스트 계정 → 에이전트 계정
+    "root":         "User",        # root 계정도 동일 단말로 매핑
+    "kim":          "kim",         # activity.log 실 계정 (변경 없음)
+    "nexusguard":   "User",        # 프로젝트 전용 계정
+}
+# 역방향: Windows Agent 계정 → src_ip (에이전트가 수집한 로컬 IP)
+AGENT_IP_MAPPING: dict = {
+    "User": "192.168.100.99",      # DESKTOP-OF0CMDB 단말 IP
+    "kim":  "192.168.10.50",       # activity.log 단말 IP
+}
+
+# P0: DB 감사 CSV 후보 경로 (가이드에 따라 data/ 폴더에 저장)
+DB_AUDIT_CSV_PATHS = [
+    os.path.join("data", "mysql_audit_log.csv"),
+    os.path.join("data", "db_audit_log.csv"),
+    os.path.join("data", "general_log.csv"),
+    os.path.join(os.path.dirname(__file__), "..", "..", "data", "mysql_audit_log.csv"),
+    os.path.join(os.path.dirname(__file__), "..", "..", "data", "db_audit_log.csv"),
+]
+
 def get_railway_api_key() -> str:
     """
     Railway 인증 키 조회:
@@ -255,6 +281,81 @@ def fetch_activity_log_events() -> List[Dict[str, Any]]:
     return records
 
 
+# ---------------------------------------------------------------------------
+# P0: MySQL general_log CSV → SecurityEvent 주입 파서
+# 가이드(NexusGuard_DB_Test_Guide.md) 기준 컬럼:
+#   event_time, user_name, src_ip, action, target_table, query_string, rows_affected
+# ---------------------------------------------------------------------------
+def load_db_audit_csv() -> List[Dict[str, Any]]:
+    """
+    data/mysql_audit_log.csv 파일을 읽어 DB_SELECT 이벤트 딕셔너리 목록으로 반환.
+    USER_HOST_MAPPING을 통해 DB 유저 → 에이전트 계정명으로 자동 정규화.
+    파일이 없으면 빈 리스트 반환 (silent fail).
+    """
+    import csv
+
+    csv_file = None
+    for p in DB_AUDIT_CSV_PATHS:
+        if os.path.exists(p):
+            csv_file = p
+            break
+
+    if not csv_file:
+        return []
+
+    records = []
+    try:
+        with open(csv_file, "r", encoding="utf-8-sig") as f:
+            reader = csv.DictReader(f)
+            for idx, row in enumerate(reader):
+                # 필수 필드 추출 (컬럼명 공백 제거)
+                row = {k.strip(): v.strip() for k, v in row.items()}
+
+                raw_user = row.get("user_name") or row.get("user") or "test_user"
+                # P1: DB 유저 → Windows Agent 계정명 매핑
+                mapped_user = USER_HOST_MAPPING.get(raw_user, raw_user)
+                src_ip = row.get("src_ip") or AGENT_IP_MAPPING.get(mapped_user, "192.168.10.50")
+
+                action = (row.get("action") or row.get("event_type") or "DB_SELECT").upper()
+                # action이 Query(MySQL 원시값)이면 DB_SELECT로 정규화
+                if action in ("QUERY", "EXECUTE"):
+                    action = "DB_SELECT"
+
+                target_table = row.get("target_table") or row.get("table_name") or "unknown_table"
+                query_str = row.get("query_string") or row.get("argument") or f"SELECT * FROM {target_table};"
+
+                rows_affected = 0
+                try:
+                    rows_affected = int(row.get("rows_affected") or row.get("rows") or 0)
+                except (ValueError, TypeError):
+                    rows_affected = 0
+
+                event_time = row.get("event_time") or row.get("timestamp") or ""
+
+                records.append({
+                    "id": f"DB-CSV-{idx + 1}",
+                    "event_time": event_time,
+                    "user_name": mapped_user,           # 매핑된 계정명 (상관분석에서 사용)
+                    "raw_db_user": raw_user,             # 원래 DB 유저명 (감사 로그용)
+                    "src_ip": src_ip,
+                    "pc_name": "db-server-01",
+                    "event_type": action,
+                    "source": "mysql-general-log",
+                    "target": target_table,
+                    "query_string": query_str,
+                    "rows": rows_affected,
+                    "risk_score": 0
+                })
+
+        print(f"[DB CSV Collector] {csv_file} 로드 완료: {len(records)}건")
+    except Exception as e:
+        print(f"[DB CSV Collector] CSV 파싱 오류: {e}")
+
+    return records
+
+
+
+
 def get_team_security_events() -> List[SecurityEvent]:
     """
     Railway 실시간 수집 로그(WEB_ACCESS 및 FILE_UPLOAD_ATTEMPT)와 로컬 activity.log를 결합하여 SecurityEvent 목록으로 정규화.
@@ -368,8 +469,50 @@ def get_team_security_events() -> List[SecurityEvent]:
                 )
             )
 
+    # 3. MySQL General Log CSV 변환 (P0: DB 감사 로그 수집 파이프라인)
+    db_csv_logs = load_db_audit_csv()
+    for db_row in db_csv_logs:
+        dt = _parse_event_time(db_row.get("event_time"))
+        user = db_row.get("user_name", "test_user")
+        src_ip = db_row.get("src_ip", "192.168.10.50")
+        target_table = db_row.get("target", "unknown_table")
+        query_str = db_row.get("query_string", f"SELECT * FROM {target_table};")
+        rows_aff = db_row.get("rows", 0)
+        ev_id = f"EVT-{db_row.get('id', 'DB-0')}"
+        raw_db_user = db_row.get("raw_db_user", user)
+
+        # DB_SELECT 이벤트만 상관분석 엔진에 주입 (INSERT/UPDATE 등은 향후 확장)
+        if db_row.get("event_type", "DB_SELECT") == "DB_SELECT":
+            events.append(
+                SecurityEvent(
+                    event_id=ev_id,
+                    timestamp=dt,
+                    log_source=LogSource.DB,
+                    actor=Actor(user_id=user, src_ip=src_ip),
+                    target=Target(dst_ip="10.0.0.30", dst_port=3306, hostname="db-server-01"),
+                    action=EventAction.SELECT,
+                    payload=PayloadMetadata(
+                        query_string=query_str,
+                        table_name=target_table,
+                        rows_affected=rows_aff,
+                        category="PrivilegedDataAccess",
+                        extra={
+                            "raw_db_user": raw_db_user,
+                            "source": "mysql-general-log",
+                            "risk_score": db_row.get("risk_score", 0)
+                        }
+                    ),
+                    raw_message=(
+                        f"{db_row.get('event_time')} db_user={raw_db_user}"
+                        f" mapped_user={user} ip={src_ip}"
+                        f" action=DB_SELECT table={target_table} rows={rows_aff}"
+                    )
+                )
+            )
+
     events.sort(key=lambda x: x.timestamp, reverse=True)
     return events
+
 
 
 def get_team_sim_scenarios() -> List[Dict[str, Any]]:

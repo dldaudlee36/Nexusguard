@@ -31,13 +31,21 @@ st.set_page_config(
 # 2. 다크 테마 및 인터랙티브 툴팁 CSS
 st.markdown("""
 <style>
-    /* 메인 배경 및 폰트 */
+    /* 메인 배경 및 폰트 - Cyber Glassmorphism & Atmospheric Ambient Lighting */
     .stApp {
-        background-color: #07111f;
-        color: #f5f7fb;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        background-color: #060911 !important;
+        background-image: 
+            radial-gradient(ellipse at 85% 95%, rgba(255, 120, 50, 0.18) 0%, transparent 50%),
+            radial-gradient(ellipse at 15% 90%, rgba(47, 100, 237, 0.20) 0%, transparent 50%),
+            radial-gradient(circle at 50% 100%, rgba(123, 44, 191, 0.10) 0%, transparent 40%),
+            radial-gradient(circle at 20% 10%, rgba(47, 128, 237, 0.12) 0%, transparent 35%),
+            radial-gradient(circle at 80% 30%, rgba(255, 107, 74, 0.06) 0%, transparent 30%) !important;
+        background-attachment: fixed !important;
+        color: #f1f5f9;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Inter", Helvetica, Arial, sans-serif;
         font-size: 15px;
         line-height: 1.55;
+        -webkit-font-smoothing: antialiased;
     }
 
     /* 본문·보조 문구·표의 최소 가독성 기준 */
@@ -48,18 +56,21 @@ st.markdown("""
     }
     div[data-testid="stCaptionContainer"],
     div[data-testid="stCaptionContainer"] p {
-        color: #a9b8cb !important;
-        font-size: 13.5px !important;
+        color: #94a3b8 !important;
+        font-size: 13px !important;
         line-height: 1.55 !important;
     }
     div[data-testid="stDataFrame"] {
         font-size: 13.5px !important;
     }
     
-    /* 사이드바 기본 및 드래그 조절 반응형 스타일 */
+    /* 사이드바 글래스모피즘 도크 레일 스타일 */
     section[data-testid="stSidebar"] {
-        background-color: #0c1727 !important;
-        border-right: 1px solid #1c2b42 !important;
+        background: rgba(6, 10, 20, 0.92) !important;
+        backdrop-filter: blur(28px) saturate(200%) !important;
+        -webkit-backdrop-filter: blur(28px) saturate(200%) !important;
+        border-right: 1px solid rgba(255, 255, 255, 0.05) !important;
+        box-shadow: 4px 0 32px rgba(0, 0, 0, 0.6) !important;
         min-width: 240px;
         max-width: 750px;
         position: relative;
@@ -86,6 +97,8 @@ st.markdown("""
         max-width: 100% !important;
         width: 100% !important;
         box-sizing: border-box !important;
+        padding-top: 2rem !important;
+        padding-bottom: 3rem !important;
     }
 
     /* 데이터프레임 및 차트가 창 크기 축소/확장 시 유연하게 자동 리사이즈되도록 제한 */
@@ -118,11 +131,12 @@ st.markdown("""
         background: transparent !important;
         border: none !important;
         box-shadow: none !important;
-        padding: 0 0 6px 4px !important;
-        font-size: 13px !important;
+        padding: 0 0 8px 4px !important;
+        font-size: 12px !important;
         font-weight: 700 !important;
-        color: #94a3b8 !important;
-        letter-spacing: 0.5px !important;
+        color: #64748b !important;
+        letter-spacing: 0.8px !important;
+        text-transform: uppercase !important;
         cursor: default !important;
     }
     section[data-testid="stSidebar"] div[data-testid="stRadio"] div[role="radiogroup"] {
@@ -131,16 +145,17 @@ st.markdown("""
         flex-direction: column !important;
         width: 100% !important;
     }
-    /* 각 옵션 항목 박스 카드 - 가로 100% 완벽 확장 */
+    /* 각 옵션 항목 박스 카드 - 글래스모피즘 알약/타일 */
     section[data-testid="stSidebar"] div[data-testid="stRadio"] div[role="radiogroup"] label {
-        background-color: #111e33 !important;
-        border: 1px solid #1c2e47 !important;
-        border-radius: 10px !important;
-        padding: 11px 16px !important;
+        background: rgba(255, 255, 255, 0.03) !important;
+        backdrop-filter: blur(16px) !important;
+        border: 1px solid rgba(255, 255, 255, 0.06) !important;
+        border-radius: 16px !important;
+        padding: 12px 18px !important;
         margin: 0 !important;
-        transition: all 0.2s ease-in-out !important;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
         cursor: pointer !important;
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25) !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
         display: flex !important;
         align-items: center !important;
         width: 100% !important;
@@ -148,16 +163,17 @@ st.markdown("""
         box-sizing: border-box !important;
     }
     section[data-testid="stSidebar"] div[data-testid="stRadio"] div[role="radiogroup"] label:hover {
-        background-color: #172a48 !important;
-        border-color: #3b82f6 !important;
+        background: rgba(255, 255, 255, 0.06) !important;
+        border-color: rgba(56, 189, 248, 0.3) !important;
         transform: translateX(4px) !important;
-        box-shadow: 0 4px 14px rgba(59, 130, 246, 0.25) !important;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3), 0 0 12px rgba(56, 189, 248, 0.15) !important;
     }
-    /* 선택된 활성 항목 강조 박스 */
+    /* 선택된 활성 항목 강조 박스 - 네온 일렉트릭 블루 */
     section[data-testid="stSidebar"] div[data-testid="stRadio"] div[role="radiogroup"] label:has(input:checked) {
-        background: linear-gradient(135deg, #132746 0%, #1c3d6e 100%) !important;
+        background: linear-gradient(135deg, rgba(37, 99, 235, 0.45) 0%, rgba(14, 165, 233, 0.25) 100%) !important;
+        backdrop-filter: blur(16px) !important;
         border: 1.5px solid #38bdf8 !important;
-        box-shadow: 0 4px 16px rgba(56, 189, 248, 0.3) !important;
+        box-shadow: 0 6px 20px rgba(56, 189, 248, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.25) !important;
     }
     section[data-testid="stSidebar"] div[data-testid="stRadio"] div[role="radiogroup"] label p,
     section[data-testid="stSidebar"] div[data-testid="stRadio"] div[role="radiogroup"] label span,
@@ -168,11 +184,20 @@ st.markdown("""
         white-space: nowrap !important;
     }
 
-    /* 사이드바 시뮬레이터 버튼 균일 크기 고정 및 줄바꿈 방지 */
+    /* 사이드바 시뮬레이터 카드 컨테이너 */
+    section[data-testid="stSidebar"] [data-testid="stExpander"] {
+        background: rgba(255, 255, 255, 0.025) !important;
+        backdrop-filter: blur(18px) !important;
+        border: 1px solid rgba(255, 255, 255, 0.06) !important;
+        border-radius: 20px !important;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2) !important;
+        overflow: hidden !important;
+    }
+    /* 사이드바 시뮬레이터 버튼 - 둥근 네온 글래스 버튼 */
     section[data-testid="stSidebar"] div.stButton > button {
-        height: 56px !important;
-        min-height: 56px !important;
-        max-height: 56px !important;
+        height: 52px !important;
+        min-height: 52px !important;
+        max-height: 52px !important;
         width: 100% !important;
         display: flex !important;
         flex-direction: column !important;
@@ -182,8 +207,19 @@ st.markdown("""
         font-weight: 700 !important;
         line-height: 1.25 !important;
         padding: 4px 6px !important;
-        border-radius: 8px !important;
+        border-radius: 14px !important;
         white-space: pre-line !important;
+        background: rgba(255, 255, 255, 0.03) !important;
+        border: 1px solid rgba(255, 255, 255, 0.06) !important;
+        backdrop-filter: blur(12px) !important;
+        color: #f1f5f9 !important;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    }
+    section[data-testid="stSidebar"] div.stButton > button:hover {
+        border-color: rgba(56, 189, 248, 0.3) !important;
+        background: rgba(255, 255, 255, 0.06) !important;
+        box-shadow: 0 0 16px rgba(56, 189, 248, 0.25) !important;
+        transform: translateY(-2px) !important;
     }
 
     /* 사이드바 실시간 시뮬레이터 아이콘 마우스 오버 툴팁 */
@@ -200,17 +236,18 @@ st.markdown("""
         left: 32px;
         top: 50%;
         transform: translateY(-50%);
-        background: #0d1a2b;
+        background: rgba(8, 14, 28, 0.92);
+        backdrop-filter: blur(24px);
         color: #f1f5f9;
-        border: 1px solid #38bdf8;
-        border-radius: 8px;
-        padding: 10px 14px;
+        border: 1px solid rgba(56, 189, 248, 0.25);
+        border-radius: 14px;
+        padding: 12px 16px;
         font-size: 11.5px;
         font-weight: 500;
         line-height: 1.5;
         white-space: pre-wrap;
-        width: 260px;
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.85), 0 0 12px rgba(56, 189, 248, 0.25);
+        width: 270px;
+        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.9), 0 0 16px rgba(56, 189, 248, 0.25);
         pointer-events: none;
         opacity: 0;
         visibility: hidden;
@@ -223,45 +260,153 @@ st.markdown("""
         visibility: visible;
     }
 
-    /* KPI 카드 스타일 */
+    /* 🌟 Cyber Glassmorphism Bento Grid KPI Cards */
     .kpi-card {
-        background: #0d1a2b;
-        border: 1px solid #1c2e47;
-        border-radius: 14px;
-        padding: 16px 20px;
-        margin-bottom: 15px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-        min-height: 125px;
-        height: 125px;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        box-sizing: border-box;
+        background: rgba(255, 255, 255, 0.035) !important;
+        backdrop-filter: blur(24px) saturate(180%) !important;
+        -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+        border: 1px solid rgba(255, 255, 255, 0.06) !important;
+        border-radius: 24px !important;
+        padding: 22px 26px !important;
+        margin-bottom: 16px !important;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
+        min-height: 140px !important;
+        height: 140px !important;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: space-between !important;
+        box-sizing: border-box !important;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        position: relative !important;
+        overflow: hidden !important;
+    }
+    .kpi-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 1px;
+        background: linear-gradient(90deg, transparent 5%, rgba(255, 255, 255, 0.12) 30%, rgba(255, 255, 255, 0.12) 70%, transparent 95%);
+    }
+    .kpi-card:hover {
+        transform: translateY(-3px) !important;
+        border-color: rgba(255, 255, 255, 0.12) !important;
+        box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5), 0 0 20px rgba(47, 128, 237, 0.12) !important;
     }
     .kpi-title {
-        font-size: 14px;
-        font-weight: 600;
-        color: #9fb0c8;
-        margin-bottom: 6px;
+        font-size: 13px !important;
+        font-weight: 700 !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.8px !important;
+        margin-bottom: 6px !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 6px !important;
     }
     .kpi-value {
-        font-size: 32px;
-        font-weight: 700;
-        color: #ffffff;
-        letter-spacing: -0.5px;
-        line-height: 1.2;
+        font-size: 38px !important;
+        font-weight: 800 !important;
+        letter-spacing: -1px !important;
+        line-height: 1.1 !important;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", sans-serif !important;
     }
     .kpi-sub {
-        font-size: 13.5px;
-        color: #a3b2c7;
-        margin-top: 4px;
+        font-size: 12.5px !important;
+        color: #94a3b8 !important;
+        font-weight: 500 !important;
+        letter-spacing: -0.2px !important;
+    }
+
+    /* 🌟 중앙 서버 파이프라인 전용 KPI 카드 스타일 (엄격한 중앙 정렬, 폰트 축소, 줄바꿈 방지) */
+    .kpi-card-pipe {
+        background: rgba(255, 255, 255, 0.035) !important;
+        backdrop-filter: blur(24px) saturate(180%) !important;
+        -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+        border: 1px solid rgba(255, 255, 255, 0.06) !important;
+        border-radius: 20px !important;
+        padding: 16px 14px !important;
+        height: 125px !important;
+        min-height: 125px !important;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: center !important;
+        align-items: center !important;
+        text-align: center !important;
+        box-sizing: border-box !important;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35) !important;
+    }
+    .kpi-card-pipe:hover {
+        transform: translateY(-3px) !important;
+        border-color: rgba(255, 255, 255, 0.14) !important;
+        box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5), 0 0 20px rgba(47, 128, 237, 0.15) !important;
+    }
+    .kpi-pipe-title {
+        font-size: 12.5px !important;
+        font-weight: 700 !important;
+        color: #94a3b8 !important;
+        letter-spacing: 0.3px !important;
+        margin-bottom: 10px !important;
+        display: flex !important;
+        justify-content: center !important;
+        align-items: center !important;
+        text-align: center !important;
+        width: 100% !important;
+        white-space: nowrap !important;
+    }
+    .kpi-pipe-value {
+        font-size: 20px !important;
+        font-weight: 800 !important;
+        line-height: 1.2 !important;
+        display: flex !important;
+        justify-content: center !important;
+        align-items: center !important;
+        text-align: center !important;
+        width: 100% !important;
+        white-space: nowrap !important;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", sans-serif !important;
+    }
+
+    .kpi-card-crit {
+        border-left: 3px solid rgba(255, 107, 107, 0.7) !important;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.06), -4px 0 20px rgba(255, 107, 107, 0.08) !important;
+    }
+    .kpi-card-crit .kpi-title { color: #fca5a5 !important; }
+    .kpi-card-crit .kpi-value {
+        background: linear-gradient(135deg, #ffffff 0%, #ff8591 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        filter: drop-shadow(0 0 12px rgba(255, 107, 107, 0.3));
+    }
+    .kpi-card-watch {
+        border-left: 3px solid rgba(245, 158, 11, 0.7) !important;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.06), -4px 0 20px rgba(245, 158, 11, 0.08) !important;
+    }
+    .kpi-card-watch .kpi-title { color: #fde047 !important; }
+    .kpi-card-watch .kpi-value {
+        background: linear-gradient(135deg, #ffffff 0%, #fbbf24 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        filter: drop-shadow(0 0 12px rgba(245, 158, 11, 0.3));
+    }
+    .kpi-card-norm {
+        border-left: 3px solid rgba(56, 189, 248, 0.7) !important;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.06), -4px 0 20px rgba(56, 189, 248, 0.08) !important;
+    }
+    .kpi-card-norm .kpi-title { color: #7dd3fc !important; }
+    .kpi-card-norm .kpi-value {
+        background: linear-gradient(135deg, #ffffff 0%, #38bdf8 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        filter: drop-shadow(0 0 12px rgba(56, 189, 248, 0.3));
     }
     
     /* 위험도 텍스트 컬러 */
-    .critical-text { color: #ff5b6b !important; }
-    .high-text { color: #ff7b88 !important; }
-    .medium-text { color: #ffbf4b !important; }
-    .low-text { color: #62d487 !important; }
+    .critical-text { color: #ff6b6b !important; }
+    .high-text { color: #ff8591 !important; }
+    .medium-text { color: #fbbf24 !important; }
+    .low-text { color: #38bdf8 !important; }
     
     /* 박스 타이틀 */
     .box-title {
@@ -299,13 +444,14 @@ st.markdown("""
         display: inline-flex;
         align-items: center;
         padding: 10px 16px;
-        background: #132238;
-        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.035);
+        border-radius: 12px;
         font-size: 13px;
         font-weight: 600;
         margin-right: 8px;
         margin-bottom: 8px;
-        border: 1px solid #233754;
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        backdrop-filter: blur(12px);
     }
     .timeline-arrow {
         color: #4c8cff;
@@ -363,12 +509,13 @@ st.markdown("""
     }
     /* 통합 인시던트 선택기 단일 박스 컨테이너 */
     div[data-testid="stVerticalBlockBorderWrapper"] {
-        background-color: #0c182a !important;
-        border: 1.5px solid #1c324e !important;
-        border-radius: 12px !important;
-        padding: 14px 20px 16px 20px !important;
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35) !important;
-        margin-bottom: 16px !important;
+        background-color: rgba(255, 255, 255, 0.03) !important;
+        border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        border-radius: 20px !important;
+        padding: 22px 26px 24px 26px !important;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35) !important;
+        margin-bottom: 18px !important;
+        backdrop-filter: blur(20px) !important;
     }
     /* 통합 선택 박스 내부 불필요한 라벨 및 도움말 아이콘 완전 은닉 */
     div[data-testid="stSelectbox"] label,
@@ -379,46 +526,108 @@ st.markdown("""
         padding: 0 !important;
     }
 
+    /* 🌟 인시던트 선택기 세로 위험도 축 (Vertical Color Axis) */
+    .incident-axis-col {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        position: relative;
+        padding: 6px 0 6px 22px;
+        min-height: 110px;
+    }
+    .incident-axis-col::before {
+        content: '';
+        position: absolute;
+        left: 6px;
+        top: 8px;
+        bottom: 8px;
+        width: 3px;
+        background: linear-gradient(180deg, #ef4444 0%, #f59e0b 50%, #10b981 100%);
+        border-radius: 2px;
+        box-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
+    }
+    .axis-step {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12px;
+        font-weight: 700;
+        line-height: 1.2;
+    }
+    .axis-step-dot {
+        position: absolute;
+        left: 2px;
+        width: 11px;
+        height: 11px;
+        border-radius: 50%;
+        border: 2px solid #0b1329;
+    }
+    .axis-step-crit .axis-step-dot { background: #ef4444; box-shadow: 0 0 10px #ef4444; }
+    .axis-step-watch .axis-step-dot { background: #f59e0b; box-shadow: 0 0 10px #f59e0b; }
+    .axis-step-norm .axis-step-dot { background: #10b981; box-shadow: 0 0 10px #10b981; }
+    
+    .axis-step-crit { color: #fca5a5; }
+    .axis-step-watch { color: #fde047; }
+    .axis-step-norm { color: #86efac; }
+    
+    .axis-step-count {
+        font-size: 11px;
+        font-weight: 600;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        padding: 1px 7px;
+        border-radius: 9999px;
+        color: #e2e8f0;
+    }
+
     /* 🌟 인시던트 선택 박스 세로 높이 확대 및 시인성 향상 */
+    div[data-testid="stSelectbox"] div[data-baseweb="select"] {
+        cursor: pointer !important;
+    }
     div[data-testid="stSelectbox"] div[data-baseweb="select"] > div {
         min-height: 64px !important;
         height: 64px !important;
-        background-color: #0b1a2e !important;
-        border: 2px solid #3b82f6 !important;
-        border-radius: 12px !important;
-        box-shadow: 0 4px 16px rgba(37, 99, 235, 0.25) !important;
+        background-color: rgba(255, 255, 255, 0.03) !important;
+        border: 1.5px solid rgba(59, 130, 246, 0.4) !important;
+        border-radius: 16px !important;
+        box-shadow: 0 4px 16px rgba(37, 99, 235, 0.15) !important;
         padding: 6px 18px !important;
         display: flex !important;
         align-items: center !important;
         box-sizing: border-box !important;
         transition: all 0.2s ease-in-out !important;
+        backdrop-filter: blur(16px) !important;
+        cursor: pointer !important;
     }
     div[data-testid="stSelectbox"] div[data-baseweb="select"] > div:hover {
         border-color: #60a5fa !important;
-        box-shadow: 0 6px 22px rgba(59, 130, 246, 0.45) !important;
-        background-color: #0e223d !important;
+        box-shadow: 0 6px 22px rgba(59, 130, 246, 0.3) !important;
+        background-color: rgba(255, 255, 255, 0.05) !important;
     }
     /* 선택 상자 내부 텍스트 폰트 및 스타일 */
     div[data-testid="stSelectbox"] div[data-baseweb="select"] [data-testid="stMarkdownContainer"] p,
     div[data-testid="stSelectbox"] div[data-baseweb="select"] span {
         color: #ffffff !important;
-        font-size: 16px !important;
+        font-size: 15.5px !important;
         font-weight: 700 !important;
         line-height: 1.5 !important;
     }
-    /* 우측 토글 화살표(Chevron): 박스 우측 내부에 완벽 고정 */
+    /* 우측 토글 화살표(Chevron): 박스 우측 내부에 완벽 고정 및 클릭 가능 */
     div[data-testid="stSelectbox"] div[data-baseweb="select"] svg {
         fill: #60a5fa !important;
         width: 20px !important;
         height: 20px !important;
         flex-shrink: 0 !important;
+        cursor: pointer !important;
+        pointer-events: auto !important;
     }
     /* 드롭다운 가상 목록 스타일 (클릭 시 펼쳐지는 목록) */
     ul[data-testid="stSelectboxVirtualDropdown"] {
-        background-color: #0b1a2e !important;
-        border: 2px solid #3b82f6 !important;
-        border-radius: 12px !important;
-        box-shadow: 0 12px 36px rgba(0, 0, 0, 0.85) !important;
+        background-color: rgba(8, 14, 28, 0.95) !important;
+        backdrop-filter: blur(24px) !important;
+        border: 1px solid rgba(59, 130, 246, 0.3) !important;
+        border-radius: 16px !important;
+        box-shadow: 0 12px 36px rgba(0, 0, 0, 0.7) !important;
         padding: 6px 0 !important;
     }
     ul[data-testid="stSelectboxVirtualDropdown"] li {
@@ -427,13 +636,13 @@ st.markdown("""
         padding: 12px 16px !important;
         min-height: 50px !important;
         color: #e2e8f0 !important;
-        border-bottom: 1px solid #172a45 !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
         display: flex !important;
         align-items: center !important;
     }
     ul[data-testid="stSelectboxVirtualDropdown"] li:hover,
     ul[data-testid="stSelectboxVirtualDropdown"] li[aria-selected="true"] {
-        background-color: #1e3a8a !important;
+        background-color: rgba(59, 130, 246, 0.2) !important;
         color: #ffffff !important;
     }
 
@@ -461,15 +670,15 @@ st.markdown("""
         opacity: 0;
         width: max-content;
         max-width: 340px;
-        background: rgba(11, 23, 40, 0.95) !important;
-        backdrop-filter: blur(12px) !important;
-        -webkit-backdrop-filter: blur(12px) !important;
+        background: rgba(8, 14, 28, 0.92) !important;
+        backdrop-filter: blur(24px) !important;
+        -webkit-backdrop-filter: blur(24px) !important;
         color: #f1f5f9;
         text-align: left;
-        border-radius: 8px;
-        padding: 10px 15px;
-        border: 1px solid #38bdf8;
-        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.75), 0 0 14px rgba(56, 189, 248, 0.25);
+        border-radius: 14px;
+        padding: 12px 16px;
+        border: 1px solid rgba(56, 189, 248, 0.25);
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.65), 0 0 12px rgba(56, 189, 248, 0.15);
         font-size: 12.5px;
         font-weight: 500;
         line-height: 1.5;
@@ -987,19 +1196,205 @@ st.markdown("""
         flex-shrink: 0;
         margin-top: 2px;
     }
-    .evidence-item {
-        background: #0d1a2d;
-        border: 1px solid #1c3252;
-        border-radius: 8px;
-        padding: 10px 14px;
-        margin-bottom: 8px;
-        font-size: 13px;
-        color: #e2e8f0;
-        word-break: keep-all;
-        line-height: 1.55;
-        display: flex;
-        align-items: flex-start;
-        gap: 8px;
+    /* 🌟 16:9 Desktop Bento Grid Special Components (Glassmorphism & Neon Rings) */
+    .bento-desktop-banner {
+        background: rgba(255, 255, 255, 0.03) !important;
+        backdrop-filter: blur(24px) saturate(180%) !important;
+        -webkit-backdrop-filter: blur(24px) !important;
+        border: 1px solid rgba(255, 255, 255, 0.06) !important;
+        border-radius: 24px !important;
+        padding: 20px 28px !important;
+        margin-bottom: 20px !important;
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
+    }
+    .bento-banner-left h2 {
+        margin: 0 !important;
+        font-size: 24px !important;
+        font-weight: 800 !important;
+        color: #ffffff !important;
+        letter-spacing: -0.5px !important;
+    }
+    .bento-banner-left p {
+        margin: 4px 0 0 0 !important;
+        font-size: 13px !important;
+        color: #94a3b8 !important;
+    }
+    .bento-banner-right {
+        display: flex !important;
+        align-items: center !important;
+        gap: 24px !important;
+    }
+    .bento-clock-box {
+        background: rgba(255, 255, 255, 0.04) !important;
+        border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        border-radius: 14px !important;
+        padding: 8px 18px !important;
+        font-size: 18px !important;
+        font-weight: 800 !important;
+        color: #f1f5f9 !important;
+        letter-spacing: 1px !important;
+        font-variant-numeric: tabular-nums !important;
+    }
+    .bento-sys-bars {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 6px !important;
+        width: 140px !important;
+    }
+    .bento-sys-row {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        font-size: 11px !important;
+        color: #94a3b8 !important;
+    }
+    .bento-sys-track {
+        width: 70px !important;
+        height: 5px !important;
+        background: rgba(255, 255, 255, 0.08) !important;
+        border-radius: 9999px !important;
+        overflow: hidden !important;
+    }
+    .bento-sys-fill {
+        height: 100% !important;
+        border-radius: 9999px !important;
+    }
+
+    /* 벤토 원형 게이지 카드 (4종 카드 크기 완벽 통일) */
+    .bento-ring-card {
+        background: rgba(255, 255, 255, 0.035) !important;
+        backdrop-filter: blur(24px) !important;
+        -webkit-backdrop-filter: blur(24px) !important;
+        border: 1px solid rgba(255, 255, 255, 0.06) !important;
+        border-radius: 24px !important;
+        padding: 20px 22px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        position: relative !important;
+        overflow: hidden !important;
+        height: 155px !important;
+        min-height: 155px !important;
+        max-height: 155px !important;
+        box-sizing: border-box !important;
+    }
+    .bento-ring-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 1px;
+        background: linear-gradient(90deg, transparent 5%, rgba(255, 255, 255, 0.12) 30%, rgba(255, 255, 255, 0.12) 70%, transparent 95%);
+    }
+    .bento-ring-card:hover {
+        transform: translateY(-3px) !important;
+        border-color: rgba(255, 255, 255, 0.12) !important;
+        box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5), 0 0 20px rgba(56, 189, 248, 0.15) !important;
+    }
+
+    /* 🌟 주간 활동 차트 전용 카드 (세로 길이 1.8배 확장 및 겹침 방지) */
+    .bento-weekly-card {
+        background: rgba(255, 255, 255, 0.035) !important;
+        backdrop-filter: blur(24px) saturate(180%) !important;
+        -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+        border: 1px solid rgba(255, 255, 255, 0.06) !important;
+        border-radius: 24px !important;
+        padding: 28px 36px 24px 36px !important;
+        margin-bottom: 20px !important;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
+        height: 270px !important;
+        min-height: 270px !important;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: space-between !important;
+        box-sizing: border-box !important;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        position: relative !important;
+        overflow: hidden !important;
+    }
+    .bento-weekly-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 1px;
+        background: linear-gradient(90deg, transparent 5%, rgba(255, 255, 255, 0.12) 30%, rgba(255, 255, 255, 0.12) 70%, transparent 95%);
+    }
+
+    /* 주간 보안 추이 캡슐 바 차트 */
+    .bento-capsule-chart {
+        display: flex !important;
+        align-items: flex-end !important;
+        justify-content: space-between !important;
+        height: 90px !important;
+        padding: 10px 6px 0 6px !important;
+        gap: 8px !important;
+    }
+    .bento-bar-col {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        gap: 8px !important;
+        flex: 1 !important;
+    }
+    .bento-bar-capsule {
+        width: 14px !important;
+        border-radius: 9999px !important;
+        background: linear-gradient(180deg, #38bdf8 0%, #1e40af 100%) !important;
+        box-shadow: 0 0 10px rgba(56, 189, 248, 0.4) !important;
+        transition: all 0.3s ease !important;
+    }
+    .bento-bar-capsule.active {
+        background: linear-gradient(180deg, #60a5fa 0%, #3b82f6 100%) !important;
+        box-shadow: 0 0 16px rgba(96, 165, 250, 0.7) !important;
+        position: relative !important;
+    }
+    .bento-bar-label {
+        font-size: 11px !important;
+        color: #64748b !important;
+        font-weight: 600 !important;
+    }
+
+    /* 단축키 / 거버넌스 퀵 액션 타일 그리드 */
+    .bento-shortcuts-grid {
+        display: grid !important;
+        grid-template-columns: repeat(3, 1fr) !important;
+        gap: 10px !important;
+        margin-top: 10px !important;
+    }
+    .bento-shortcut-tile {
+        background: rgba(255, 255, 255, 0.03) !important;
+        border: 1px solid rgba(255, 255, 255, 0.06) !important;
+        border-radius: 16px !important;
+        padding: 12px 8px !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 6px !important;
+        transition: all 0.25s ease !important;
+        cursor: pointer !important;
+    }
+    .bento-shortcut-tile:hover {
+        background: rgba(255, 255, 255, 0.07) !important;
+        border-color: rgba(56, 189, 248, 0.3) !important;
+        transform: translateY(-2px) !important;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3), 0 0 12px rgba(56, 189, 248, 0.15) !important;
+    }
+    .bento-shortcut-icon {
+        font-size: 20px !important;
+    }
+    .bento-shortcut-name {
+        font-size: 11.5px !important;
+        font-weight: 600 !important;
+        color: #cbd5e1 !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -1118,8 +1513,40 @@ components.html("""
         syncSidebarState();
     }
 
+    // 🌟 상단 웰컴 배너 실시간 시계 (1초 단위 자동 갱신)
+    function tickLiveClock() {
+        const clockEls = parentDoc.querySelectorAll('#nexus-live-clock, .bento-clock-box');
+        if (!clockEls || clockEls.length === 0) return;
+
+        const now = new Date();
+        const h = now.getHours();
+        const m = String(now.getMinutes()).padStart(2, '0');
+        const s = String(now.getSeconds()).padStart(2, '0');
+        const ampm = h < 12 ? '오전' : '오후';
+        const h12 = h === 0 ? 12 : (h > 12 ? h - 12 : h);
+        const h12Str = String(h12).padStart(2, '0');
+        const timeStr = `${ampm} ${h12Str}:${m}:${s}`;
+
+        clockEls.forEach(el => {
+            if (el.textContent !== timeStr) {
+                el.textContent = timeStr;
+            }
+        });
+    }
+
+    if (window.parent._nexusClockInterval) {
+        window.parent.clearInterval(window.parent._nexusClockInterval);
+    }
+    window.parent._nexusClockInterval = window.parent.setInterval(tickLiveClock, 1000);
+    tickLiveClock();
+
+    function onDomMutation() {
+        setupResizer();
+        tickLiveClock();
+    }
+
     setupResizer();
-    const observer = new MutationObserver(setupResizer);
+    const observer = new MutationObserver(onDomMutation);
     observer.observe(parentDoc.body, { childList: true, subtree: true });
 
     // 브라우저 창 크기 조절 시 접힘 상태 및 레이아웃 반응형 보장
@@ -1151,6 +1578,11 @@ def tooltip(icon: str, title: str, desc: str) -> str:
 def title_tooltip(icon: str, title: str, desc: str) -> str:
     """Streamlit Markdown 파서가 제목 구조를 깨지 않도록 한 줄 HTML로 렌더링"""
     return f'<span class="tooltip-container"><span class="tooltip-icon">{icon}</span><span class="tooltip-popup"><b style="color:#38bdf8; font-size:13px;">{title}</b><br><span style="color:#cbd5e1;">{desc}</span></span></span>'
+
+def text_tooltip(text: str, title: str, desc: str) -> str:
+    """아이콘 없이 제목 텍스트 자체에 마우스 오버 시 세련된 툴팁 팝업 렌더링"""
+    return f'<span class="tooltip-container" style="display:inline-flex; align-items:center; cursor:help;"><span style="color:inherit; font-weight:inherit;">{text}</span><span class="tooltip-popup"><b style="color:#38bdf8; font-size:13px;">{title}</b><br><span style="color:#cbd5e1;">{desc}</span></span></span>'
+
 
 # 4. 데이터 컨텍스트 캐싱 (Streamlit Cloud 연산 딜레이 방지)
 @st.cache_resource
@@ -1188,12 +1620,28 @@ with st.sidebar:
     st.markdown(f"""
     <div style="padding: 10px 0 10px 0;">
         <h2 style="color: #f5f7fb; margin:0; font-size:22px; font-weight:700;">
-            {tooltip("🛡️", "NexusGuard XDR Platform", "이기종 다차원 로그 상관분석 & 섀도우 AI 거버넌스 자동화 시스템")} NexusGuard
+            {text_tooltip("NexusGuard", "NexusGuard XDR Platform", "이기종 다차원 로그 상관분석 & 섀도우 AI 거버넌스 자동화 시스템")}
         </h2>
     </div>
     """, unsafe_allow_html=True)
 
     menu_options = ["종합 관제", "킬체인 분석", "AI·IT 거버넌스", "중앙 서버 파이프라인"]
+    
+    # 🌟 URL Query Parameter 지원 (?page=overview, killchain, governance, pipeline)
+    qp = getattr(st, "query_params", None)
+    if qp is not None:
+        url_page = qp.get("page") or qp.get("tab")
+        page_map = {
+            "overview": "종합 관제", "관제": "종합 관제",
+            "killchain": "킬체인 분석", "킬체인": "킬체인 분석",
+            "governance": "AI·IT 거버넌스", "거버넌스": "AI·IT 거버넌스",
+            "pipeline": "중앙 서버 파이프라인", "파이프라인": "중앙 서버 파이프라인"
+        }
+        if url_page:
+            mapped = page_map.get(str(url_page).lower(), url_page)
+            if mapped in menu_options:
+                st.session_state.nav_radio = mapped
+
     if "nav_radio" not in st.session_state or st.session_state.nav_radio not in menu_options:
         st.session_state.nav_radio = "종합 관제"
 
@@ -2205,7 +2653,7 @@ def render_interactive_map(svg_markup: str):
 
 if menu == "종합 관제":
     st.markdown(f"""
-    <div class="nexus-page-title-box"><div class="nexus-page-title" role="heading" aria-level="1">{title_tooltip("🛡️", "종합 관제", "실시간 이기종 로그를 연계하여 침해사고를 재구성하고 내부 데이터 거버넌스를 모니터링하는 Zero Trust XDR 화면입니다.")}<span>종합 관제</span></div></div>
+    <div class="nexus-page-title-box"><div class="nexus-page-title" role="heading" aria-level="1">{text_tooltip("종합 관제", "종합 관제", "실시간 이기종 로그를 연계하여 침해사고를 재구성하고 내부 데이터 거버넌스를 모니터링하는 Zero Trust XDR 화면입니다.")}</div></div>
     """, unsafe_allow_html=True)
 
     # 위험도별 인시던트 목록 분할 (WATCH: MEDIUM / NORMAL: LOW)
@@ -2257,58 +2705,221 @@ if menu == "종합 관제":
             reasons_str = " / ".join(w.get("reasons", []))
             watch_rows.append(f"<div style='margin-bottom:4px;'>• <b style='color:#ffffff;'>{w['user']}</b> <span style='color:#fbbf24; font-weight:700;'>[위험도 {w['score']}점]</span> <span style='color:#cbd5e1;'>— 사유: {reasons_str}</span></div>")
         st.markdown(f"""
-        <div style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border: 1.5px solid #f59e0b; border-left: 6px solid #fbbf24; border-radius: 12px; padding: 16px 22px; margin-bottom: 20px; box-shadow: 0 4px 14px rgba(245, 158, 11, 0.25);">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;">
-                <span style="font-weight:800; color:#fbbf24; font-size:15px; display:flex; align-items:center; gap:6px;">
-                    👁️ 실시간 사전 감시 대상 (WATCH) — {len(active_watch)}명 승격 포착 (데이터 전송 전 선제 탐지)
+        <div style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.75) 0%, rgba(15, 23, 42, 0.85) 100%); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1.5px solid rgba(245, 158, 11, 0.5); border-left: 6px solid #fbbf24; border-radius: 18px; padding: 18px 24px; margin-bottom: 22px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4), 0 0 20px rgba(245, 158, 11, 0.2);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 10px;">
+                <span style="font-weight:800; color:#fbbf24; font-size:15px; display:flex; align-items:center; gap:8px; letter-spacing:-0.2px;">
+                    <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#fbbf24; box-shadow:0 0 10px #fbbf24;"></span>
+                    실시간 사전 감시 대상 (WATCH) — {len(active_watch)}명 승격 포착 (데이터 전송 전 선제 탐지)
                 </span>
-                <span style="font-size:12px; color:#94a3b8; background:rgba(15,23,42,0.6); padding:3px 8px; border-radius:6px; border:1px solid #334155;">30분 내 외부 전송 없을 시 자동 복귀 (Self-healing TTL)</span>
+                <span style="font-size:11.5px; font-weight:600; color:#94a3b8; background:rgba(15,23,42,0.75); padding:4px 12px; border-radius:9999px; border:1px solid rgba(255,255,255,0.08);">⏱️ 30분 무전송 시 자동 원복 (Self-healing TTL)</span>
             </div>
-            <div style="font-size:13px;">
+            <div style="font-size:13px; line-height:1.6;">
                 {''.join(watch_rows)}
             </div>
         </div>
         """, unsafe_allow_html=True)
 
-    # 사용자가 첫 화면에서 즉시 우선순위를 판단하도록 핵심 위험 지표를 최상단에 배치
+    # 🌟 16:9 데스크톱 와이드 벤토 그리드: 상단 웰컴 배너 (시간대별 인사말 & 한국어 12시간제 시계)
+    _now = datetime.now()
+    _hour = _now.hour
+    if 5 <= _hour < 12:
+        greeting_text = "Good Morning, Administrator"
+    elif 12 <= _hour < 18:
+        greeting_text = "Good Afternoon, Administrator"
+    elif 18 <= _hour < 22:
+        greeting_text = "Good Evening, Administrator"
+    else:
+        greeting_text = "Good Night, Administrator"
+
+    _ampm = "오전" if _hour < 12 else "오후"
+    _h12 = 12 if _hour in (0, 12) else _hour % 12
+    curr_time_str = f"{_ampm} {_h12:02d}:{_now.minute:02d}:{_now.second:02d}"
+
+    st.markdown(f"""
+    <div class="bento-desktop-banner">
+        <div class="bento-banner-left">
+            <h2>{greeting_text}</h2>
+            <p>NexusGuard XDR Platform — 실시간 이기종 로그 상관분석 & 섀도우 AI 선제 방어 가동 중</p>
+        </div>
+        <div class="bento-banner-right">
+            <div class="bento-clock-box" id="nexus-live-clock">
+                {curr_time_str}
+            </div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # 사용자가 첫 화면에서 즉시 우선순위를 판단하도록 4열 16:9 와이드 벤토 카드 배치
     crit_high_count = len(crit_high_ids)
     watch_count = len(watch_ids)
     normal_count = len(normal_ids)
+    total_inc_all = crit_high_count + watch_count + normal_count
+    defense_rate = int((normal_count / max(1, total_inc_all)) * 100) if total_inc_all > 0 else 98
 
-    kpi1, kpi2, kpi3 = st.columns(3)
+    # WATCH 실시간 남은 TTL 계산 (가장 최근 활성 감시자 기준)
+    ttl_display = "30:00"
+    ttl_sub = "대응 대기 (TTL 30m)"
+    if active_watch:
+        try:
+            w_first = active_watch[0]
+            exp_time = datetime.fromisoformat(str(w_first.get("expires_at", "")).replace("Z", ""))
+            rem_sec = max(0, int((exp_time - datetime.utcnow()).total_seconds()))
+            rem_m = rem_sec // 60
+            rem_s = rem_sec % 60
+            ttl_display = f"{rem_m:02d}:{rem_s:02d}"
+            ttl_sub = f"'{w_first['user']}' 유출 감시 카운트다운"
+        except Exception:
+            ttl_display = "25:00"
+            ttl_sub = "선제 감시 타이머 가동"
+
+    # SVG 링 오프셋 계산 (둘레: 163.3)
+    normal_offset = max(10, int(163.3 * (1 - (defense_rate / 100.0))))
+    watch_ratio = min(1.0, watch_count / max(1, total_inc_all))
+    watch_offset = max(20, int(163.3 * (1 - watch_ratio)))
+
+    kpi1, kpi2, kpi3, kpi4 = st.columns(4)
 
     with kpi1:
+        crit_pulse = "filter:drop-shadow(0 0 16px rgba(255,107,107,0.5));" if crit_high_count > 0 else ""
         st.markdown(f"""
-            <div class="kpi-card">
-                <div class="kpi-title critical-text">
-                {tooltip("🚨", "긴급·고위험 경보", "즉각적인 격리 또는 차단이 요구되는 활성 공격 및 기밀 유출 사건입니다.")} 긴급·고위험
+            <div class="bento-ring-card" style="border-left: 3px solid rgba(255, 107, 107, 0.7); box-shadow: 0 8px 32px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.06), -4px 0 20px rgba(255,107,107,0.08);">
+                <div style="min-width:0; overflow:hidden;">
+                    <div style="font-size:12.5px; font-weight:700; color:#fca5a5; text-transform:uppercase; letter-spacing:0.8px; margin-bottom:8px; white-space:nowrap;">
+                        🚨 긴급·고위험
+                    </div>
+                    <div style="font-size:36px; font-weight:800; color:#ffffff; line-height:1.1; background:linear-gradient(135deg,#ffffff 0%,#ff8591 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; {crit_pulse}">
+                        {crit_high_count}
+                    </div>
+                    <div style="font-size:12px; color:#94a3b8; margin-top:6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">즉시 차단 요구 인시던트</div>
                 </div>
-                <div class="kpi-value critical-text">{crit_high_count}</div>
-                <div class="kpi-sub">즉시 대응이 필요한 침해사고</div>
-        </div>
+                <div style="flex-shrink:0; width:68px; height:68px; display:flex; align-items:center; justify-content:center;">
+                    <span style="font-size:10.5px; font-weight:700; color:#ff8591; background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.35); padding:5px 10px; border-radius:9999px; letter-spacing:0.5px; white-space:nowrap;">CRITICAL</span>
+                </div>
+            </div>
         """, unsafe_allow_html=True)
 
     with kpi2:
         st.markdown(f"""
-            <div class="kpi-card">
-                <div class="kpi-title medium-text">
-                {tooltip("👁️", "관찰 단계", "위험 행위 징후 포착에 따른 선제적 모니터링 추적 단계입니다.")} 관찰
+            <div class="bento-ring-card" style="border-left: 3px solid rgba(245, 158, 11, 0.7); box-shadow: 0 8px 32px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.06), -4px 0 20px rgba(245,158,11,0.08);">
+                <div style="min-width:0; overflow:hidden;">
+                    <div style="font-size:12.5px; font-weight:700; color:#fde047; text-transform:uppercase; letter-spacing:0.8px; margin-bottom:8px; white-space:nowrap;">
+                        👁️ 선제 관찰
+                    </div>
+                    <div style="font-size:36px; font-weight:800; color:#ffffff; line-height:1.1; background:linear-gradient(135deg,#ffffff 0%,#fbbf24 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; filter:drop-shadow(0 0 12px rgba(245,158,11,0.3));">
+                        {watch_count}
+                    </div>
+                    <div style="font-size:12px; color:#94a3b8; margin-top:6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{len(active_watch)}명 승격 추적 중 (30분 TTL)</div>
                 </div>
-                <div class="kpi-value medium-text">{watch_count}</div>
-                <div class="kpi-sub">잠재적 이상 행위 추적</div>
-        </div>
+                <div style="flex-shrink:0; width:68px; height:68px; display:flex; align-items:center; justify-content:center;">
+                    <svg width="68" height="68" viewBox="0 0 68 68">
+                        <circle cx="34" cy="34" r="26" stroke="rgba(255,255,255,0.08)" stroke-width="6" fill="none" />
+                        <circle cx="34" cy="34" r="26" stroke="#fbbf24" stroke-width="6" fill="none"
+                                stroke-dasharray="163.3" stroke-dashoffset="{watch_offset}" stroke-linecap="round"
+                                transform="rotate(-90 34 34)" style="filter:drop-shadow(0 0 8px rgba(251,191,36,0.6));" />
+                    </svg>
+                </div>
+            </div>
         """, unsafe_allow_html=True)
 
     with kpi3:
         st.markdown(f"""
-            <div class="kpi-card">
-                <div class="kpi-title low-text">
-                {tooltip("⚖️", "정상 단계", "일반 업무 활동 및 경미한 이상 징후 모니터링 단계입니다.")} 정상
+            <div class="bento-ring-card" style="border-left: 3px solid rgba(16, 185, 129, 0.8); box-shadow: 0 8px 32px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.06), -4px 0 20px rgba(16,185,129,0.12);">
+                <div style="min-width:0; overflow:hidden;">
+                    <div style="font-size:12.5px; font-weight:700; color:#86efac; text-transform:uppercase; letter-spacing:0.8px; margin-bottom:8px; white-space:nowrap;">
+                        🟢 정상
+                    </div>
+                    <div style="font-size:36px; font-weight:800; color:#ffffff; line-height:1.1; background:linear-gradient(135deg,#ffffff 0%,#34d399 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; filter:drop-shadow(0 0 12px rgba(16,185,129,0.35));">
+                        {normal_count}
+                    </div>
+                    <div style="font-size:12px; color:#94a3b8; margin-top:6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">총 {normal_count}건 사내 인가 트래픽</div>
                 </div>
-                <div class="kpi-value low-text">{normal_count}</div>
-                <div class="kpi-sub">일반 활동과 경미한 징후</div>
-        </div>
+                <div style="flex-shrink:0; width:68px; height:68px; display:flex; align-items:center; justify-content:center;">
+                    <svg width="68" height="68" viewBox="0 0 68 68">
+                        <defs>
+                            <linearGradient id="ringGradGreen3" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#34d399" />
+                                <stop offset="100%" stop-color="#10b981" />
+                            </linearGradient>
+                        </defs>
+                        <circle cx="34" cy="34" r="26" stroke="rgba(255,255,255,0.08)" stroke-width="6" fill="none" />
+                        <circle cx="34" cy="34" r="26" stroke="url(#ringGradGreen3)" stroke-width="6" fill="none"
+                                stroke-dasharray="163.3" stroke-dashoffset="{normal_offset}" stroke-linecap="round"
+                                transform="rotate(-90 34 34)" style="filter:drop-shadow(0 0 8px rgba(16,185,129,0.6));" />
+                    </svg>
+                </div>
+            </div>
         """, unsafe_allow_html=True)
+
+    with kpi4:
+        st.markdown(f"""
+            <div class="bento-ring-card" style="border-left: 3px solid rgba(249, 115, 22, 0.7); box-shadow: 0 8px 32px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.06), -4px 0 20px rgba(249,115,22,0.08);">
+                <div style="min-width:0; overflow:hidden;">
+                    <div style="font-size:12.5px; font-weight:700; color:#fdba74; text-transform:uppercase; letter-spacing:0.8px; margin-bottom:8px; white-space:nowrap;">
+                        ⏱️ 대응 TTL 타이머
+                    </div>
+                    <div style="font-size:36px; font-weight:800; color:#ffffff; line-height:1.1; background:linear-gradient(135deg,#ffffff 0%,#fb923c 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; filter:drop-shadow(0 0 12px rgba(249,115,22,0.3));">
+                        {ttl_display}
+                    </div>
+                    <div style="font-size:12px; color:#94a3b8; margin-top:6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{ttl_sub}</div>
+                </div>
+                <div style="flex-shrink:0; width:68px; height:68px; display:flex; align-items:center; justify-content:center;">
+                    <svg width="68" height="68" viewBox="0 0 68 68">
+                        <defs>
+                            <linearGradient id="ringGradOrange4" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#fb923c" />
+                                <stop offset="100%" stop-color="#f43f5e" />
+                            </linearGradient>
+                        </defs>
+                        <circle cx="34" cy="34" r="26" stroke="rgba(255,255,255,0.08)" stroke-width="6" fill="none" />
+                        <circle cx="34" cy="34" r="26" stroke="url(#ringGradOrange4)" stroke-width="6" fill="none"
+                                stroke-dasharray="163.3" stroke-dashoffset="35" stroke-linecap="round"
+                                transform="rotate(-90 34 34)" style="filter:drop-shadow(0 0 8px rgba(249,115,22,0.6));" />
+                    </svg>
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
+
+    # 🌟 [16:9 데스크톱 중단 Bento Grid] 주간 보안 이벤트 추이 (단일 전체 너비 확장 & 세로 높이 1.8배 확대)
+    st.markdown("<div style='height:12px;'></div>", unsafe_allow_html=True)
+
+    # 1. 실제 수집 이벤트 기반 요일별 통계 계산
+    days_order = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+    counts_by_day = {d: 1 for d in days_order}
+    for ev in ctx.correlation_engine.event_buffer:
+        d_name = ev.timestamp.strftime("%a")
+        if d_name in counts_by_day:
+            counts_by_day[d_name] += 1
+    max_day = max(counts_by_day, key=counts_by_day.get)
+    max_count = counts_by_day[max_day]
+
+    bars_html = []
+    for d in days_order:
+        c = counts_by_day[d]
+        h_px = max(24, min(86, int((c / max(1, max_count)) * 82)))
+        is_active = (d == max_day)
+        active_cls = " active" if is_active else ""
+        badge_html = f"<div style='font-size:11.5px; font-weight:800; color:#38bdf8; background:rgba(56,189,248,0.18); border:1px solid rgba(56,189,248,0.4); padding:3px 10px; border-radius:6px; margin-bottom:10px; white-space:nowrap;'>{c}건</div>" if is_active else "<div style='height:28px;'></div>"
+        label_style = "color:#38bdf8; font-weight:800; font-size:12.5px; margin-top:10px;" if is_active else "color:#94a3b8; font-weight:600; font-size:12px; margin-top:10px;"
+        bars_html.append(
+            f'<div class="bento-bar-col">'
+            f'{badge_html}'
+            f'<div class="bento-bar-capsule{active_cls}" style="height:{h_px}px;"></div>'
+            f'<span class="bento-bar-label" style="{label_style}">{d}</span>'
+            f'</div>'
+        )
+
+    st.markdown(
+        f'<div class="bento-weekly-card">'
+        f'<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">'
+        f'<span style="font-size:15px; font-weight:700; color:#f1f5f9; display:flex; align-items:center; gap:8px;"><span>📊</span> 주간 보안 이벤트 추이 (Weekly Activity)</span>'
+        f'<span style="font-size:12px; color:#38bdf8; background:rgba(56,189,248,0.12); padding:4px 14px; border-radius:14px; border:1px solid rgba(56,189,248,0.3); font-weight:600;">총 {sum(counts_by_day.values())}건 수집</span>'
+        f'</div>'
+        f'<div class="bento-capsule-chart" style="padding:10px 40px 10px 40px; height:140px; display:flex; align-items:flex-end; justify-content:space-between;">'
+        f'{"".join(bars_html)}'
+        f'</div>'
+        f'</div>',
+        unsafe_allow_html=True
+    )
 
     # 세부 감사 이력은 핵심 대응 정보 아래에서 필요할 때 펼쳐 확인
     hist = ctx.correlation_engine.store.get_risk_history(25)
@@ -2323,16 +2934,11 @@ if menu == "종합 관제":
         </div>
         """, unsafe_allow_html=True)
     else:
-        # 🌟 [단일 통합 카드 형식 인시던트 선택기] 건수 표시 제거, 색상 가이드만 유지, 단일 카드로 묶음
+        # 🌟 [우선 대응 인시던트 선택기: 원래대로 단일 일체형 선택 박스로 완벽 복원]
         with st.container(border=True):
             st.markdown("""
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;">
-                <span style="font-weight:700; font-size:15px; color:#60a5fa; display:flex; align-items:center; gap:6px;">
-                    🎯 우선 대응 인시던트 선택
-                </span>
-                <span style="font-size:13px; color:#cbd5e1; background:rgba(30,58,138,0.3); padding:4px 12px; border-radius:20px; border:1px solid #1e40af;">
-                    🔴 긴급·고위험 &nbsp;·&nbsp; 🟡 관찰 &nbsp;·&nbsp; 🟢 정상
-                </span>
+            <div style="font-weight:700; font-size:15px; color:#60a5fa; margin-bottom:10px; display:flex; align-items:center; gap:8px;">
+                <span>🎯</span> 우선 대응 인시던트 선택
             </div>
             """, unsafe_allow_html=True)
             st.selectbox(
@@ -2351,10 +2957,10 @@ if menu == "종합 관제":
             # 🌟 사용자 요청: 위험도 색상을 카드 테두리, 발광, 텍스트, 뱃지 전반에 반영하여 시인성 향상
             if selected_inc.severity == Severity.CRITICAL:
                 card_theme = {
-                    "border": "#ef4444",
+                    "border": "rgba(239, 68, 68, 0.5)",
                     "border_left": "#f87171",
-                    "glow": "rgba(239, 68, 68, 0.35)",
-                    "bg": "linear-gradient(135deg, #1f0b12 0%, #290f1b 50%, #151a2d 100%)",
+                    "glow": "rgba(239, 68, 68, 0.25)",
+                    "bg": "linear-gradient(135deg, rgba(255, 255, 255, 0.035) 0%, rgba(239, 68, 68, 0.08) 100%)",
                     "header_color": "#f87171",
                     "header_label": "🚨 [치명적 침해사고 긴급 격리 대상] 인시던트 종합 정보",
                     "dot_glow": "#ef4444",
@@ -2362,14 +2968,14 @@ if menu == "종합 관제":
                     "score_color": "#ff4d61",
                     "actor_color": "#fca5a5",
                     "target_color": "#f87171",
-                    "inner_border": "rgba(239, 68, 68, 0.3)",
+                    "inner_border": "rgba(239, 68, 68, 0.25)",
                 }
             elif selected_inc.severity == Severity.HIGH:
                 card_theme = {
-                    "border": "#f43f5e",
+                    "border": "rgba(244, 63, 94, 0.5)",
                     "border_left": "#fb7185",
-                    "glow": "rgba(244, 63, 94, 0.35)",
-                    "bg": "linear-gradient(135deg, #1c0a13 0%, #260e1c 50%, #151a2d 100%)",
+                    "glow": "rgba(244, 63, 94, 0.25)",
+                    "bg": "linear-gradient(135deg, rgba(255, 255, 255, 0.035) 0%, rgba(244, 63, 94, 0.08) 100%)",
                     "header_color": "#fb7185",
                     "header_label": "🚨 [고위험 유출/침해 대응 대상] 인시던트 종합 정보",
                     "dot_glow": "#f43f5e",
@@ -2377,14 +2983,14 @@ if menu == "종합 관제":
                     "score_color": "#ff758f",
                     "actor_color": "#fecdd3",
                     "target_color": "#fb7185",
-                    "inner_border": "rgba(244, 63, 94, 0.3)",
+                    "inner_border": "rgba(244, 63, 94, 0.25)",
                 }
             elif selected_inc.severity == Severity.MEDIUM:
                 card_theme = {
-                    "border": "#f59e0b",
+                    "border": "rgba(245, 158, 11, 0.5)",
                     "border_left": "#fbbf24",
-                    "glow": "rgba(245, 158, 11, 0.35)",
-                    "bg": "linear-gradient(135deg, #1c1507 0%, #261d0a 50%, #121927 100%)",
+                    "glow": "rgba(245, 158, 11, 0.25)",
+                    "bg": "linear-gradient(135deg, rgba(255, 255, 255, 0.035) 0%, rgba(245, 158, 11, 0.08) 100%)",
                     "header_color": "#fbbf24",
                     "header_label": "👁️ [관찰 단계 선제적 감시 대상] 인시던트 종합 정보",
                     "dot_glow": "#f59e0b",
@@ -2392,14 +2998,14 @@ if menu == "종합 관제":
                     "score_color": "#fbbf24",
                     "actor_color": "#fde68a",
                     "target_color": "#f59e0b",
-                    "inner_border": "rgba(245, 158, 11, 0.3)",
+                    "inner_border": "rgba(245, 158, 11, 0.25)",
                 }
             else:  # LOW
                 card_theme = {
-                    "border": "#10b981",
+                    "border": "rgba(16, 185, 129, 0.5)",
                     "border_left": "#34d399",
-                    "glow": "rgba(16, 185, 129, 0.35)",
-                    "bg": "linear-gradient(135deg, #091a13 0%, #0d261d 50%, #0d1927 100%)",
+                    "glow": "rgba(16, 185, 129, 0.25)",
+                    "bg": "linear-gradient(135deg, rgba(255, 255, 255, 0.035) 0%, rgba(16, 185, 129, 0.08) 100%)",
                     "header_color": "#34d399",
                     "header_label": "⚖️ [정상 단계 모니터링 대상] 인시던트 종합 정보",
                     "dot_glow": "#10b981",
@@ -2407,34 +3013,34 @@ if menu == "종합 관제":
                     "score_color": "#34d399",
                     "actor_color": "#a7f3d0",
                     "target_color": "#10b981",
-                    "inner_border": "rgba(16, 185, 129, 0.3)",
+                    "inner_border": "rgba(16, 185, 129, 0.25)",
                 }
 
             st.markdown(f"""
-            <div style="background: {card_theme['bg']}; border: 1.5px solid {card_theme['border']}; border-left: 6px solid {card_theme['border_left']}; border-radius: 12px; padding: 22px 28px; margin-top: 14px; margin-bottom: 8px; box-shadow: 0 6px 20px {card_theme['glow']};">
+            <div style="background: {card_theme['bg']}; border: 1px solid {card_theme['border']}; border-left: 5px solid {card_theme['border_left']}; border-radius: 20px; padding: 22px 28px; margin-top: 16px; margin-bottom: 12px; backdrop-filter: blur(24px) saturate(180%); -webkit-backdrop-filter: blur(24px) saturate(180%); box-shadow: 0 14px 40px rgba(0, 0, 0, 0.55), 0 0 25px {card_theme['glow']};">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
                     <div style="font-size: 13px; font-weight: 800; color: {card_theme['header_color']}; letter-spacing: 0.8px; text-transform: uppercase; display: flex; align-items: center; gap: 8px;">
-                        <span style="display:inline-block; width:9px; height:9px; border-radius:50%; background:{card_theme['dot_glow']}; box-shadow:0 0 10px {card_theme['dot_glow']};"></span>
+                        <span style="display:inline-block; width:9px; height:9px; border-radius:50%; background:{card_theme['dot_glow']}; box-shadow:0 0 12px {card_theme['dot_glow']};"></span>
                         {card_theme['header_label']}
                     </div>
-                    <div style="font-size: 13px; color: #94a3b8;">
+                    <div style="font-size: 13px; color: #94a3b8; font-weight:500;">
                         위협 분류: <b style="color: {card_theme['header_color']}; font-size:14px; margin-left:4px;">{selected_inc.category.value}</b>
                     </div>
                 </div>
-                <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 14px; flex-wrap: wrap;">
-                    <span style="font-size: 24px; font-weight: 900; color: #ffffff; letter-spacing: -0.5px;">{selected_inc.incident_id}</span>
+                <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 16px; flex-wrap: wrap;">
+                    <span style="font-size: 26px; font-weight: 900; color: #ffffff; letter-spacing: -0.5px;">{selected_inc.incident_id}</span>
                     {card_theme['badge']}
                     <span style="font-size: 17px; font-weight: 700; color: #f8fafc; line-height: 1.4;">{selected_inc.title}</span>
                 </div>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; background: rgba(7, 17, 31, 0.7); padding: 14px 20px; border-radius: 10px; border: 1px solid {card_theme['inner_border']};">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; background: rgba(10, 16, 28, 0.65); backdrop-filter: blur(14px); padding: 16px 22px; border-radius: 14px; border: 1px solid rgba(255, 255, 255, 0.08);">
                     <div style="font-size: 13px; color: #94a3b8; display:flex; align-items:center;">
-                        <span style="font-size:15px; margin-right:6px;">📍</span> <b>공격 발원지:</b> <span style="color:{card_theme['actor_color']}; font-weight:700; font-size:14px; margin-left:6px;">{selected_inc.actor}</span>
+                        <span style="font-size:15px; margin-right:8px;">📍</span> <b>공격 발원지:</b> <span style="color:{card_theme['actor_color']}; font-weight:700; font-size:14px; margin-left:6px;">{selected_inc.actor}</span>
                     </div>
                     <div style="font-size: 13px; color: #94a3b8; display:flex; align-items:center;">
-                        <span style="font-size:15px; margin-right:6px;">🎯</span> <b>타깃 자산:</b> <span style="color:{card_theme['target_color']}; font-weight:700; font-size:14px; margin-left:6px;">{selected_inc.target_asset}</span>
+                        <span style="font-size:15px; margin-right:8px;">🎯</span> <b>타깃 자산:</b> <span style="color:{card_theme['target_color']}; font-weight:700; font-size:14px; margin-left:6px;">{selected_inc.target_asset}</span>
                     </div>
                     <div style="font-size: 13px; color: #94a3b8; display:flex; align-items:center;">
-                        <span style="font-size:15px; margin-right:6px;">⚡</span> <b>상관분석 점수:</b> <span style="color:{card_theme['score_color']}; font-weight:800; font-size:16px; margin-left:6px;">{selected_inc.score}점</span>
+                        <span style="font-size:15px; margin-right:8px;">⚡</span> <b>상관분석 점수:</b> <span style="color:{card_theme['score_color']}; font-weight:800; font-size:16px; margin-left:6px;">{selected_inc.score}점</span>
                     </div>
                 </div>
             </div>
@@ -2468,7 +3074,7 @@ if menu == "종합 관제":
 elif menu == "킬체인 분석":
     st.markdown("""
     <div class="nexus-page-title-box">
-        <h1 class="nexus-page-title">🎯 외부 침투 및 침해사고 심층 분석</h1>
+        <h1 class="nexus-page-title">외부 침투 및 침해사고 심층 분석</h1>
     </div>
     """, unsafe_allow_html=True)
 
@@ -2619,7 +3225,7 @@ elif menu == "AI·IT 거버넌스":
 
     st.markdown("""
     <div class="nexus-page-title-box">
-        <h1 class="nexus-page-title">🤖 사내 섀도우 IT 및 생성형 AI 거버넌스 대시보드</h1>
+        <h1 class="nexus-page-title">사내 섀도우 IT 및 생성형 AI 거버넌스 대시보드</h1>
     </div>
     """, unsafe_allow_html=True)
 
@@ -2723,22 +3329,27 @@ elif menu == "AI·IT 거버넌스":
 
     sorted_assets = sorted(shadow_assets, key=get_gov_sort_val, reverse=is_desc)
 
-    # 🌟 상단 요약 바 & 빠른 검색
-    col_top_l, col_top_r = st.columns([3, 1], vertical_alignment="center")
+    # 🌟 상단 요약 바 & 길이 조절 & 빠른 검색
+    col_top_l, col_top_m, col_top_r = st.columns([2.8, 0.9, 1.3], vertical_alignment="center")
     with col_top_l:
         st.markdown(f"""
         <div style="font-size: 13px; color: #94a3b8; padding: 4px 0;">
-            총 <b style="color: #38bdf8;">{len(sorted_assets)}개</b> 감지된 외부 클라우드 / AI 서비스 · <span style="color: #cbd5e1;">각 열 헤더를 클릭하여 실시간 정렬(Sort)할 수 있습니다.</span>
+            총 <b style="color: #38bdf8;">{len(sorted_assets)}개</b> 감지된 외부 클라우드 / AI 서비스 · <span style="color: #cbd5e1;">각 열 헤더 클릭으로 정렬</span>
         </div>
         """, unsafe_allow_html=True)
+    with col_top_m:
+        gov_page_limit = st.selectbox("표시 길이", [10, 20, 50, "전체"], index=1, key="gov_page_limit", label_visibility="collapsed", help="테이블에 표시할 행 개수(길이)를 조절합니다.")
     with col_top_r:
         search_gov = st.text_input("🔍 도메인 검색", placeholder="도메인/서비스 검색...", label_visibility="collapsed", key="gov_quick_search")
 
     if search_gov:
         sorted_assets = [a for a in sorted_assets if search_gov.lower() in a.domain.lower() or search_gov.lower() in (a.service_name or "").lower()]
 
-    # 🌟 테이블 렌더링 (중앙 서버 파이프라인 스타일 데이터프레임 그리드)
-    col_widths = [1.7, 0.85, 1.15, 1.0, 0.75, 1.05, 2.35, 0.75, 0.75]
+    if gov_page_limit != "전체":
+        sorted_assets = sorted_assets[:int(gov_page_limit)]
+
+    # 🌟 테이블 렌더링 (글자 잘림/겹침 방지 및 반응형 너비 최적화)
+    col_widths = [1.85, 0.75, 1.05, 0.95, 0.65, 1.0, 2.35, 0.7, 0.7]
 
     with st.container(key="gov_table_box"):
         # 상단 고정 헤더 행 (Sticky Header)
@@ -2761,7 +3372,7 @@ elif menu == "AI·IT 거버넌스":
                     st.rerun()
             with h4:
                 k = "hdr_active_conn" if st.session_state["gov_sort_col"] == "connections" else "hdr_conn"
-                if st.button(f"실시간 접속{gov_sort_icon('connections')}", key=k, use_container_width=True, help="실시간 접속 건수 기준 정렬"):
+                if st.button(f"실시간 접속{gov_sort_icon('connections')}", key=k, use_container_width=True, help="접속 건수 기준 정렬"):
                     toggle_gov_sort("connections")
                     st.rerun()
             with h5:
@@ -2805,54 +3416,63 @@ elif menu == "AI·IT 거버넌스":
 
                 with c1:
                     st.markdown(f"""
-                    <div style="line-height: 1.35; padding: 2px 0;">
-                        <b style="color: #ffffff; font-size: 14.5px;">{asset.domain}</b><br>
-                        <span style="color: #94a3b8; font-size: 12px;">{asset.service_name} · {asset.category}</span>
+                    <div style="line-height: 1.35; padding: 2px 0; word-break: break-word;">
+                        <b style="color: #ffffff; font-size: 14px;">{asset.domain}</b><br>
+                        <span style="color: #94a3b8; font-size: 11.5px; word-break: keep-all;">{asset.service_name} · {asset.category}</span>
                     </div>
                     """, unsafe_allow_html=True)
 
                 with c2:
                     st.markdown(f"""
                     <div style="display: flex; justify-content: center; align-items: center; width: 100%;">
-                        <span class="badge {badge_style}">{asset.risk_level.value}</span>
+                        <span class="badge {badge_style}" style="white-space: nowrap; font-size: 11.5px; padding: 4px 8px;">{asset.risk_level.value}</span>
                     </div>
                     """, unsafe_allow_html=True)
 
                 with c3:
                     st.markdown(f"""
                     <div style="display: flex; justify-content: center; align-items: center; width: 100%;">
-                        <span class="badge {status_style}">{status_text}</span>
+                        <span class="badge {status_style}" style="white-space: nowrap; font-size: 11.5px; padding: 4px 8px;">{status_text}</span>
                     </div>
                     """, unsafe_allow_html=True)
 
                 with c4:
                     st.markdown(f"""
-                    <div style="line-height: 1.3;">
-                        <b style="color: #38bdf8; font-size: 14px;">{conn_count}건</b> <span style="color: #94a3b8; font-size: 12px;">({device_count}개 기기)</span>
+                    <div style="line-height: 1.3; white-space: nowrap;">
+                        <b style="color: #38bdf8; font-size: 13.5px;">{conn_count}건</b> <span style="color: #94a3b8; font-size: 11.5px;">({device_count}개 기기)</span>
                     </div>
                     """, unsafe_allow_html=True)
 
                 with c5:
                     st.markdown(f"""
-                    <div style="line-height: 1.2;">
-                        <b style="color: #f8fafc; font-size: 14px;">{asset.user_count}명</b><br>
-                        <span style="color: #94a3b8; font-size: 11px;">(User)</span>
+                    <div style="line-height: 1.2; white-space: nowrap;">
+                        <b style="color: #f8fafc; font-size: 13.5px;">{asset.user_count}명</b><br>
+                        <span style="color: #94a3b8; font-size: 10.5px;">(User)</span>
                     </div>
                     """, unsafe_allow_html=True)
 
                 with c6:
-                    freq_str = asset.usage_frequency or "실시간 감지"
-                    if "실시간 감지" in freq_str and "누적" not in freq_str:
-                        freq_str = f"실시간 감지 (누적 {conn_count}건)"
+                    raw_freq = asset.usage_frequency or ""
+                    # "실시간" 문구 완전 제거하고 빈도만 표시
+                    clean_freq = raw_freq.replace("신규 실시간 분석", "분석").replace("실시간 ", "").replace("실시간", "").strip()
+                    if not clean_freq or clean_freq in ["감지", "빈번", "급증"]:
+                        if "급증" in raw_freq:
+                            freq_str = f"급증 (누적 {conn_count}건)"
+                        elif "빈번" in raw_freq:
+                            freq_str = f"빈번 (누적 {conn_count}건)"
+                        else:
+                            freq_str = f"누적 {conn_count}건"
+                    else:
+                        freq_str = clean_freq
                     st.markdown(f"""
-                    <div>
-                        <span style="color: #fb923c; font-weight: 700; font-size: 13px;">{freq_str}</span>
+                    <div style="white-space: nowrap;">
+                        <span style="color: #fb923c; font-weight: 700; font-size: 12.5px;">{freq_str}</span>
                     </div>
                     """, unsafe_allow_html=True)
 
                 with c7:
                     st.markdown(f"""
-                    <div style="color: #fef08a; font-size: 12px; line-height: 1.45; padding-right: 14px; word-break: break-word;">
+                    <div style="color: #fef08a; font-size: 11.5px; line-height: 1.45; padding-right: 6px; word-break: keep-all;">
                         💡 {asset.ai_diagnosis}
                     </div>
                     """, unsafe_allow_html=True)
@@ -2876,7 +3496,7 @@ elif menu == "중앙 서버 파이프라인":
     )
 
     st.markdown(f"""
-    <div class="nexus-page-title-box"><div class="nexus-page-title" role="heading" aria-level="1">{title_tooltip("📡", "중앙 서버 파이프라인", "Windows 에이전트(NexusGuardAgent.exe)와 Railway 중앙 서버(Flask + PostgreSQL)의 실시간 로그 수집 및 연동 상태를 확인하는 화면입니다.")}<span>중앙 서버 파이프라인</span></div></div>
+    <div class="nexus-page-title-box"><div class="nexus-page-title" role="heading" aria-level="1">{text_tooltip("중앙 서버 파이프라인", "중앙 서버 파이프라인", "Windows 에이전트(NexusGuardAgent.exe)와 Railway 중앙 서버(Flask + PostgreSQL)의 실시간 로그 수집 및 연동 상태를 확인하는 화면입니다.")}</div></div>
     """, unsafe_allow_html=True)
 
     # Railway 수집 활성화 여부
@@ -2949,7 +3569,7 @@ elif menu == "중앙 서버 파이프라인":
         fetch_status = get_railway_fetch_status()
         act_events = fetch_activity_log_events()
 
-        # 상단 실시간 메트릭 카드 4종 (높이 및 규격 100% 동일 통일)
+        # 상단 실시간 메트릭 카드 4종 (폰트 사이즈 축소, 줄바꿈 방지, 엄격한 중앙 정렬 통일)
         kpi_c1, kpi_c2, kpi_c3, kpi_c4 = st.columns(4)
         with kpi_c1:
             if railway_active and fetch_status.get("ok") is False:
@@ -2963,24 +3583,24 @@ elif menu == "중앙 서버 파이프라인":
                 server_status_color = "#94a3b8"
 
             st.markdown(f"""
-            <div class="kpi-card" style="border-left: 4px solid {server_status_color}; text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center;">
-                <div class="kpi-title" style="text-align: center; width: 100%; margin-bottom: 8px;">Railway 서버 통신 상태</div>
-                <div class="kpi-value" style="color:{server_status_color}; font-size:20px; text-align: center; width: 100%;">{server_status_val}</div>
+            <div class="kpi-card-pipe" style="border-left: 4px solid {server_status_color};">
+                <div class="kpi-pipe-title">Railway 서버 통신 상태</div>
+                <div class="kpi-pipe-value" style="color:{server_status_color}; font-size:18px !important;">{server_status_val}</div>
             </div>
             """, unsafe_allow_html=True)
         with kpi_c2:
             st.markdown(f"""
-            <div class="kpi-card" style="border-left: 4px solid #38bdf8; text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center;">
-                <div class="kpi-title" style="text-align: center; width: 100%; margin-bottom: 8px;">수집된 실제 에이전트 로그</div>
-                <div class="kpi-value" style="color:#38bdf8; font-size:26px; text-align: center; width: 100%;">{len(r_events)} 건</div>
+            <div class="kpi-card-pipe" style="border-left: 4px solid #38bdf8;">
+                <div class="kpi-pipe-title">수집된 실제 에이전트 로그</div>
+                <div class="kpi-pipe-value" style="color:#38bdf8; font-size:22px !important;">{len(r_events)} 건</div>
             </div>
             """, unsafe_allow_html=True)
         with kpi_c3:
             upload_count = sum(1 for e in r_events if e.get("event_type") == "FILE_UPLOAD_ATTEMPT")
             st.markdown(f"""
-            <div class="kpi-card" style="border-left: 4px solid #f59e0b; text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center;">
-                <div class="kpi-title" style="text-align: center; width: 100%; margin-bottom: 8px;">브라우저 파일 첨부 감지</div>
-                <div class="kpi-value" style="color:#f59e0b; font-size:24px; text-align: center; width: 100%;">{upload_count} 건 (Chrome Ext)</div>
+            <div class="kpi-card-pipe" style="border-left: 4px solid #f59e0b;">
+                <div class="kpi-pipe-title">브라우저 파일 첨부 감지</div>
+                <div class="kpi-pipe-value" style="color:#f59e0b; font-size:16px !important;">{upload_count} 건 (Chrome Ext)</div>
             </div>
             """, unsafe_allow_html=True)
         with kpi_c4:
@@ -2988,9 +3608,9 @@ elif menu == "중앙 서버 파이프라인":
             key_status_color = "#10b981" if effective_key else "#ef4444"
             key_status_text = "● VERIFIED" if (fetch_status.get("ok") or effective_key) else "○ NOT SET"
             st.markdown(f"""
-            <div class="kpi-card" style="border-left: 4px solid {key_status_color}; text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center;">
-                <div class="kpi-title" style="text-align: center; width: 100%; margin-bottom: 8px;">API Key 보안 인증</div>
-                <div class="kpi-value" style="color:{key_status_color}; font-size:18px; font-weight:800; text-align: center; width: 100%;">{key_status_text}</div>
+            <div class="kpi-card-pipe" style="border-left: 4px solid {key_status_color};">
+                <div class="kpi-pipe-title">API Key 보안 인증</div>
+                <div class="kpi-pipe-value" style="color:{key_status_color}; font-size:16px !important;">{key_status_text}</div>
             </div>
             """, unsafe_allow_html=True)
 

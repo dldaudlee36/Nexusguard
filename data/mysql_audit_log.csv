@@ -1,0 +1,6 @@
+event_time,user_name,src_ip,action,target_table,query_string,rows_affected
+2026-09-09T19:15:00,test_user,127.0.0.1,DB_SELECT,customer_vault,"SELECT user_id, customer_name, rrn, credit_card_num, balance FROM customer_vault LIMIT 24500;",24500
+2026-09-09T19:17:30,test_user,127.0.0.1,DB_SELECT,customer_vault,"SELECT * FROM customer_vault WHERE balance > 1000000;",312
+2026-09-09T19:20:00,normal_user,127.0.0.1,DB_SELECT,corp_strategic_plan,"SELECT campaign_strategy, q3_budget_plan FROM corp_strategic_plan;",150
+2026-09-09T19:22:10,test_user,127.0.0.1,DB_SELECT,salary_2026,"SELECT emp_id, name, annual_salary FROM salary_2026;",89
+2026-09-09T19:24:59,test_user,127.0.0.1,DB_SELECT,customer_vault,"SELECT * FROM customer_vault LIMIT 24500;",24500
