@@ -38,15 +38,14 @@ from nexusguard.schemas.event import (
     SecurityEvent, LogSource, EventAction, Actor, Target, PayloadMetadata
 )
 
-DEFAULT_RAILWAY_API_KEY = "20110313"
+DEFAULT_RAILWAY_API_KEY = ""
 RAILWAY_URL = _get_env_or_secret("RAILWAY_URL", "https://bountiful-nature-production-22ec.up.railway.app/events")
 
 def get_railway_api_key() -> str:
     """
     Railway 인증 키 조회:
-    1. 환경변수 RAILWAY_API_KEY
+    1. 환경변수 RAILWAY_API_KEY (.env)
     2. Streamlit Secrets (st.secrets["RAILWAY_API_KEY"])
-    3. 팀 프로젝트 기본 키 (20110313) 자동 폴백
     """
     key = _get_env_or_secret("RAILWAY_API_KEY", "")
     if not key:

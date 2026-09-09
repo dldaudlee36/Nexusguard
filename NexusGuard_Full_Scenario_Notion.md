@@ -203,7 +203,7 @@ NexusGuard는 단순 목업(Mockup)이 아닌, 실제 동작하는 파이프라�
 ```
 
 * **보안 강화 조치**:
-  * Railway API Key(`20110313`) 및 Gemini API Key는 프론트엔드에 절대 노출되지 않도록 `.env` 환경 변수로 안전하게 격리되었습니다.
+  * Railway API Key 및 Gemini API Key는 프론트엔드 및 문서에 절대 노출되지 않도록 `.env` 환경 변수(`RAILWAY_API_KEY`, `GEMINI_API_KEY`)로 안전하게 격리되었습니다.
   * UI에서는 안전하게 인증되었음을 알리는 **`● VERIFIED`** 보안 배지만 표시됩니다.
 
 ---
