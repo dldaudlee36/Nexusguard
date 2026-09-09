@@ -24,10 +24,15 @@ class AppContext:
         
         # 로그가 없을 시 기본 빈 상태 유지 (가짜 더미 이벤트 주입 방지)
 
-        # 팀원들의 실제 에이전트 및 DB 이벤트 피딩
+        # 팀원들의 실제 에이전트 및 DB 이벤트 피딩 (Railway 실시간 서버 연동)
         try:
-            from nexusguard.collectors.team_collector import get_team_security_events
+            from nexusguard.collectors.team_collector import (
+                get_team_security_events, fetch_railway_events
+            )
+            r_logs = fetch_railway_events(timeout=5, force=True)
             self.team_events = get_team_security_events()
+            if r_logs:
+                self.governance_engine.sync_railway_events(r_logs)
             for ev in self.team_events:
                 if ev.log_source == LogSource.DNS:
                     self.governance_engine.process_dns_event(ev)

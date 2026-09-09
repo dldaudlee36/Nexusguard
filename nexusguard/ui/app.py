@@ -1238,7 +1238,8 @@ with st.sidebar:
         # Railway 수집 상태 세션 변수 사전 초기화
         from nexusguard.collectors.team_collector import set_railway_collection_enabled, is_railway_collection_enabled
         if "railway_collection_active" not in st.session_state:
-            st.session_state["railway_collection_active"] = False
+            st.session_state["railway_collection_active"] = True
+            set_railway_collection_enabled(True)
         if "sb_railway_toggle" not in st.session_state:
             st.session_state["sb_railway_toggle"] = st.session_state["railway_collection_active"]
         if "view_railway_collection_toggle" not in st.session_state:
@@ -2868,7 +2869,8 @@ elif menu == "중앙 서버 파이프라인":
     # Railway 수집 활성화 여부
     from nexusguard.collectors.team_collector import set_railway_collection_enabled, is_railway_collection_enabled
     if "railway_collection_active" not in st.session_state:
-        st.session_state["railway_collection_active"] = False
+        st.session_state["railway_collection_active"] = True
+        set_railway_collection_enabled(True)
     if "sb_railway_toggle" not in st.session_state:
         st.session_state["sb_railway_toggle"] = st.session_state["railway_collection_active"]
     if "view_railway_collection_toggle" not in st.session_state:

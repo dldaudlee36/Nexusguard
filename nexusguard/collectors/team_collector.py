@@ -38,7 +38,7 @@ from nexusguard.schemas.event import (
     SecurityEvent, LogSource, EventAction, Actor, Target, PayloadMetadata
 )
 
-DEFAULT_RAILWAY_API_KEY = ""
+DEFAULT_RAILWAY_API_KEY = "20110313"
 RAILWAY_URL = _get_env_or_secret("RAILWAY_URL", "https://bountiful-nature-production-22ec.up.railway.app/events")
 
 def get_railway_api_key() -> str:
@@ -55,7 +55,7 @@ def get_railway_api_key() -> str:
 RAILWAY_API_KEY = get_railway_api_key()
 
 _cached_railway_events: List[Dict[str, Any]] = []
-_railway_collection_enabled: bool = False
+_railway_collection_enabled: bool = True
 _railway_fetch_status = {"ok": None, "last_success": None, "error": None}
 
 
