@@ -1164,7 +1164,7 @@ shadow_assets = ctx.governance_engine.get_all_assets()
 # 전역 인시던트 목록 및 세션 상태 초기화
 incident_ids = [inc.incident_id for inc in incidents]
 if "selected_incident_id" not in st.session_state:
-    st.session_state.selected_incident_id = incident_ids[0]
+    st.session_state.selected_incident_id = incident_ids[0] if incident_ids else None
 if "nav_radio" not in st.session_state:
     st.session_state.nav_radio = "종합 관제"
 
@@ -1225,7 +1225,7 @@ with st.sidebar:
         """, height=0, width=0)
         col_s1, col_s2 = st.columns(2)
         with col_s1:
-            btn_watch = st.button("👁️ 1단계\n선제 감시", use_container_width=True, help="팀원(kim, User)의 기밀 DB 조회 + 미승인 SaaS/AI 접속 포착 -> WATCH 선제 승격")
+            btn_watch = st.button("👁️ 1단계\n선제 감시", use_container_width=True, help="기밀 DB 조회 + 미승인 SaaS/AI 접속 포착 -> WATCH 선제 승격")
         with col_s2:
             btn_high = st.button("🚨 2단계\n유출 확정", use_container_width=True, help="WATCH 대상자의 대용량 외부 전송 포착 -> HIGH Incident 즉시 확정")
             
@@ -1395,38 +1395,37 @@ with st.sidebar:
         active_watch_list = [u for u in ctx.correlation_engine.get_watch_users() if u.get("state") == "WATCH"]
         if active_watch_list:
             heal_user = active_watch_list[0]["user"]
+            ctx.correlation_engine.store.upsert_risk(
+                user=heal_user,
+                state="NORMAL",
+                score=15,
+                reasons=["30분 경과: 외부 데이터 전송 행위 없음 (오탐 자동 해제)"],
+                expires_at=now + timedelta(hours=1)
+            )
+            ctx.correlation_engine.store.append_history(
+                user=heal_user,
+                from_state="WATCH",
+                to_state="NORMAL",
+                reason="30분 만료(TTL)로 인한 정상(NORMAL) 자가 치유"
+            )
+            # 기존 미완료 WATCH 인시던트 종료
+            for inc_id, inc in list(ctx.correlation_engine.incidents.items()):
+                if heal_user in inc.title and inc.severity == Severity.MEDIUM:
+                    inc.status = IncidentStatus.RESOLVED
+                    ctx.correlation_engine.store.save_incident(inc)
+            # 3단계 오탐 해제 인시던트 생성 (NORMAL 카운트 및 드롭다운 실시간 연동)
+            heal_inc = ctx.correlation_engine.create_heal_incident(heal_user)
+            st.session_state.selected_incident_id = heal_inc.incident_id
+            st.toast(f"⏱️ [오탐 자동 해제] 30분간 전송이 없었던 '{heal_user}'이(가) NORMAL로 자가 치유되었습니다.", icon="⏱️")
+            st.rerun()
         else:
-            heal_user = "choi_intern"
-        ctx.correlation_engine.store.upsert_risk(
-            user=heal_user,
-            state="NORMAL",
-            score=15,
-            reasons=["30분 경과: 외부 데이터 전송 행위 없음 (오탐 자동 해제)"],
-            expires_at=now + timedelta(hours=1)
-        )
-        ctx.correlation_engine.store.append_history(
-            user=heal_user,
-            from_state="WATCH",
-            to_state="NORMAL",
-            reason="30분 만료(TTL)로 인한 정상(NORMAL) 자가 치유"
-        )
-        # 기존 미완료 WATCH 인시던트 종료
-        for inc_id, inc in list(ctx.correlation_engine.incidents.items()):
-            if heal_user in inc.title and inc.severity == Severity.MEDIUM:
-                inc.status = IncidentStatus.RESOLVED
-                ctx.correlation_engine.store.save_incident(inc)
-        # 3단계 오탐 해제 인시던트 생성 (NORMAL 카운트 및 드롭다운 실시간 연동)
-        heal_inc = ctx.correlation_engine.create_heal_incident(heal_user)
-        st.session_state.selected_incident_id = heal_inc.incident_id
-        st.toast(f"⏱️ [오탐 자동 해제] 30분간 전송이 없었던 '{heal_user}'이(가) NORMAL로 자가 치유되었습니다.", icon="⏱️")
-        st.rerun()
+            st.toast("현재 사전 감시(WATCH) 중인 사용자가 없습니다. (1단계 선제 감시를 먼저 가동하세요)", icon="ℹ️")
 
     if btn_reset:
         ctx.correlation_engine.store.clear_all()
         ctx.correlation_engine.incidents.clear()
-        ctx.correlation_engine._init_mock_incidents()
-        st.session_state.selected_incident_id = "INC-001"
-        st.toast("🔄 시뮬레이션 상태 및 인시던트가 초기화되었습니다.", icon="🔄")
+        st.session_state.selected_incident_id = None
+        st.toast("🔄 모든 인시던트 및 상태가 초기화되었습니다 (빈 상태).", icon="🔄")
         st.rerun()
 
     st.markdown("---")
@@ -2202,7 +2201,9 @@ if menu == "종합 관제":
     normal_ids = [inc.incident_id for inc in incidents if inc.severity == Severity.LOW]
 
     # 기본 선택 인시던트 유효성 검증
-    if "selected_incident_id" not in st.session_state or st.session_state.selected_incident_id not in all_incident_ids:
+    if not all_incident_ids:
+        st.session_state.selected_incident_id = None
+    elif "selected_incident_id" not in st.session_state or st.session_state.selected_incident_id not in all_incident_ids:
         st.session_state.selected_incident_id = all_incident_ids[0]
 
     # 위험도 우선순위 정렬: CRITICAL -> HIGH -> MEDIUM (WATCH) -> LOW (NORMAL) (동일 등급 내 점수 내림차순)
@@ -2299,133 +2300,142 @@ if menu == "종합 관제":
     hist = ctx.correlation_engine.store.get_risk_history(25)
     st.markdown('<hr style="border: 0; border-top: 1.5px solid #1e3a5f; margin: 16px 0 20px 0;">', unsafe_allow_html=True)
 
-    # 🌟 [단일 통합 카드 형식 인시던트 선택기] 건수 표시 제거, 색상 가이드만 유지, 단일 카드로 묶음
-    with st.container(border=True):
+    if not sorted_incident_ids:
         st.markdown("""
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;">
-            <span style="font-weight:700; font-size:15px; color:#60a5fa; display:flex; align-items:center; gap:6px;">
-                🎯 우선 대응 인시던트 선택
-            </span>
-            <span style="font-size:13px; color:#cbd5e1; background:rgba(30,58,138,0.3); padding:4px 12px; border-radius:20px; border:1px solid #1e40af;">
-                🔴 긴급·고위험 &nbsp;·&nbsp; 🟡 관찰 &nbsp;·&nbsp; 🟢 정상
-            </span>
+        <div style="background: rgba(15, 23, 42, 0.6); border: 1.5px dashed #334155; border-radius: 12px; padding: 48px 20px; text-align: center; margin: 20px 0;">
+            <div style="font-size: 38px; margin-bottom: 12px;">🛡️</div>
+            <div style="font-size: 16px; font-weight: 700; color: #94a3b8; margin-bottom: 6px;">현재 감지된 침해사고 인시던트가 없습니다.</div>
+            <div style="font-size: 13px; color: #64748b;">실시간 보안 이벤트 수집 또는 시뮬레이터 실행 시 이상 행위 상관분석을 거쳐 인시던트가 등록됩니다.</div>
         </div>
         """, unsafe_allow_html=True)
-        st.selectbox(
-            "인시던트 목록",
-            options=sorted_incident_ids,
-            index=cur_idx,
-            format_func=format_unified_incident,
-            key="sel_unified_incident",
-            on_change=on_select_unified,
-            label_visibility="collapsed"
-        )
+    else:
+        # 🌟 [단일 통합 카드 형식 인시던트 선택기] 건수 표시 제거, 색상 가이드만 유지, 단일 카드로 묶음
+        with st.container(border=True):
+            st.markdown("""
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;">
+                <span style="font-weight:700; font-size:15px; color:#60a5fa; display:flex; align-items:center; gap:6px;">
+                    🎯 우선 대응 인시던트 선택
+                </span>
+                <span style="font-size:13px; color:#cbd5e1; background:rgba(30,58,138,0.3); padding:4px 12px; border-radius:20px; border:1px solid #1e40af;">
+                    🔴 긴급·고위험 &nbsp;·&nbsp; 🟡 관찰 &nbsp;·&nbsp; 🟢 정상
+                </span>
+            </div>
+            """, unsafe_allow_html=True)
+            st.selectbox(
+                "인시던트 목록",
+                options=sorted_incident_ids,
+                index=cur_idx,
+                format_func=format_unified_incident,
+                key="sel_unified_incident",
+                on_change=on_select_unified,
+                label_visibility="collapsed"
+            )
 
-    # 선택된 분석 대상 인시던트 종합 정보 카드 (위험도별 동적 색상 및 테마 반영)
-    selected_inc = ctx.correlation_engine.get_incident(st.session_state.selected_incident_id)
+        # 선택된 분석 대상 인시던트 종합 정보 카드 (위험도별 동적 색상 및 테마 반영)
+        selected_inc = ctx.correlation_engine.get_incident(st.session_state.selected_incident_id)
+        if selected_inc:
+            # 🌟 사용자 요청: 위험도 색상을 카드 테두리, 발광, 텍스트, 뱃지 전반에 반영하여 시인성 향상
+            if selected_inc.severity == Severity.CRITICAL:
+                card_theme = {
+                    "border": "#ef4444",
+                    "border_left": "#f87171",
+                    "glow": "rgba(239, 68, 68, 0.35)",
+                    "bg": "linear-gradient(135deg, #1f0b12 0%, #290f1b 50%, #151a2d 100%)",
+                    "header_color": "#f87171",
+                    "header_label": "🚨 [치명적 침해사고 긴급 격리 대상] 인시던트 종합 정보",
+                    "dot_glow": "#ef4444",
+                    "badge": '<span class="badge badge-critical" style="font-size:13px; padding:5px 12px; background:#dc2626; color:#ffffff; font-weight:800; border-radius:6px;">치명</span>',
+                    "score_color": "#ff4d61",
+                    "actor_color": "#fca5a5",
+                    "target_color": "#f87171",
+                    "inner_border": "rgba(239, 68, 68, 0.3)",
+                }
+            elif selected_inc.severity == Severity.HIGH:
+                card_theme = {
+                    "border": "#f43f5e",
+                    "border_left": "#fb7185",
+                    "glow": "rgba(244, 63, 94, 0.35)",
+                    "bg": "linear-gradient(135deg, #1c0a13 0%, #260e1c 50%, #151a2d 100%)",
+                    "header_color": "#fb7185",
+                    "header_label": "🚨 [고위험 유출/침해 대응 대상] 인시던트 종합 정보",
+                    "dot_glow": "#f43f5e",
+                    "badge": '<span class="badge badge-high" style="font-size:13px; padding:5px 12px; background:#e11d48; color:#ffffff; font-weight:800; border-radius:6px;">고위험</span>',
+                    "score_color": "#ff758f",
+                    "actor_color": "#fecdd3",
+                    "target_color": "#fb7185",
+                    "inner_border": "rgba(244, 63, 94, 0.3)",
+                }
+            elif selected_inc.severity == Severity.MEDIUM:
+                card_theme = {
+                    "border": "#f59e0b",
+                    "border_left": "#fbbf24",
+                    "glow": "rgba(245, 158, 11, 0.35)",
+                    "bg": "linear-gradient(135deg, #1c1507 0%, #261d0a 50%, #121927 100%)",
+                    "header_color": "#fbbf24",
+                    "header_label": "👁️ [관찰 단계 선제적 감시 대상] 인시던트 종합 정보",
+                    "dot_glow": "#f59e0b",
+                    "badge": '<span class="badge badge-medium" style="font-size:13px; padding:5px 12px; background:#d97706; color:#ffffff; font-weight:800; border-radius:6px;">관찰</span>',
+                    "score_color": "#fbbf24",
+                    "actor_color": "#fde68a",
+                    "target_color": "#f59e0b",
+                    "inner_border": "rgba(245, 158, 11, 0.3)",
+                }
+            else:  # LOW
+                card_theme = {
+                    "border": "#10b981",
+                    "border_left": "#34d399",
+                    "glow": "rgba(16, 185, 129, 0.35)",
+                    "bg": "linear-gradient(135deg, #091a13 0%, #0d261d 50%, #0d1927 100%)",
+                    "header_color": "#34d399",
+                    "header_label": "⚖️ [정상 단계 모니터링 대상] 인시던트 종합 정보",
+                    "dot_glow": "#10b981",
+                    "badge": '<span class="badge badge-low" style="font-size:13px; padding:5px 12px; background:#059669; color:#ffffff; font-weight:800; border-radius:6px;">정상</span>',
+                    "score_color": "#34d399",
+                    "actor_color": "#a7f3d0",
+                    "target_color": "#10b981",
+                    "inner_border": "rgba(16, 185, 129, 0.3)",
+                }
 
-    # 🌟 사용자 요청: 위험도 색상을 카드 테두리, 발광, 텍스트, 뱃지 전반에 반영하여 시인성 향상
-    if selected_inc.severity == Severity.CRITICAL:
-        card_theme = {
-            "border": "#ef4444",
-            "border_left": "#f87171",
-            "glow": "rgba(239, 68, 68, 0.35)",
-            "bg": "linear-gradient(135deg, #1f0b12 0%, #290f1b 50%, #151a2d 100%)",
-            "header_color": "#f87171",
-            "header_label": "🚨 [치명적 침해사고 긴급 격리 대상] 인시던트 종합 정보",
-            "dot_glow": "#ef4444",
-            "badge": '<span class="badge badge-critical" style="font-size:13px; padding:5px 12px; background:#dc2626; color:#ffffff; font-weight:800; border-radius:6px;">치명</span>',
-            "score_color": "#ff4d61",
-            "actor_color": "#fca5a5",
-            "target_color": "#f87171",
-            "inner_border": "rgba(239, 68, 68, 0.3)",
-        }
-    elif selected_inc.severity == Severity.HIGH:
-        card_theme = {
-            "border": "#f43f5e",
-            "border_left": "#fb7185",
-            "glow": "rgba(244, 63, 94, 0.35)",
-            "bg": "linear-gradient(135deg, #1c0a13 0%, #260e1c 50%, #151a2d 100%)",
-            "header_color": "#fb7185",
-            "header_label": "🚨 [고위험 유출/침해 대응 대상] 인시던트 종합 정보",
-            "dot_glow": "#f43f5e",
-            "badge": '<span class="badge badge-high" style="font-size:13px; padding:5px 12px; background:#e11d48; color:#ffffff; font-weight:800; border-radius:6px;">고위험</span>',
-            "score_color": "#ff758f",
-            "actor_color": "#fecdd3",
-            "target_color": "#fb7185",
-            "inner_border": "rgba(244, 63, 94, 0.3)",
-        }
-    elif selected_inc.severity == Severity.MEDIUM:
-        card_theme = {
-            "border": "#f59e0b",
-            "border_left": "#fbbf24",
-            "glow": "rgba(245, 158, 11, 0.35)",
-            "bg": "linear-gradient(135deg, #1c1507 0%, #261d0a 50%, #121927 100%)",
-            "header_color": "#fbbf24",
-            "header_label": "👁️ [관찰 단계 선제적 감시 대상] 인시던트 종합 정보",
-            "dot_glow": "#f59e0b",
-            "badge": '<span class="badge badge-medium" style="font-size:13px; padding:5px 12px; background:#d97706; color:#ffffff; font-weight:800; border-radius:6px;">관찰</span>',
-            "score_color": "#fbbf24",
-            "actor_color": "#fde68a",
-            "target_color": "#f59e0b",
-            "inner_border": "rgba(245, 158, 11, 0.3)",
-        }
-    else:  # LOW
-        card_theme = {
-            "border": "#10b981",
-            "border_left": "#34d399",
-            "glow": "rgba(16, 185, 129, 0.35)",
-            "bg": "linear-gradient(135deg, #091a13 0%, #0d261d 50%, #0d1927 100%)",
-            "header_color": "#34d399",
-            "header_label": "⚖️ [정상 단계 모니터링 대상] 인시던트 종합 정보",
-            "dot_glow": "#10b981",
-            "badge": '<span class="badge badge-low" style="font-size:13px; padding:5px 12px; background:#059669; color:#ffffff; font-weight:800; border-radius:6px;">정상</span>',
-            "score_color": "#34d399",
-            "actor_color": "#a7f3d0",
-            "target_color": "#10b981",
-            "inner_border": "rgba(16, 185, 129, 0.3)",
-        }
+            st.markdown(f"""
+            <div style="background: {card_theme['bg']}; border: 1.5px solid {card_theme['border']}; border-left: 6px solid {card_theme['border_left']}; border-radius: 12px; padding: 22px 28px; margin-top: 14px; margin-bottom: 8px; box-shadow: 0 6px 20px {card_theme['glow']};">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                    <div style="font-size: 13px; font-weight: 800; color: {card_theme['header_color']}; letter-spacing: 0.8px; text-transform: uppercase; display: flex; align-items: center; gap: 8px;">
+                        <span style="display:inline-block; width:9px; height:9px; border-radius:50%; background:{card_theme['dot_glow']}; box-shadow:0 0 10px {card_theme['dot_glow']};"></span>
+                        {card_theme['header_label']}
+                    </div>
+                    <div style="font-size: 13px; color: #94a3b8;">
+                        위협 분류: <b style="color: {card_theme['header_color']}; font-size:14px; margin-left:4px;">{selected_inc.category.value}</b>
+                    </div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 14px; flex-wrap: wrap;">
+                    <span style="font-size: 24px; font-weight: 900; color: #ffffff; letter-spacing: -0.5px;">{selected_inc.incident_id}</span>
+                    {card_theme['badge']}
+                    <span style="font-size: 17px; font-weight: 700; color: #f8fafc; line-height: 1.4;">{selected_inc.title}</span>
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; background: rgba(7, 17, 31, 0.7); padding: 14px 20px; border-radius: 10px; border: 1px solid {card_theme['inner_border']};">
+                    <div style="font-size: 13px; color: #94a3b8; display:flex; align-items:center;">
+                        <span style="font-size:15px; margin-right:6px;">📍</span> <b>공격 발원지:</b> <span style="color:{card_theme['actor_color']}; font-weight:700; font-size:14px; margin-left:6px;">{selected_inc.actor}</span>
+                    </div>
+                    <div style="font-size: 13px; color: #94a3b8; display:flex; align-items:center;">
+                        <span style="font-size:15px; margin-right:6px;">🎯</span> <b>타깃 자산:</b> <span style="color:{card_theme['target_color']}; font-weight:700; font-size:14px; margin-left:6px;">{selected_inc.target_asset}</span>
+                    </div>
+                    <div style="font-size: 13px; color: #94a3b8; display:flex; align-items:center;">
+                        <span style="font-size:15px; margin-right:6px;">⚡</span> <b>상관분석 점수:</b> <span style="color:{card_theme['score_color']}; font-weight:800; font-size:16px; margin-left:6px;">{selected_inc.score}점</span>
+                    </div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
 
-    st.markdown(f"""
-    <div style="background: {card_theme['bg']}; border: 1.5px solid {card_theme['border']}; border-left: 6px solid {card_theme['border_left']}; border-radius: 12px; padding: 22px 28px; margin-top: 14px; margin-bottom: 8px; box-shadow: 0 6px 20px {card_theme['glow']};">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-            <div style="font-size: 13px; font-weight: 800; color: {card_theme['header_color']}; letter-spacing: 0.8px; text-transform: uppercase; display: flex; align-items: center; gap: 8px;">
-                <span style="display:inline-block; width:9px; height:9px; border-radius:50%; background:{card_theme['dot_glow']}; box-shadow:0 0 10px {card_theme['dot_glow']};"></span>
-                {card_theme['header_label']}
-            </div>
-            <div style="font-size: 13px; color: #94a3b8;">
-                위협 분류: <b style="color: {card_theme['header_color']}; font-size:14px; margin-left:4px;">{selected_inc.category.value}</b>
-            </div>
-        </div>
-        <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 14px; flex-wrap: wrap;">
-            <span style="font-size: 24px; font-weight: 900; color: #ffffff; letter-spacing: -0.5px;">{selected_inc.incident_id}</span>
-            {card_theme['badge']}
-            <span style="font-size: 17px; font-weight: 700; color: #f8fafc; line-height: 1.4;">{selected_inc.title}</span>
-        </div>
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; background: rgba(7, 17, 31, 0.7); padding: 14px 20px; border-radius: 10px; border: 1px solid {card_theme['inner_border']};">
-            <div style="font-size: 13px; color: #94a3b8; display:flex; align-items:center;">
-                <span style="font-size:15px; margin-right:6px;">📍</span> <b>공격 발원지:</b> <span style="color:{card_theme['actor_color']}; font-weight:700; font-size:14px; margin-left:6px;">{selected_inc.actor}</span>
-            </div>
-            <div style="font-size: 13px; color: #94a3b8; display:flex; align-items:center;">
-                <span style="font-size:15px; margin-right:6px;">🎯</span> <b>타깃 자산:</b> <span style="color:{card_theme['target_color']}; font-weight:700; font-size:14px; margin-left:6px;">{selected_inc.target_asset}</span>
-            </div>
-            <div style="font-size: 13px; color: #94a3b8; display:flex; align-items:center;">
-                <span style="font-size:15px; margin-right:6px;">⚡</span> <b>상관분석 점수:</b> <span style="color:{card_theme['score_color']}; font-weight:800; font-size:16px; margin-left:6px;">{selected_inc.score}점</span>
-            </div>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-
-    # 🔍 킬체인 심층 분석 바로가기
-    st.markdown("<div style='margin-top: 14px;'></div>", unsafe_allow_html=True)
-    st.button(
-        "🔍 선택한 인시던트의 공격 경로와 판단 근거 확인 ➔",
-        key="btn_jump_kc",
-        on_click=navigate_to,
-        args=("킬체인 분석", selected_inc.incident_id),
-        use_container_width=True,
-        help="해당 인시던트의 네트워크 경로와 상세 판단 근거 화면으로 이동합니다."
-    )
+            # 🔍 킬체인 심층 분석 바로가기
+            st.markdown("<div style='margin-top: 14px;'></div>", unsafe_allow_html=True)
+            st.button(
+                "🔍 선택한 인시던트의 공격 경로와 판단 근거 확인 ➔",
+                key="btn_jump_kc",
+                on_click=navigate_to,
+                args=("킬체인 분석", selected_inc.incident_id),
+                use_container_width=True,
+                help="해당 인시던트의 네트워크 경로와 상세 판단 근거 화면으로 이동합니다."
+            )
 
     st.markdown("<div style='height:10px;'></div>", unsafe_allow_html=True)
     with st.expander("📋 실시간 보안 상태 감사 이력", expanded=False):
@@ -2449,123 +2459,132 @@ elif menu == "킬체인 분석":
     """, unsafe_allow_html=True)
 
     incident_ids = [inc.incident_id for inc in incidents]
-    curr_target_id = st.session_state.get("selected_incident_id", incidents[0].incident_id)
-    if curr_target_id not in incident_ids:
-        curr_target_id = incident_ids[0]
-
-    def format_inc_option(inc_id: str) -> str:
-        inc = ctx.correlation_engine.get_incident(inc_id)
-        if not inc:
-            return inc_id
-        sev_badge = {
-            Severity.CRITICAL: "🔴 [CRITICAL]",
-            Severity.HIGH: "🔴 [HIGH]",
-            Severity.MEDIUM: "🟡 [WATCH]",
-            Severity.LOW: "🟢 [NORMAL]"
-        }.get(inc.severity, "⚪")
-        return f"{sev_badge} {inc.incident_id} | {inc.title}"
-
-    def on_killchain_dropdown():
-        st.session_state.selected_incident_id = st.session_state.killchain_tab_selectbox
-
-    st.session_state.killchain_tab_selectbox = st.session_state.selected_incident_id
-
-    sel_tab_id = st.selectbox(
-        "🔎 분석 대상 인시던트 선택",
-        options=incident_ids,
-        format_func=format_inc_option,
-        key="killchain_tab_selectbox",
-        on_change=on_killchain_dropdown
-    )
-
-    target_inc = ctx.correlation_engine.get_incident(st.session_state.selected_incident_id)
-
-    # 🌟 인시던트 위험도에 따른 동적 설명창 테마
-    summary_class = {
-        Severity.CRITICAL: "inc-summary-critical",
-        Severity.HIGH: "inc-summary-high",
-        Severity.MEDIUM: "inc-summary-medium",
-        Severity.LOW: "inc-summary-low"
-    }.get(target_inc.severity, "inc-summary-high")
-
-    badge_label = {
-        Severity.CRITICAL: "🔴 CRITICAL",
-        Severity.HIGH: "🔴 HIGH",
-        Severity.MEDIUM: "🟡 WATCH",
-        Severity.LOW: "🟢 NORMAL"
-    }.get(target_inc.severity, "⚪ UNKNOWN")
-
-    st.markdown(f"""
-    <div class="{summary_class}">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-            <span style="font-size:15px; font-weight:800; color:#ffffff;">
-                [{target_inc.incident_id}] {target_inc.title}
-            </span>
-            <span style="font-size:12px; font-weight:700; padding:2px 8px; border-radius:4px; background:rgba(0,0,0,0.35);">
-                {badge_label} ({target_inc.score}점)
-            </span>
+    if not incident_ids:
+        st.markdown("""
+        <div style="background: rgba(15, 23, 42, 0.6); border: 1.5px dashed #334155; border-radius: 12px; padding: 48px 20px; text-align: center; margin: 20px 0;">
+            <div style="font-size: 38px; margin-bottom: 12px;">🎯</div>
+            <div style="font-size: 16px; font-weight: 700; color: #94a3b8; margin-bottom: 6px;">분석할 보안 침해 인시던트가 없습니다.</div>
+            <div style="font-size: 13px; color: #64748b;">실시간 보안 이벤트 수집 또는 시뮬레이션 동작 후 인시던트가 등록되면 킬체인 분석이 활성화됩니다.</div>
         </div>
-        <div style="font-size:13px; line-height:1.5;">
-            {target_inc.summary}
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
+    else:
+        curr_target_id = st.session_state.get("selected_incident_id", incidents[0].incident_id)
+        if curr_target_id not in incident_ids:
+            curr_target_id = incident_ids[0]
 
-    # 🌐 침해사고 네트워크 토폴로지 맵
-    map_title = f"""
-    <div class="box-title" style="display:flex; justify-content:space-between; align-items:center;">
-        <span>{tooltip("🌐", "네트워크 경로 맵", "선택된 인시던트의 발원지, 경유지, 타깃 자산 간의 통신 포트와 공격 이동 경로를 실시간 시각화합니다. 마우스 휠로 확대/축소하고 드래그하여 지도를 자유롭게 이동할 수 있습니다.")} 네트워크 경로 맵</span>
-        <span style="font-size:12px; font-weight:normal; color:#64748b;">🔍 마우스 휠 확대/축소 & 드래그 이동 지원</span>
-    </div>
-    """
-    st.markdown(map_title, unsafe_allow_html=True)
-    st.markdown(f"<div style='font-size:13px; color:#9fb0c8; margin-bottom:10px;'>현재 분석 대상: <b style='color:#38bdf8;'>{target_inc.incident_id}</b> ({target_inc.category.value}) — <b>{target_inc.title}</b></div>", unsafe_allow_html=True)
+        def format_inc_option(inc_id: str) -> str:
+            inc = ctx.correlation_engine.get_incident(inc_id)
+            if not inc:
+                return inc_id
+            sev_badge = {
+                Severity.CRITICAL: "🔴 [CRITICAL]",
+                Severity.HIGH: "🔴 [HIGH]",
+                Severity.MEDIUM: "🟡 [WATCH]",
+                Severity.LOW: "🟢 [NORMAL]"
+            }.get(inc.severity, "⚪")
+            return f"{sev_badge} {inc.incident_id} | {inc.title}"
 
-    raw_svg = generate_dynamic_network_svg(target_inc)
-    render_interactive_map(raw_svg)
+        def on_killchain_dropdown():
+            st.session_state.selected_incident_id = st.session_state.killchain_tab_selectbox
 
-    # 🔍 인시던트 상세 타임라인 & 상관분석 판단 근거 (불필요한 노이즈 정보 삭제 및 핵심 위주 정돈)
-    st.markdown("<hr style='border:none; border-top:1.5px solid #1c2e47; margin:24px 0 20px 0;'>", unsafe_allow_html=True)
-    
-    col_left, col_right = st.columns([1, 1])
-    
-    with col_left:
+        st.session_state.killchain_tab_selectbox = st.session_state.selected_incident_id
+
+        sel_tab_id = st.selectbox(
+            "🔎 분석 대상 인시던트 선택",
+            options=incident_ids,
+            format_func=format_inc_option,
+            key="killchain_tab_selectbox",
+            on_change=on_killchain_dropdown
+        )
+
+        target_inc = ctx.correlation_engine.get_incident(st.session_state.selected_incident_id)
+
+        # 🌟 인시던트 위험도에 따른 동적 설명창 테마
+        summary_class = {
+            Severity.CRITICAL: "inc-summary-critical",
+            Severity.HIGH: "inc-summary-high",
+            Severity.MEDIUM: "inc-summary-medium",
+            Severity.LOW: "inc-summary-low"
+        }.get(target_inc.severity, "inc-summary-high")
+
+        badge_label = {
+            Severity.CRITICAL: "🔴 CRITICAL",
+            Severity.HIGH: "🔴 HIGH",
+            Severity.MEDIUM: "🟡 WATCH",
+            Severity.LOW: "🟢 NORMAL"
+        }.get(target_inc.severity, "⚪ UNKNOWN")
+
         st.markdown(f"""
-        <div class="box-title">
-            {tooltip("⏱️", "공격 행위 순서", "공격자 또는 내부 유출자가 시스템에 접근하여 목적을 달성하기까지의 행위 순서입니다.")} 공격 행위 순서
+        <div class="{summary_class}">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                <span style="font-size:15px; font-weight:800; color:#ffffff;">
+                    [{target_inc.incident_id}] {target_inc.title}
+                </span>
+                <span style="font-size:12px; font-weight:700; padding:2px 8px; border-radius:4px; background:rgba(0,0,0,0.35);">
+                    {badge_label} ({target_inc.score}점)
+                </span>
+            </div>
+            <div style="font-size:13px; line-height:1.5;">
+                {target_inc.summary}
+            </div>
         </div>
         """, unsafe_allow_html=True)
 
-        if target_inc.network_hops:
-            steps_html_parts = []
-            for idx, h in enumerate(target_inc.network_hops):
-                steps_html_parts.append(f'<div class="timeline-step" style="padding:10px 14px; margin-bottom:8px; border-radius:8px; font-size:13px; font-weight:600;"><span style="color:#38bdf8; font-weight:800; margin-right:6px;">Step {idx+1}.</span> {h.from_node} ➔ <b style="color:#f8fafc;">{h.to_node}</b> <span style="color:#94a3b8; font-size:11px;">(:{h.port} / {h.hop_type.upper()})</span></div>')
-            st.markdown(f'<div style="margin-top:8px;">{" ".join(steps_html_parts)}</div>', unsafe_allow_html=True)
-        else:
-            st.markdown(f"""
-            <div style="background:#0d1a2b; border:1px solid #1c2e47; border-radius:8px; padding:16px; color:#cbd5e1; font-size:13px; margin-top:8px;">
-                <div style="font-weight:700; color:#38bdf8; margin-bottom:6px;">단일 호스트 내부 공격 및 데이터 유출 시퀀스</div>
-                • <b>발원 계정/단말:</b> <code style="color:#f87171; background:#07111e; padding:2px 6px; border-radius:4px;">{target_inc.actor}</code><br>
-                • <b>타깃 기밀 자산:</b> <code style="color:#38bdf8; background:#07111e; padding:2px 6px; border-radius:4px;">{target_inc.target_asset}</code>
-            </div>
-            """, unsafe_allow_html=True)
-
-    with col_right:
-        st.markdown(f"""
-        <div class="box-title">
-            {tooltip("🛡️", "상관분석 판단 근거", "서로 다른 이기종 로그를 교차 분석하여 침해사고로 판정한 핵심 엔진 근거입니다.")} 상관분석 판단 근거
+        # 🌐 침해사고 네트워크 토폴로지 맵
+        map_title = f"""
+        <div class="box-title" style="display:flex; justify-content:space-between; align-items:center;">
+            <span>{tooltip("🌐", "네트워크 경로 맵", "선택된 인시던트의 발원지, 경유지, 타깃 자산 간의 통신 포트와 공격 이동 경로를 실시간 시각화합니다. 마우스 휠로 확대/축소하고 드래그하여 지도를 자유롭게 이동할 수 있습니다.")} 네트워크 경로 맵</span>
+            <span style="font-size:12px; font-weight:normal; color:#64748b;">🔍 마우스 휠 확대/축소 & 드래그 이동 지원</span>
         </div>
-        """, unsafe_allow_html=True)
-        for ev in target_inc.evidences:
+        """
+        st.markdown(map_title, unsafe_allow_html=True)
+        st.markdown(f"<div style='font-size:13px; color:#9fb0c8; margin-bottom:10px;'>현재 분석 대상: <b style='color:#38bdf8;'>{target_inc.incident_id}</b> ({target_inc.category.value}) — <b>{target_inc.title}</b></div>", unsafe_allow_html=True)
+
+        raw_svg = generate_dynamic_network_svg(target_inc)
+        render_interactive_map(raw_svg)
+
+        # 🔍 인시던트 상세 타임라인 & 상관분석 판단 근거 (불필요한 노이즈 정보 삭제 및 핵심 위주 정돈)
+        st.markdown("<hr style='border:none; border-top:1.5px solid #1c2e47; margin:24px 0 20px 0;'>", unsafe_allow_html=True)
+
+        col_left, col_right = st.columns([1, 1])
+
+        with col_left:
             st.markdown(f"""
-            <div class="evidence-item" style="padding:10px 14px; margin-bottom:8px; border-radius:8px; font-size:13px;">
-                <span style="color:#38bdf8; font-weight:800; margin-right:8px; font-size:14px;">✓</span>
-                <span style="color:#e2e8f0; line-height:1.4;">{ev}</span>
+            <div class="box-title">
+                {tooltip("⏱️", "공격 행위 순서", "공격자 또는 내부 유출자가 시스템에 접근하여 목적을 달성하기까지의 행위 순서입니다.")} 공격 행위 순서
             </div>
             """, unsafe_allow_html=True)
 
-    # ⬅️ 종합 관제로 돌아가기 (화면 맨 밑단 배치, btn_jump_kc와 동일한 버튼 스타일)
-    st.markdown("<div style='margin-top: 28px;'></div>", unsafe_allow_html=True)
+            if target_inc.network_hops:
+                steps_html_parts = []
+                for idx, h in enumerate(target_inc.network_hops):
+                    steps_html_parts.append(f'<div class="timeline-step" style="padding:10px 14px; margin-bottom:8px; border-radius:8px; font-size:13px; font-weight:600;"><span style="color:#38bdf8; font-weight:800; margin-right:6px;">Step {idx+1}.</span> {h.from_node} ➔ <b style="color:#f8fafc;">{h.to_node}</b> <span style="color:#94a3b8; font-size:11px;">(:{h.port} / {h.hop_type.upper()})</span></div>')
+                st.markdown(f'<div style="margin-top:8px;">{" ".join(steps_html_parts)}</div>', unsafe_allow_html=True)
+            else:
+                st.markdown(f"""
+                <div style="background:#0d1a2b; border:1px solid #1c2e47; border-radius:8px; padding:16px; color:#cbd5e1; font-size:13px; margin-top:8px;">
+                    <div style="font-weight:700; color:#38bdf8; margin-bottom:6px;">단일 호스트 내부 공격 및 데이터 유출 시퀀스</div>
+                    • <b>발원 계정/단말:</b> <code style="color:#f87171; background:#07111e; padding:2px 6px; border-radius:4px;">{target_inc.actor}</code><br>
+                    • <b>타깃 기밀 자산:</b> <code style="color:#38bdf8; background:#07111e; padding:2px 6px; border-radius:4px;">{target_inc.target_asset}</code>
+                </div>
+                """, unsafe_allow_html=True)
+
+        with col_right:
+            st.markdown(f"""
+            <div class="box-title">
+                {tooltip("🛡️", "상관분석 판단 근거", "서로 다른 이기종 로그를 교차 분석하여 침해사고로 판정한 핵심 엔진 근거입니다.")} 상관분석 판단 근거
+            </div>
+            """, unsafe_allow_html=True)
+            for ev in target_inc.evidences:
+                st.markdown(f"""
+                <div class="evidence-item" style="padding:10px 14px; margin-bottom:8px; border-radius:8px; font-size:13px;">
+                    <span style="color:#38bdf8; font-weight:800; margin-right:8px; font-size:14px;">✓</span>
+                    <span style="color:#e2e8f0; line-height:1.4;">{ev}</span>
+                </div>
+                """, unsafe_allow_html=True)
+
+        # ⬅️ 종합 관제로 돌아가기 (화면 맨 밑단 배치, btn_jump_kc와 동일한 버튼 스타일)
+        st.markdown("<div style='margin-top: 28px;'></div>", unsafe_allow_html=True)
     st.button(
         "⬅️ 종합 관제로 돌아가기",
         key="btn_back_overview",
@@ -2749,6 +2768,13 @@ elif menu == "AI·IT 거버넌스":
                 st.markdown("<div style='text-align: center; color: #ef4444; font-size: 12px; font-weight: 700; padding: 6px 0;'>차단</div>", unsafe_allow_html=True)
 
         # 데이터 행 렌더링
+        if not sorted_assets:
+            st.markdown("""
+            <div style="text-align: center; color: #64748b; padding: 48px 20px; font-size: 14px;">
+                현재 수집된 외부 AI / 클라우드 도메인 활동 내역이 없습니다. (수집 로그 없음)
+            </div>
+            """, unsafe_allow_html=True)
+
         for asset in sorted_assets:
             badge_style = "badge-high" if asset.risk_level == Severity.HIGH else ("badge-medium" if asset.risk_level == Severity.MEDIUM else "badge-low")
             if asset.risk_level == Severity.CRITICAL:

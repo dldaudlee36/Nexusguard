@@ -29,7 +29,7 @@ KNOWN_AI_DOMAINS = {"chatgpt.com", "api.openai.com", "claude.ai", "wetransfer.co
 class CorrelationEngine:
     """2단계 위험 상태 기계 기반 이기종 보안 이벤트 상관분석 코어 엔진"""
 
-    def __init__(self, time_window_minutes: int = 15, enable_mock_incidents: bool = True):
+    def __init__(self, time_window_minutes: int = 15, enable_mock_incidents: bool = False):
         self.time_window = timedelta(minutes=time_window_minutes)
         self.event_buffer: List[SecurityEvent] = []
         self.incidents: Dict[str, Incident] = {}
@@ -48,126 +48,8 @@ class CorrelationEngine:
             self.incidents[inc.incident_id] = inc
 
     def _init_mock_incidents(self):
-        """사전 등록된 기준 인시던트 데이터 초기화 (하위 호환성 유지)"""
-        # INC-001 (CRITICAL: 금융 고객 개인정보 2.4만 건 대량 탈취 및 C2 유출)
-        inc_1 = Incident(
-            incident_id="INC-001",
-            title="금융 고객 개인정보 2.4만 건 대량 탈취 및 C2 비정상 유출",
-            category=IncidentCategory.LATERAL_MOVEMENT,
-            severity=Severity.CRITICAL,
-            score=96,
-            status=IncidentStatus.ACTIVE,
-            summary="외부 무차별 대입 후 웹서버 로그인 -> 내부 SSH(:22) 피보팅 -> 고객정보 24,500건 덤프 후 외부 C2(:10443) 158MB 유출",
-            actor="203.116.45.23 (admin 계정 탈취)",
-            target_asset="DB Server (10.0.0.30:3306 / customer_vault)",
-            created_at=datetime.utcnow() - timedelta(minutes=7),
-            event_ids=["EVT-A-100", "EVT-A-101", "EVT-A-105", "EVT-A-107", "EVT-A-108", "EVT-A-109", "EVT-A-110"],
-            evidences=[
-                "동일 계정(admin) 세션 연속 악용 (+2점)",
-                "IP 홉 연속 체인: 203.116.45.23 -> 10.0.0.10:443 -> 10.0.0.20:22 -> 10.0.0.30:3306 (+2점)",
-                "전체 침해 행위 5분 10초 이내 연속 발생 (10분 윈도우 기준 충족, +2점)",
-                "공격 킬체인 시퀀스 100% 부합 (브루트포스 -> 성공 -> SSH 피보팅 -> DB 덤프 -> C2 유출, +4점)"
-            ],
-            network_hops=[
-                NetworkHop(from_node="Internet (203.116.45.23)", to_node="Web Server (10.0.0.10)", port=443, hop_type="attack"),
-                NetworkHop(from_node="Web Server (10.0.0.10)", to_node="Internal Server (10.0.0.20)", port=22, hop_type="lateral"),
-                NetworkHop(from_node="Internal Server (10.0.0.20)", to_node="DB Server (10.0.0.30)", port=3306, hop_type="db_access"),
-                NetworkHop(from_node="Internal Server (10.0.0.20)", to_node="External C2 (203.116.45.23)", port=10443, hop_type="exfiltration"),
-            ],
-            soar_actions=[
-                "방화벽 출발지 IP(203.116.45.23) 영구 차단 룰 적용",
-                "admin 계정 활성 세션 즉시 강제 종료(Revoke)",
-                "내부 서버(10.0.0.20) SSH 접근 포트 임시 격리"
-            ]
-        )
-
-        # INC-002 (HIGH: 마케팅팀 미승인 생성형 AI를 통한 전략기획서 유출 의심)
-        inc_2 = Incident(
-            incident_id="INC-002",
-            title="마케팅팀 미승인 생성형 AI(ChatGPT)를 통한 신규 전략기획서 유출 의심",
-            category=IncidentCategory.SHADOW_AI_EXFILTRATION,
-            severity=Severity.HIGH,
-            score=91,
-            status=IncidentStatus.ACTIVE,
-            summary="사내 DB에서 전략기획서 SELECT 직후 110초 내 chatgpt.com DNS 질의 및 1.45MB API 업로드 발생",
-            actor="192.168.10.45 (kim_marketing)",
-            target_asset="corp_strategic_plan -> chatgpt.com",
-            created_at=datetime.utcnow() - timedelta(minutes=4),
-            event_ids=["EVT-B-201", "EVT-B-202", "EVT-B-203"],
-            evidences=[
-                "동일 호스트/계정 행위: 192.168.10.45 (kim_marketing) (+2점)",
-                "사내 기밀 DB 조회 후 145초 이내 미승인 AI(chatgpt.com) 접근 (+2점)",
-                "일반 웹 서핑 대비 비정상적 업로드 볼륨: 1.45 MB 전송 (+2점)",
-                "데이터 유출 시퀀스 부합 (민감 데이터 SELECT -> AI DNS 질의 -> POST 전송, +4점)"
-            ],
-            network_hops=[
-                NetworkHop(from_node="Employee PC (192.168.10.45)", to_node="DB Server (10.0.0.30)", port=3306, hop_type="db_access"),
-                NetworkHop(from_node="Employee PC (192.168.10.45)", to_node="DNS Server (10.0.0.5)", port=53, hop_type="normal"),
-                NetworkHop(from_node="Employee PC (192.168.10.45)", to_node="OpenAI Cloud (chatgpt.com)", port=443, hop_type="suspicious"),
-            ],
-            soar_actions=[
-                "임직원(kim_marketing) 대상 사내 보안 포털 경고 알림 발송",
-                "사내 프라이빗 AI(Aegis-GenAI) 사용 유도 가이드 전달",
-                "보안팀 인가 심의 티켓 자동 등록 (양성화 워크플로)"
-            ]
-        )
-
-        # INC-003 (NORMAL / LOW: 사내 정규 협업 SaaS 정상 트래픽 및 정기 보안 정책 준수)
-        inc_3 = Incident(
-            incident_id="INC-003",
-            title="사내 정규 협업 SaaS(Slack/Zoom) 정상 트래픽 및 보안 정책 준수",
-            category=IncidentCategory.INSIDER_DATA_THEFT,
-            severity=Severity.LOW,
-            score=45,
-            status=IncidentStatus.ACTIVE,
-            summary="사내 업무 목적 정규 클라우드 협업 도구 연동 트래픽으로 보안 이상 징후 없음 (정상 모니터링 단계)",
-            actor="192.168.10.15 (jung_sales)",
-            target_asset="Workplace SaaS -> api.slack.com",
-            created_at=datetime.utcnow() - timedelta(hours=1),
-            event_ids=["EVT-C-301", "EVT-C-302"],
-            evidences=[
-                "사내 결재 승인 소프트웨어 라이선스 보유 (+0점)",
-                "정상 업무 시간대 아웃바운드 세션 발생 (+0점)",
-                "단말 무결성 검증 통과 (+0점)"
-            ],
-            network_hops=[
-                NetworkHop(from_node="Employee PC (192.168.10.15)", to_node="Internal Gateway", port=443, hop_type="normal"),
-                NetworkHop(from_node="Internal Gateway", to_node="Cloud (api.slack.com)", port=443, hop_type="normal"),
-            ],
-            soar_actions=[
-                "정기 접속 감사 로그 아카이빙",
-                "사내 보안 정책 기준 정상 세션 유지"
-            ]
-        )
-
-        # INC-004 (WATCH / MEDIUM: 인사팀 단말의 비인가 내부 서브넷 탐색 및 사전 관찰 대상 등록)
-        inc_4 = Incident(
-            incident_id="INC-004",
-            title="인사팀 단말의 비인가 내부 서브넷 탐색 징후 및 사전 관찰 대상(WATCH) 등록",
-            category=IncidentCategory.UNAUTHORIZED_PORT,
-            severity=Severity.MEDIUM,
-            score=65,
-            status=IncidentStatus.ACTIVE,
-            summary="단말에서 비인가 내부 세그먼트 포트 질의가 포착되어 1단계 사전 감시(WATCH) 대상으로 등록됨",
-            actor="192.168.10.12 (kang_hr)",
-            target_asset="10.0.0.0/24 Core Segment",
-            created_at=datetime.utcnow() - timedelta(minutes=15),
-            event_ids=["EVT-D-401"],
-            evidences=[
-                "업무 범위를 벗어난 내부 서브넷 SYN 스캔 포착 (+2점)",
-                "1단계 선제 감시: 위험 행위 사전 관찰(WATCH) 상태 자동 등록 (+4점)"
-            ],
-            network_hops=[
-                NetworkHop(from_node="HR PC (192.168.10.12)", to_node="Internal Core Segment", port=445, hop_type="suspicious"),
-            ],
-            soar_actions=[
-                "단말 내부 세션 실시간 패킷 모니터링 강화",
-                "사용자 계정 상태 사전 감시(WATCH) 플래그 설정"
-            ]
-        )
-
-        for inc in [inc_1, inc_2, inc_3, inc_4]:
-            self.incidents[inc.incident_id] = inc
+        """가짜 목 인시던트 생성 비활성화 (로그 부재 시 빈 상태 유지)"""
+        pass
 
     def ingest_events(self, events: List[SecurityEvent]):
         """이벤트 버퍼에 이벤트 추가 및 상태 기계 상관분석 수행"""

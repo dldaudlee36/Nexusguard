@@ -43,7 +43,7 @@ class EventAction(str, Enum):
 
 
 class Actor(BaseModel):
-    user_id: Optional[str] = Field(default=None, description="계정명 (예: admin, kim_marketing)")
+    user_id: Optional[str] = Field(default=None, description="계정명 (예: admin, user01)")
     src_ip: str = Field(description="출발지 IP")
     src_port: Optional[int] = Field(default=None, description="출발지 포트")
 

@@ -187,31 +187,8 @@ class ShadowAIGovernanceEngine:
         self._init_defaults()
 
     def _init_defaults(self):
-        """기본 시연용 데이터 초기화"""
-        defaults = [
-            ("chatgpt.com", 3, 14, 52, "매일 (실시간 감지 집중)", Severity.HIGH, "사용자 입력 데이터가 AI 모델 재학습에 활용될 수 있어 사내 기밀 유출 고위험", SanctionStatus.UNAPPROVED),
-            ("wetransfer.com", 1, 2, 8, "비정기 (간헐 접속)", Severity.HIGH, "익명 파일 전송 서비스로 사내 감사 로그 추적 불가 및 데이터 유출 취약", SanctionStatus.BLOCKED),
-            ("claude.ai", 2, 5, 21, "주 4회 (정기 사용)", Severity.HIGH, "긴 문서 분석 기능으로 인해 대량 사내 보고서 업로드 위험 존재", SanctionStatus.UNAPPROVED),
-            ("dropbox.com", 2, 4, 18, "주 3회", Severity.MEDIUM, "개인 계정 사용 추정. 외부 협업 시 링크 유출에 따른 무단 다운로드 위험", SanctionStatus.UNAPPROVED),
-            ("notion.so", 1, 1, 4, "1회 관찰", Severity.LOW, "단순 문서 작성 용도 관찰 중. 현재까지 대용량 파일 전송 미탐지", SanctionStatus.UNAPPROVED),
-            ("slack.com", 8, 42, 126, "매일 (전사 기본)", Severity.LOW, "사내 정식 계약 체결 도구 (SSO 연동 및 데이터 보존 정책 적용됨)", SanctionStatus.APPROVED),
-        ]
-        for domain, depts, users, count, freq, risk, diag, status in defaults:
-            self.assets[domain] = ShadowAIAsset(
-                domain=domain,
-                service_name=KNOWN_SAAS_DATABASE.get(domain, {}).get("service_name", domain.capitalize()),
-                category=KNOWN_SAAS_DATABASE.get(domain, {}).get("category", "외부 SaaS"),
-                department_count=depts,
-                user_count=users,
-                usage_frequency=freq,
-                risk_level=risk,
-                ai_diagnosis=diag,
-                sanction_status=status,
-                recommended_alternative=None,
-                detected_at=datetime.now(),
-                access_count=count,
-                active_users=[f"임직원 {users}명"]
-            )
+        """가짜 목 통계 데이터 생성 방지 (로그 부재 시 빈 상태 유지)"""
+        pass
 
     def sync_railway_events(self, railway_events: List[Dict[str, Any]]):
         """

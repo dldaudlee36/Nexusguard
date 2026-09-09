@@ -3,9 +3,8 @@ NexusGuard - Memory Store
 시스템 상태 및 싱글톤 인스턴스 관리 저장소
 """
 
-from typing import Optional, TYPE_CHECKING
-from nexusguard.generators.dummy_logs import get_all_initial_events
-from nexusguard.schemas.event import LogSource
+from typing import Optional, List, TYPE_CHECKING
+from nexusguard.schemas.event import LogSource, SecurityEvent
 
 if TYPE_CHECKING:
     from nexusguard.engine.correlation import CorrelationEngine
@@ -19,14 +18,11 @@ class AppContext:
         from nexusguard.engine.correlation import CorrelationEngine
         from nexusguard.engine.governance import ShadowAIGovernanceEngine
         
-        self.correlation_engine = CorrelationEngine()
+        self.correlation_engine = CorrelationEngine(enable_mock_incidents=False)
         self.governance_engine = ShadowAIGovernanceEngine()
-        self.initial_events = get_all_initial_events()
+        self.initial_events: List[SecurityEvent] = []
         
-        # 초기 이벤트를 각 엔진에 피딩
-        self.correlation_engine.ingest_events(self.initial_events)
-        for ev in self.initial_events:
-            self.governance_engine.process_dns_event(ev)
+        # 로그가 없을 시 기본 빈 상태 유지 (가짜 더미 이벤트 주입 방지)
 
         # 팀원들의 실제 에이전트 및 DB 이벤트 피딩
         try:

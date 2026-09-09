@@ -149,7 +149,7 @@ def generate_scenario_b_logs(base_time: datetime = None) -> List[SecurityEvent]:
 
     events: List[SecurityEvent] = []
     employee_ip = "192.168.10.45"
-    employee_user = "kim_marketing"
+    employee_user = "user_corp"
     db_ip = "10.0.0.30"
 
     # 1. 마케팅팀 직원이 DB에서 재무/기획 데이터 조회
