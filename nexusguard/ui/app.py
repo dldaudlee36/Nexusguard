@@ -1159,6 +1159,12 @@ def get_cached_context():
 
 ctx = get_cached_context()
 incidents = ctx.correlation_engine.get_all_incidents()
+if not incidents:
+    from nexusguard.collectors.team_collector import fetch_railway_events
+    r_logs = fetch_railway_events(timeout=3, force=False)
+    if r_logs:
+        ctx.correlation_engine.generate_incidents_from_railway(r_logs)
+        incidents = ctx.correlation_engine.get_all_incidents()
 shadow_assets = ctx.governance_engine.get_all_assets()
 
 # 전역 인시던트 목록 및 세션 상태 초기화
@@ -1425,8 +1431,15 @@ with st.sidebar:
     if btn_reset:
         ctx.correlation_engine.store.clear_all()
         ctx.correlation_engine.incidents.clear()
-        st.session_state.selected_incident_id = None
-        st.toast("🔄 모든 인시던트 및 상태가 초기화되었습니다 (빈 상태).", icon="🔄")
+        from nexusguard.collectors.team_collector import fetch_railway_events
+        r_logs = fetch_railway_events(timeout=3, force=False)
+        if r_logs:
+            ctx.correlation_engine.generate_incidents_from_railway(r_logs)
+            st.session_state.selected_incident_id = list(ctx.correlation_engine.incidents.keys())[0] if ctx.correlation_engine.incidents else None
+            st.toast("🔄 Railway 실시간 수집 데이터 기반으로 초기화 완료", icon="🔄")
+        else:
+            st.session_state.selected_incident_id = None
+            st.toast("🔄 모든 인시던트 및 상태가 초기화되었습니다 (빈 상태).", icon="🔄")
         st.rerun()
 
     st.markdown("---")

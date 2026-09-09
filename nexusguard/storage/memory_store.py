@@ -31,8 +31,11 @@ class AppContext:
             )
             r_logs = fetch_railway_events(timeout=5, force=True)
             self.team_events = get_team_security_events()
+            self.initial_events = self.team_events
             if r_logs:
                 self.governance_engine.sync_railway_events(r_logs)
+                # Railway 실시간 수집 기록 기반 인시던트 및 상태 전이 감사 이력 자동 생성
+                self.correlation_engine.generate_incidents_from_railway(r_logs)
             for ev in self.team_events:
                 if ev.log_source == LogSource.DNS:
                     self.governance_engine.process_dns_event(ev)

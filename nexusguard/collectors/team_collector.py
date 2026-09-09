@@ -279,7 +279,8 @@ def get_team_security_events() -> List[SecurityEvent]:
 
         is_ai = any(k in domain.lower() for k in ["chatgpt", "openai", "claude", "gemini", "copilot", "perplexity", "ai"])
 
-        if ev_type == "FILE_UPLOAD_ATTEMPT" or source == "chrome-extension":
+        if ev_type in ("FILE_UPLOAD_ATTEMPT", "PASTE_ATTEMPT") or source == "chrome-extension":
+            action = EventAction.PASTE_ATTEMPT if ev_type == "PASTE_ATTEMPT" else EventAction.FILE_UPLOAD_ATTEMPT
             events.append(
                 SecurityEvent(
                     event_id=ev_id,
@@ -287,12 +288,12 @@ def get_team_security_events() -> List[SecurityEvent]:
                     log_source=LogSource.CHROME_EXTENSION,
                     actor=Actor(user_id=user, src_ip=local_ip),
                     target=Target(domain=domain, hostname=pc),
-                    action=EventAction.FILE_UPLOAD_ATTEMPT,
+                    action=action,
                     payload=PayloadMetadata(
                         file_name=file_name,
                         file_size=file_size,
                         bytes_sent=file_size,
-                        category="Shadow_AI_Exfiltration" if is_ai else "File_Upload_Attempt",
+                        category="Shadow_AI_Exfiltration" if is_ai else ("Paste_Attempt" if ev_type == "PASTE_ATTEMPT" else "File_Upload_Attempt"),
                         extra={
                             "pc_name": pc,
                             "source": source,
@@ -302,7 +303,7 @@ def get_team_security_events() -> List[SecurityEvent]:
                             "risk_score": item.get("risk_score", 0)
                         }
                     ),
-                    raw_message=f"{item.get('event_time')} user={user} pc={pc} ip={local_ip} event=FILE_UPLOAD_ATTEMPT target={domain} file={file_name} size={file_size}B"
+                    raw_message=f"{item.get('event_time')} user={user} pc={pc} ip={local_ip} event={ev_type} target={domain} file={file_name} size={file_size}B"
                 )
             )
         else:

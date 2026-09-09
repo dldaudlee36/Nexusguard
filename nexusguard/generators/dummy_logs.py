@@ -240,7 +240,14 @@ def generate_background_dns_logs(base_time: datetime = None) -> List[SecurityEve
 
 
 def get_all_initial_events() -> List[SecurityEvent]:
-    """초기 데모에 필요한 모든 이벤트 통합 반환 (시간순 정렬)"""
+    """초기 관제 및 데모에 필요한 모든 이벤트 반환 (Railway 실시간 수집 이벤트 최우선)"""
+    try:
+        from nexusguard.collectors.team_collector import get_team_security_events
+        team_ev = get_team_security_events()
+        if team_ev:
+            return team_ev
+    except Exception:
+        pass
     now = datetime.now()
     all_events = []
     all_events.extend(generate_scenario_a_logs(now - timedelta(minutes=12)))

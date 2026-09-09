@@ -40,6 +40,7 @@ class EventAction(str, Enum):
     HTTP_POST = "HTTP_POST"
     WEB_ACCESS = "WEB_ACCESS"
     FILE_UPLOAD_ATTEMPT = "FILE_UPLOAD_ATTEMPT"
+    PASTE_ATTEMPT = "PASTE_ATTEMPT"
 
 
 class Actor(BaseModel):
