@@ -1,6 +1,45 @@
 """
 NexusGuard - Team Agent & Railway Pipeline Collector
 팀원들이 개발한 Windows Agent(NexusGuardAgent.exe) 및 Railway 중앙 서버(Flask+PostgreSQL) 실시간 연동 모듈
+
+=====================================================================
+[이 파일이 하는 일]
+=====================================================================
+바깥에서 들어온 '날것의 로그'를 엔진이 알아들을 수 있는 형태로 바꾸는 번역기다.
+
+  Railway 서버의 JSON  ─┐
+                        ├─▶ SecurityEvent 객체 ─▶ 엔진
+  로컬 activity.log    ─┘
+
+엔진(correlation.py)은 SecurityEvent만 알면 되고,
+"이게 Railway에서 왔는지 파일에서 왔는지"는 몰라도 된다.
+그 경계를 만들어주는 것이 이 파일의 역할이다.
+
+[데이터가 오는 두 경로]
+  1) fetch_railway_events()   — Railway 중앙 서버에 HTTP로 물어본다 (최신 100건)
+                                 실제 팀원 PC에서 올라온 로그
+  2) fetch_activity_log_events() — 로컬 파일 activity.log 를 읽는다
+                                 DB 조회(DB_SELECT) 로그를 흉내 낸 파일
+
+[⚠ 주의 1 — activity.log는 전달자 PC에만 있다]
+아래 fetch_activity_log_events()의 경로 목록을 보면
+"C:\\Users\\User\\Downloads\\..." 같은 특정 PC의 경로가 하드코딩되어 있다.
+팀원 PC에는 이 파일이 없으므로 DB_SELECT 이벤트가 하나도 만들어지지 않는다.
+
+이게 왜 문제냐면, WATCH 승격 조건이 '기밀 DB 조회 + 미승인 AI 접속' 두 개인데
+DB 조회 이벤트가 아예 없으면 조건 하나가 영원히 성립하지 않는다.
+즉 실제 환경에서는 WATCH 승격이 일어날 수 없다.
+
+[⚠ 주의 2 — 여기서 만든 이벤트가 엔진까지 가지 않는다]
+get_team_security_events()가 만드는 이벤트의 log_source는
+WINDOWS_AGENT 또는 CHROME_EXTENSION 둘 중 하나다. DNS는 절대 나오지 않는다.
+
+그런데 storage/memory_store.py 는 `if ev.log_source == LogSource.DNS:` 조건으로
+걸러서 넘기기 때문에, 이 함수가 아무리 이벤트를 잘 만들어도
+실제로는 어느 엔진에도 전달되지 않는다.
+
+결과적으로 실제 수집 로그는 대시보드의 '중앙 서버 파이프라인' 표에만 그려지고,
+위험도 판정에는 쓰이지 않는다.
 """
 
 import os
@@ -12,6 +51,9 @@ from typing import List, Dict, Any, Optional
 from email.utils import parsedate_to_datetime
 import requests
 
+# .env 파일에서 환경변수를 읽어온다.
+# API 키를 코드에 직접 적지 않기 위한 장치다.
+# dotenv 패키지가 없거나 .env 파일이 없어도 프로그램이 죽으면 안 되므로 try로 감쌌다.
 try:
     from dotenv import load_dotenv
     root_env = Path(__file__).resolve().parent.parent.parent / ".env"
@@ -22,7 +64,17 @@ try:
 except Exception:
     pass
 
+
 def _get_env_or_secret(key: str, default: str = "") -> str:
+    """
+    설정값을 두 곳에서 차례로 찾는다.
+
+      1) 운영체제 환경변수 / .env 파일     ← 내 PC에서 실행할 때
+      2) Streamlit Cloud의 secrets 저장소  ← 클라우드에 배포했을 때
+
+    배포 환경마다 설정을 넣는 방식이 다르기 때문에 둘 다 지원한다.
+    어디에도 없으면 default 값을 돌려준다.
+    """
     val = os.getenv(key, "")
     if val:
         return val
@@ -38,59 +90,57 @@ from nexusguard.schemas.event import (
     SecurityEvent, LogSource, EventAction, Actor, Target, PayloadMetadata
 )
 
-DEFAULT_RAILWAY_API_KEY = "20110313"
+# 중앙 수집 서버 주소와 인증 키
+DEFAULT_RAILWAY_API_KEY = ""   # 코드에 키를 적어두지 않는다. 비워두는 것이 기본이다.
 RAILWAY_URL = _get_env_or_secret("RAILWAY_URL", "https://bountiful-nature-production-22ec.up.railway.app/events")
 
-# ---------------------------------------------------------------------------
-# P1: DB 유저 ↔ Windows 에이전트 계정 매핑 테이블
-# MySQL general_log의 user_host(예: test_user) → Windows Agent 계정(예: User)
-# 동일 인물로 식별하여 상관분석 킬체인을 연결한다.
-# ---------------------------------------------------------------------------
-USER_HOST_MAPPING: dict = {
-    "test_user":    "User",        # MySQL Workbench 테스트 계정 → 에이전트 계정
-    "root":         "User",        # root 계정도 동일 단말로 매핑
-    "kim":          "kim",         # activity.log 실 계정 (변경 없음)
-    "nexusguard":   "User",        # 프로젝트 전용 계정
-}
-# 역방향: Windows Agent 계정 → src_ip (에이전트가 수집한 로컬 IP)
-AGENT_IP_MAPPING: dict = {
-    "User": "192.168.100.99",      # DESKTOP-OF0CMDB 단말 IP
-    "kim":  "192.168.10.50",       # activity.log 단말 IP
-}
-
-# P0: DB 감사 CSV 후보 경로 (가이드에 따라 data/ 폴더에 저장)
-DB_AUDIT_CSV_PATHS = [
-    os.path.join("data", "mysql_audit_log.csv"),
-    os.path.join("data", "db_audit_log.csv"),
-    os.path.join("data", "general_log.csv"),
-    os.path.join(os.path.dirname(__file__), "..", "..", "data", "mysql_audit_log.csv"),
-    os.path.join(os.path.dirname(__file__), "..", "..", "data", "db_audit_log.csv"),
-]
 
 def get_railway_api_key() -> str:
     """
-    Railway 인증 키 조회:
-    1. 환경변수 RAILWAY_API_KEY (.env)
-    2. Streamlit Secrets (st.secrets["RAILWAY_API_KEY"])
+    Railway 인증 키를 조회한다.
+
+      1순위 : 환경변수 RAILWAY_API_KEY (.env 파일)
+      2순위 : Streamlit Secrets (st.secrets["RAILWAY_API_KEY"])
+      3순위 : DEFAULT_RAILWAY_API_KEY (비어 있음)
+
+    [추가됨] 예전에는 모듈이 처음 읽힐 때 키를 한 번만 읽어 상수에 담아뒀다.
+      그러면 대시보드를 켠 뒤에 .env 나 Secrets 에 키를 넣어도 반영되지 않아
+      앱을 껐다 켜야 했다. 이제 요청할 때마다 다시 읽는다.
     """
     key = _get_env_or_secret("RAILWAY_API_KEY", "")
     if not key:
         key = DEFAULT_RAILWAY_API_KEY
     return key
 
+
+# 모듈이 처음 읽힐 때의 값. 하위 호환을 위해 남겨두지만,
+# 실제 요청에서는 위 get_railway_api_key() 를 매번 호출해서 쓴다.
 RAILWAY_API_KEY = get_railway_api_key()
 
-_cached_railway_events: List[Dict[str, Any]] = []
-_railway_collection_enabled: bool = True
-_railway_fetch_status = {"ok": None, "last_success": None, "error": None}
+# --- 모듈 전역 상태 ---
+# 아래 세 변수는 이 파일 안에서만 쓰이는 공용 저장 공간이다.
+_cached_railway_events: List[Dict[str, Any]] = []   # 마지막으로 성공한 조회 결과 (캐시)
+_railway_collection_enabled: bool = False           # 수집 ON/OFF 스위치 상태
+_railway_fetch_status = {"ok": None, "last_success": None, "error": None}  # 마지막 조회 성공/실패 기록
+
+# 캐시를 두는 이유:
+# 네트워크가 잠깐 끊겨도 화면이 텅 비지 않고 직전 데이터를 계속 보여주기 위해서다.
+# 대신 대시보드에는 '조회 실패, 마지막 성공 기록임'을 함께 표시한다.
 
 
 def get_railway_fetch_status() -> Dict[str, Any]:
+    """마지막 조회가 성공했는지, 언제였는지 알려준다. 대시보드 상태 표시용."""
     return dict(_railway_fetch_status)
 
 
 def set_railway_collection_enabled(enabled: bool):
-    """Railway 로그 수집 켜기/끄기 설정"""
+    """
+    Railway 로그 수집 켜기/끄기 설정
+
+    대시보드의 '실시간 수집 ON/OFF' 스위치가 이 함수를 부른다.
+    global 키워드는 "함수 안에서 만든 새 변수가 아니라
+    바깥의 그 변수를 바꾸겠다"는 뜻이다.
+    """
     global _railway_collection_enabled
     _railway_collection_enabled = enabled
 
@@ -101,7 +151,17 @@ def is_railway_collection_enabled() -> bool:
 
 
 def _parse_event_time(t_str: Optional[str]) -> datetime:
-    """ISO 및 RFC 2822(HTTP 날짜 헤더 형식) 문자열을 datetime 객체로 파싱"""
+    """
+    ISO 및 RFC 2822(HTTP 날짜 헤더 형식) 문자열을 datetime 객체로 파싱
+
+    서버마다 시각을 적는 형식이 제각각이라 여러 방식을 차례로 시도한다.
+      "2026-09-08T14:05:22"              ← ISO 형식
+      "Mon, 08 Sep 2026 14:05:22 GMT"    ← HTTP 날짜 형식
+      "2026-09-08 14:05:22"              ← 공백 구분 형식
+
+    전부 실패하면 '지금 시각'을 돌려준다.
+    시각 하나 못 읽었다고 로그 전체를 버리는 것보다는 낫다고 판단한 처리다.
+    """
     if not t_str:
         return datetime.utcnow()
     try:
@@ -124,7 +184,19 @@ def _parse_event_time(t_str: Optional[str]) -> datetime:
 
 
 def _parse_raw_data(raw: Any) -> Dict[str, Any]:
-    """Railway DB에 문자열로 저장된 raw_data(JSON 또는 Python dict) 파싱"""
+    """
+    Railway DB에 문자열로 저장된 raw_data(JSON 또는 Python dict) 파싱
+
+    수집 서버(source/railway_server/app.py)가 원본 데이터를 str(data) 로 저장하는데,
+    이렇게 하면 JSON이 아니라 파이썬 딕셔너리를 그대로 문자열로 만든 형태가 된다.
+
+      JSON        : {"user": "kim"}    ← 큰따옴표
+      파이썬 표현 : {'user': 'kim'}    ← 작은따옴표
+
+    json.loads()는 작은따옴표를 못 읽으므로,
+    먼저 JSON으로 시도하고 실패하면 ast.literal_eval()로 다시 시도한다.
+    (literal_eval은 eval과 달리 문자열·숫자·리스트 같은 값만 해석해서 안전하다)
+    """
     if isinstance(raw, dict):
         return raw
     if not raw or not isinstance(raw, str):
@@ -146,7 +218,12 @@ def _parse_raw_data(raw: Any) -> Dict[str, Any]:
 
 
 def _format_file_size(size_bytes: Optional[int]) -> str:
-    """바이트 단위 파일 크기를 읽기 쉬운 문자열(KB, MB 등)로 포맷"""
+    """
+    바이트 단위 파일 크기를 읽기 쉬운 문자열(KB, MB 등)로 포맷
+
+    48291040 처럼 큰 숫자는 한눈에 안 들어오므로 "46.1 MB" 형태로 바꾼다.
+    1024로 계속 나누면서 단위를 한 칸씩 올리는 방식이다.
+    """
     if size_bytes is None:
         return "-"
     try:
@@ -171,22 +248,29 @@ def fetch_railway_events(timeout: int = 5, force: bool = False) -> List[Dict[str
     수집된 로그의 raw_data에서 file_name, file_size, local_ip를 자동 추출하여 정규화.
     """
     global _cached_railway_events
+
+    # 수집 스위치가 꺼져 있으면 네트워크를 건드리지 않고 캐시만 돌려준다.
+    # force=True 는 사용자가 '즉시 동기화' 버튼을 눌렀을 때로, 스위치와 무관하게 조회한다.
     if not _railway_collection_enabled and not force:
         return _cached_railway_events
 
+    # 인증 헤더. 수집 서버는 이 키가 맞아야 로그를 내준다.
+    # [수정됨] 모듈 상수 대신 매번 다시 읽는다. 앱 실행 중에 키를 넣어도 반영되게 하기 위함이다.
     api_key = get_railway_api_key()
     headers = {
         "X-API-Key": api_key
     }
     try:
         response = requests.get(RAILWAY_URL, headers=headers, timeout=timeout)
-        response.raise_for_status()
+        response.raise_for_status()   # 4xx/5xx 응답이면 여기서 예외 발생
         data = response.json()
         if isinstance(data, list):
+            # 서버가 준 원본 항목에 부족한 정보를 채워 넣는다(enrich = 보강).
             enriched = []
             for item in data:
+                # raw_data 안에 file_name, local_ip 등이 들어 있을 수 있으므로 먼저 풀어본다
                 raw_info = _parse_raw_data(item.get("raw_data"))
-                
+
                 # 1. 파일 업로드 관련 메타데이터 추출 (Chrome Extension 연동)
                 file_name = item.get("file_name") or raw_info.get("file_name") or None
                 file_size = item.get("file_size") or raw_info.get("file_size") or None
@@ -197,18 +281,41 @@ def fetch_railway_events(timeout: int = 5, force: bool = False) -> List[Dict[str
                         pass
                 
                 # 2. 로컬 IP 추출
+                #    구버전 Agent가 보낸 로그는 local_ip가 "unknown"으로 들어온다.
+                #    그 경우 raw_data 안을 한 번 더 뒤져본다.
                 local_ip = item.get("local_ip")
                 if not local_ip or str(local_ip).strip().lower() in ("unknown", "none", "null", "-"):
                     local_ip = raw_info.get("local_ip") or "unknown"
-                
-                # 3. 이벤트 타입 정규화
+
+                # 3. 이벤트 타입 정규화 (없으면 사이트 접속으로 간주)
                 ev_type = item.get("event_type") or raw_info.get("event_type") or "WEB_ACCESS"
-                
+
+                # 3-1. 붙여넣기 감지(PASTE_ATTEMPT) 메타데이터 추출  [추가됨]
+                #      붙여넣은 '내용'은 확장에서도 Agent에서도 보내지 않으므로 여기에도 없다.
+                #      들어오는 값은 문자 수와 패턴 검출 개수뿐이다.
+                text_length = item.get("text_length")
+                if text_length is None:
+                    text_length = raw_info.get("text_length")
+                if text_length is not None:
+                    try:
+                        text_length = int(text_length)
+                    except (ValueError, TypeError):
+                        text_length = None
+
+                pattern_hits = item.get("pattern_hits") or raw_info.get("pattern_hits") or {}
+                if not isinstance(pattern_hits, dict):
+                    pattern_hits = {}   # 형식이 깨져 들어오면 빈 딕셔너리로 안전하게 처리
+
                 # 4. 소스 정규화 (windows-agent / chrome-extension)
+                #    소스 정보가 빠진 로그는 이벤트 타입으로 역추론한다.
+                #    파일 첨부와 붙여넣기는 크롬 확장만 감지할 수 있으므로 chrome-extension이 된다.
+                #    [수정됨] PASTE_ATTEMPT 를 조건에 추가. 예전에는 붙여넣기가 windows-agent로 잘못 분류됐다.
                 source = item.get("source") or raw_info.get("source")
                 if not source:
-                    source = "chrome-extension" if ev_type == "FILE_UPLOAD_ATTEMPT" else "windows-agent"
-                
+                    source = "chrome-extension" if ev_type in ("FILE_UPLOAD_ATTEMPT", "PASTE_ATTEMPT") else "windows-agent"
+
+                item["text_length"] = text_length
+                item["pattern_hits"] = pattern_hits
                 item["file_name"] = file_name
                 item["file_size"] = file_size
                 item["file_size_formatted"] = _format_file_size(file_size) if file_size is not None else "-"
@@ -217,20 +324,40 @@ def fetch_railway_events(timeout: int = 5, force: bool = False) -> List[Dict[str
                 item["source"] = source
                 enriched.append(item)
 
+            # 성공: 캐시를 갱신하고 성공 기록을 남긴다
             _cached_railway_events = enriched
             _railway_fetch_status.update(ok=True, last_success=datetime.utcnow().isoformat() + "Z", error=None)
             return enriched
         raise ValueError("서버 응답이 로그 목록 형식이 아닙니다.")
     except Exception as e:
+        # 실패: 실패 사실만 기록하고 예외는 밖으로 던지지 않는다.
+        # 여기서 예외를 던지면 대시보드 전체가 멈추기 때문이다.
         _railway_fetch_status.update(ok=False, error=type(e).__name__)
         print(f"[Railway Collector] 서버 연동 오류: {e}")
+
+    # 실패 시에는 직전에 성공했던 데이터(캐시)를 그대로 돌려준다
     return _cached_railway_events
 
 
 def fetch_activity_log_events() -> List[Dict[str, Any]]:
     """
     팀원이 생성한 guard/logs/activity.log 파일에서 DB_SELECT 및 WEB_ACCESS 로그 파싱.
+
+    ★ 이 함수가 만드는 DB_SELECT 이벤트가 WATCH 승격 조건 A의 유일한 공급원이다.
+
+    ⚠ 아래 경로 목록에 특정 PC의 절대 경로가 하드코딩되어 있다.
+      팀원 PC에는 그 폴더가 없으므로 파일을 못 찾고 빈 리스트를 돌려준다.
+      → DB_SELECT 이벤트가 0건 → WATCH 승격 조건 A 성립 불가
+
+      실환경에서 WATCH를 발생시키려면 DB 조회 이벤트를
+      Agent나 중앙 서버를 통해 받아오는 경로가 따로 필요하다.
+
+    [로그 파일 형식]
+      2026-09-07T00:27:42 user=kim action=DB_SELECT target=customer_vault rows=2
+      2026-09-07T00:12:37 user=kim action=WEB_ACCESS domain=notion.so
+      → 공백으로 자르고 key=value 형태를 딕셔너리로 만든다
     """
+    # 여러 후보 경로를 차례로 확인해서 먼저 발견되는 파일을 쓴다
     candidate_paths = [
         os.path.join("data", "activity.log"),
         r"C:\Users\User\Downloads\NexusguardAgent\guard\logs\activity.log",
@@ -244,7 +371,8 @@ def fetch_activity_log_events() -> List[Dict[str, Any]]:
         if os.path.exists(p):
             log_file = p
             break
-            
+
+    # 어느 경로에도 파일이 없으면 빈 리스트로 조용히 종료한다 (오류를 내지 않는다)
     if not log_file:
         return records
 
@@ -256,14 +384,17 @@ def fetch_activity_log_events() -> List[Dict[str, Any]]:
                     continue
                 # 예: 2026-09-07T00:27:42.713941 user=kim action=DB_SELECT target=customer_vault rows=2
                 # 예: 2026-09-07T00:12:37.839533 user=kim action=WEB_ACCESS domain=notion.so
+                # 첫 조각은 시각, 나머지는 key=value 형태
                 parts = line.split(" ")
                 time_str = parts[0]
                 kv = {}
                 for p in parts[1:]:
                     if "=" in p:
+                        # split("=", 1) 의 1은 '첫 번째 = 에서만 자르라'는 뜻이다.
+                        # 값 안에 = 이 또 들어 있어도 안전하게 잘린다.
                         k, v = p.split("=", 1)
                         kv[k] = v
-                
+
                 records.append({
                     "id": f"ACT-{idx+1}",
                     "event_time": time_str,
@@ -281,88 +412,23 @@ def fetch_activity_log_events() -> List[Dict[str, Any]]:
     return records
 
 
-# ---------------------------------------------------------------------------
-# P0: MySQL general_log CSV → SecurityEvent 주입 파서
-# 가이드(NexusGuard_DB_Test_Guide.md) 기준 컬럼:
-#   event_time, user_name, src_ip, action, target_table, query_string, rows_affected
-# ---------------------------------------------------------------------------
-def load_db_audit_csv() -> List[Dict[str, Any]]:
-    """
-    data/mysql_audit_log.csv 파일을 읽어 DB_SELECT 이벤트 딕셔너리 목록으로 반환.
-    USER_HOST_MAPPING을 통해 DB 유저 → 에이전트 계정명으로 자동 정규화.
-    파일이 없으면 빈 리스트 반환 (silent fail).
-    """
-    import csv
-
-    csv_file = None
-    for p in DB_AUDIT_CSV_PATHS:
-        if os.path.exists(p):
-            csv_file = p
-            break
-
-    if not csv_file:
-        return []
-
-    records = []
-    try:
-        with open(csv_file, "r", encoding="utf-8-sig") as f:
-            reader = csv.DictReader(f)
-            for idx, row in enumerate(reader):
-                # 필수 필드 추출 (컬럼명 공백 제거)
-                row = {k.strip(): v.strip() for k, v in row.items()}
-
-                raw_user = row.get("user_name") or row.get("user") or "test_user"
-                # P1: DB 유저 → Windows Agent 계정명 매핑
-                mapped_user = USER_HOST_MAPPING.get(raw_user, raw_user)
-                src_ip = row.get("src_ip") or AGENT_IP_MAPPING.get(mapped_user, "192.168.10.50")
-
-                action = (row.get("action") or row.get("event_type") or "DB_SELECT").upper()
-                # action이 Query(MySQL 원시값)이면 DB_SELECT로 정규화
-                if action in ("QUERY", "EXECUTE"):
-                    action = "DB_SELECT"
-
-                target_table = row.get("target_table") or row.get("table_name") or "unknown_table"
-                query_str = row.get("query_string") or row.get("argument") or f"SELECT * FROM {target_table};"
-
-                rows_affected = 0
-                try:
-                    rows_affected = int(row.get("rows_affected") or row.get("rows") or 0)
-                except (ValueError, TypeError):
-                    rows_affected = 0
-
-                event_time = row.get("event_time") or row.get("timestamp") or ""
-
-                records.append({
-                    "id": f"DB-CSV-{idx + 1}",
-                    "event_time": event_time,
-                    "user_name": mapped_user,           # 매핑된 계정명 (상관분석에서 사용)
-                    "raw_db_user": raw_user,             # 원래 DB 유저명 (감사 로그용)
-                    "src_ip": src_ip,
-                    "pc_name": "db-server-01",
-                    "event_type": action,
-                    "source": "mysql-general-log",
-                    "target": target_table,
-                    "query_string": query_str,
-                    "rows": rows_affected,
-                    "risk_score": 0
-                })
-
-        print(f"[DB CSV Collector] {csv_file} 로드 완료: {len(records)}건")
-    except Exception as e:
-        print(f"[DB CSV Collector] CSV 파싱 오류: {e}")
-
-    return records
-
-
-
-
 def get_team_security_events() -> List[SecurityEvent]:
     """
     Railway 실시간 수집 로그(WEB_ACCESS 및 FILE_UPLOAD_ATTEMPT)와 로컬 activity.log를 결합하여 SecurityEvent 목록으로 정규화.
+
+    ★ 이 파일의 최종 출구. 두 경로에서 모은 로그를 엔진용 형태로 바꿔 하나의 리스트로 돌려준다.
+
+    [만들어지는 log_source]
+      Railway 파일첨부 → CHROME_EXTENSION
+      Railway 사이트접속 → WINDOWS_AGENT
+      activity.log DB조회 → DB
+      activity.log 접속 → WINDOWS_AGENT
+
+      DNS는 만들어지지 않는다. 파일 상단 '주의 2' 참고.
     """
     railway_logs = fetch_railway_events()
     activity_logs = fetch_activity_log_events()
-    
+
     events: List[SecurityEvent] = []
 
     # 1. Railway Agent & Chrome Extension 로그 변환
@@ -378,10 +444,23 @@ def get_team_security_events() -> List[SecurityEvent]:
         file_name = item.get("file_name")
         file_size = item.get("file_size")
 
+        # 접속한 도메인이 생성형 AI로 보이는지 이름으로 판단한다.
+        # 이 값에 따라 payload의 category가 달라지고, 화면 표시도 달라진다.
         is_ai = any(k in domain.lower() for k in ["chatgpt", "openai", "claude", "gemini", "copilot", "perplexity", "ai"])
 
-        if ev_type in ("FILE_UPLOAD_ATTEMPT", "PASTE_ATTEMPT") or source == "chrome-extension":
-            action = EventAction.PASTE_ATTEMPT if ev_type == "PASTE_ATTEMPT" else EventAction.FILE_UPLOAD_ATTEMPT
+        # 붙여넣기 / 파일 첨부 / 단순 접속 세 갈래로 변환한다.
+        #
+        # [추가됨] PASTE_ATTEMPT 분기가 반드시 파일첨부 분기보다 '앞에' 있어야 한다.
+        #   아래 파일첨부 조건에 `source == "chrome-extension"` 이 들어 있어서,
+        #   순서가 뒤바뀌면 붙여넣기 로그까지 전부 파일첨부로 잡혀버린다.
+        if ev_type == "PASTE_ATTEMPT":
+            # 미승인 AI 사이트에서의 대량 텍스트 붙여넣기.
+            # payload.extra 에 문자 수와 패턴 검출 개수만 담는다. 내용은 담지 않는다.
+            text_length = item.get("text_length") or 0
+            pattern_hits = item.get("pattern_hits") or {}
+            if not isinstance(pattern_hits, dict):
+                pattern_hits = {}
+
             events.append(
                 SecurityEvent(
                     event_id=ev_id,
@@ -389,12 +468,34 @@ def get_team_security_events() -> List[SecurityEvent]:
                     log_source=LogSource.CHROME_EXTENSION,
                     actor=Actor(user_id=user, src_ip=local_ip),
                     target=Target(domain=domain, hostname=pc),
-                    action=action,
+                    action=EventAction.PASTE_ATTEMPT,
+                    payload=PayloadMetadata(
+                        category="Shadow_AI_Paste" if is_ai else "Paste_Attempt",
+                        extra={
+                            "pc_name": pc,
+                            "source": source,
+                            "text_length": text_length,
+                            "pattern_hits": pattern_hits,
+                            "risk_score": item.get("risk_score", 0)
+                        }
+                    ),
+                    raw_message=f"{item.get('event_time')} user={user} pc={pc} ip={local_ip} event=PASTE_ATTEMPT target={domain} text_length={text_length} pattern_hits={pattern_hits}"
+                )
+            )
+        elif ev_type == "FILE_UPLOAD_ATTEMPT" or source == "chrome-extension":
+            events.append(
+                SecurityEvent(
+                    event_id=ev_id,
+                    timestamp=dt,
+                    log_source=LogSource.CHROME_EXTENSION,
+                    actor=Actor(user_id=user, src_ip=local_ip),
+                    target=Target(domain=domain, hostname=pc),
+                    action=EventAction.FILE_UPLOAD_ATTEMPT,
                     payload=PayloadMetadata(
                         file_name=file_name,
                         file_size=file_size,
                         bytes_sent=file_size,
-                        category="Shadow_AI_Exfiltration" if is_ai else ("Paste_Attempt" if ev_type == "PASTE_ATTEMPT" else "File_Upload_Attempt"),
+                        category="Shadow_AI_Exfiltration" if is_ai else "File_Upload_Attempt",
                         extra={
                             "pc_name": pc,
                             "source": source,
@@ -404,7 +505,7 @@ def get_team_security_events() -> List[SecurityEvent]:
                             "risk_score": item.get("risk_score", 0)
                         }
                     ),
-                    raw_message=f"{item.get('event_time')} user={user} pc={pc} ip={local_ip} event={ev_type} target={domain} file={file_name} size={file_size}B"
+                    raw_message=f"{item.get('event_time')} user={user} pc={pc} ip={local_ip} event=FILE_UPLOAD_ATTEMPT target={domain} file={file_name} size={file_size}B"
                 )
             )
         else:
@@ -469,55 +570,29 @@ def get_team_security_events() -> List[SecurityEvent]:
                 )
             )
 
-    # 3. MySQL General Log CSV 변환 (P0: DB 감사 로그 수집 파이프라인)
-    db_csv_logs = load_db_audit_csv()
-    for db_row in db_csv_logs:
-        dt = _parse_event_time(db_row.get("event_time"))
-        user = db_row.get("user_name", "test_user")
-        src_ip = db_row.get("src_ip", "192.168.10.50")
-        target_table = db_row.get("target", "unknown_table")
-        query_str = db_row.get("query_string", f"SELECT * FROM {target_table};")
-        rows_aff = db_row.get("rows", 0)
-        ev_id = f"EVT-{db_row.get('id', 'DB-0')}"
-        raw_db_user = db_row.get("raw_db_user", user)
-
-        # DB_SELECT 이벤트만 상관분석 엔진에 주입 (INSERT/UPDATE 등은 향후 확장)
-        if db_row.get("event_type", "DB_SELECT") == "DB_SELECT":
-            events.append(
-                SecurityEvent(
-                    event_id=ev_id,
-                    timestamp=dt,
-                    log_source=LogSource.DB,
-                    actor=Actor(user_id=user, src_ip=src_ip),
-                    target=Target(dst_ip="10.0.0.30", dst_port=3306, hostname="db-server-01"),
-                    action=EventAction.SELECT,
-                    payload=PayloadMetadata(
-                        query_string=query_str,
-                        table_name=target_table,
-                        rows_affected=rows_aff,
-                        category="PrivilegedDataAccess",
-                        extra={
-                            "raw_db_user": raw_db_user,
-                            "source": "mysql-general-log",
-                            "risk_score": db_row.get("risk_score", 0)
-                        }
-                    ),
-                    raw_message=(
-                        f"{db_row.get('event_time')} db_user={raw_db_user}"
-                        f" mapped_user={user} ip={src_ip}"
-                        f" action=DB_SELECT table={target_table} rows={rows_aff}"
-                    )
-                )
-            )
-
+    # 최신 이벤트가 앞에 오도록 정렬해서 돌려준다
     events.sort(key=lambda x: x.timestamp, reverse=True)
     return events
-
 
 
 def get_team_sim_scenarios() -> List[Dict[str, Any]]:
     """
     팀원들이 생성한 실제 로그(activity.log 및 Railway 에이전트/Chrome 확장 수집 로그)에 기반한 시뮬레이션 시나리오.
+
+    시연용 대본이다. 실제 로그가 아니라 미리 정해둔 값들이다.
+
+    대시보드의 시뮬레이션 버튼을 누르면 이 정보로 가짜 이벤트를 만들어
+    엔진에 밀어 넣고, NORMAL → WATCH → HIGH 흐름을 재현한다.
+
+    ※ 현재 화면에 보이는 WATCH/HIGH 판정은 대부분 이 시나리오에서 나온 것이다.
+      실제 수집 로그로 상태가 바뀌지는 않는다(파일 상단 '주의 2' 참고).
+
+    각 항목의 뜻:
+      user/ip      : 누가
+      table/query  : 어떤 기밀 DB를 조회했다고 가정할지
+      service      : 어떤 미승인 AI에 접속했다고 가정할지
+      bytes        : 얼마나 전송했다고 가정할지 (HIGH 승격 판정에 쓰임)
+      file_name    : 어떤 파일을 첨부했다고 가정할지
     """
     return [
         {
@@ -552,7 +627,13 @@ def get_team_sim_scenarios() -> List[Dict[str, Any]]:
 
 
 def load_team_guide_markdown() -> str:
-    """팀원 공유 초간단 가이드 마크다운 원문 로드 (v3 우선)"""
+    """
+    팀원 공유 초간단 가이드 마크다운 원문 로드 (v3 우선)
+
+    대시보드 안에서 사용 가이드 문서를 그대로 보여주기 위한 함수다.
+    후보 경로를 순서대로 확인해 먼저 찾은 파일을 읽고,
+    아무것도 없으면 안내 문구를 돌려준다.
+    """
     candidate_paths = [
         os.path.join("data", "NexusGuard_팀원공유_초간단_수집가이드_v3.md"),
         r"C:\Users\User\Downloads\NexusguardAgent\NexusGuard_팀원공유_초간단_수집가이드_v3.md",

@@ -20,6 +20,30 @@ from nexusguard.storage import get_context
 from nexusguard.schemas import Severity, SanctionStatus, IncidentStatus, Incident
 from nexusguard.schemas.event import SecurityEvent, LogSource, EventAction, Actor, Target, PayloadMetadata
 
+# 데이터프레임 내 검색 강조 색상을 선명한 골드 옐로우(rgba(250,204,21,0.65))로 보장
+def _ensure_vivid_search_highlight():
+    try:
+        import os
+        import streamlit
+        st_dir = os.path.dirname(streamlit.__file__)
+        js_dir = os.path.join(st_dir, "static", "static", "js")
+        if os.path.isdir(js_dir):
+            for fn in os.listdir(js_dir):
+                if fn.startswith("DataFrame.") and fn.endswith(".js"):
+                    fp = os.path.join(js_dir, fn)
+                    with open(fp, "r", encoding="utf-8", errors="ignore") as f:
+                        c = f.read()
+                    old_str = "bgSearchResult:ye(e.colors.primary,.9)"
+                    new_str = 'bgSearchResult:"rgba(250,204,21,0.65)"'
+                    if old_str in c:
+                        c = c.replace(old_str, new_str)
+                        with open(fp, "w", encoding="utf-8") as f:
+                            f.write(c)
+    except Exception:
+        pass
+
+_ensure_vivid_search_highlight()
+
 # 1. 페이지 기본 설정
 st.set_page_config(
     page_title="NexusGuard | 통합 보안 관제",
@@ -60,8 +84,9 @@ st.markdown("""
         font-size: 13px !important;
         line-height: 1.55 !important;
     }
-    div[data-testid="stDataFrame"] {
+    div[data-testid="stDataFrame"], .stDataFrame {
         font-size: 13.5px !important;
+        --gdg-bg-search-result: rgba(250, 204, 21, 0.65) !important;
     }
     
     /* 사이드바 글래스모피즘 도크 레일 스타일 */
@@ -1128,20 +1153,22 @@ st.markdown("""
 
     /* 🌟 인시던트 위험도별 설명 박스 테마 */
     .inc-summary-critical {
-        background: rgba(239, 68, 68, 0.12) !important;
-        border: 1.5px solid #ef4444 !important;
+        background: rgba(220, 38, 38, 0.16) !important;
+        border: 1.5px solid #dc2626 !important;
         border-radius: 10px !important;
         padding: 14px 18px !important;
         margin-bottom: 16px !important;
         color: #fecaca !important;
+        box-shadow: 0 4px 20px rgba(220, 38, 38, 0.25) !important;
     }
     .inc-summary-high {
-        background: rgba(249, 115, 22, 0.12) !important;
-        border: 1.5px solid #f97316 !important;
+        background: rgba(239, 68, 68, 0.14) !important;
+        border: 1.5px solid #ef4444 !important;
         border-radius: 10px !important;
         padding: 14px 18px !important;
         margin-bottom: 16px !important;
-        color: #fed7aa !important;
+        color: #fee2e2 !important;
+        box-shadow: 0 4px 20px rgba(239, 68, 68, 0.22) !important;
     }
     .inc-summary-medium {
         background: rgba(245, 158, 11, 0.12) !important;
@@ -1150,6 +1177,7 @@ st.markdown("""
         padding: 14px 18px !important;
         margin-bottom: 16px !important;
         color: #fef08a !important;
+        box-shadow: 0 4px 15px rgba(245, 158, 11, 0.15) !important;
     }
     .inc-summary-low {
         background: rgba(16, 185, 129, 0.12) !important;
@@ -1158,6 +1186,7 @@ st.markdown("""
         padding: 14px 18px !important;
         margin-bottom: 16px !important;
         color: #a7f3d0 !important;
+        box-shadow: 0 4px 15px rgba(16, 185, 129, 0.15) !important;
     }
 
     /* 🌟 사이드바 파이프라인 실시간 모니터링 애니메이션 (Live Radar & Pulsing) */
@@ -1764,8 +1793,8 @@ with st.sidebar:
         # Railway 수집 상태 세션 변수 사전 초기화
         from nexusguard.collectors.team_collector import set_railway_collection_enabled, is_railway_collection_enabled
         if "railway_collection_active" not in st.session_state:
-            st.session_state["railway_collection_active"] = True
-            set_railway_collection_enabled(True)
+            st.session_state["railway_collection_active"] = False
+            set_railway_collection_enabled(False)
         if "sb_railway_toggle" not in st.session_state:
             st.session_state["sb_railway_toggle"] = st.session_state["railway_collection_active"]
         if "view_railway_collection_toggle" not in st.session_state:
@@ -2857,7 +2886,7 @@ if menu == "종합 관제":
             <div class="bento-ring-card" style="border-left: 3px solid rgba(255, 107, 107, 0.7); box-shadow: 0 8px 32px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.06), -4px 0 20px rgba(255,107,107,0.08);">
                 <div style="min-width:0; overflow:hidden;">
                     <div style="font-size:12.5px; font-weight:700; color:#fca5a5; text-transform:uppercase; letter-spacing:0.8px; margin-bottom:8px; white-space:nowrap;">
-                        🚨 긴급·고위험
+                        🔴 긴급·고위험
                     </div>
                     <div style="font-size:36px; font-weight:800; color:#ffffff; line-height:1.1; background:linear-gradient(135deg,#ffffff 0%,#ff8591 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; {crit_pulse}">
                         {crit_high_count}
@@ -2875,7 +2904,7 @@ if menu == "종합 관제":
             <div class="bento-ring-card" style="border-left: 3px solid rgba(245, 158, 11, 0.7); box-shadow: 0 8px 32px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.06), -4px 0 20px rgba(245,158,11,0.08);">
                 <div style="min-width:0; overflow:hidden;">
                     <div style="font-size:12.5px; font-weight:700; color:#fde047; text-transform:uppercase; letter-spacing:0.8px; margin-bottom:8px; white-space:nowrap;">
-                        👁️ 선제 관찰
+                        🟡 선제 관찰
                     </div>
                     <div style="font-size:36px; font-weight:800; color:#ffffff; line-height:1.1; background:linear-gradient(135deg,#ffffff 0%,#fbbf24 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; filter:drop-shadow(0 0 12px rgba(245,158,11,0.3));">
                         {watch_count}
@@ -2883,12 +2912,7 @@ if menu == "종합 관제":
                     <div style="font-size:12px; color:#94a3b8; margin-top:6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{len(active_watch)}명 승격 추적 중 (30분 TTL)</div>
                 </div>
                 <div style="flex-shrink:0; width:68px; height:68px; display:flex; align-items:center; justify-content:center;">
-                    <svg width="68" height="68" viewBox="0 0 68 68">
-                        <circle cx="34" cy="34" r="26" stroke="rgba(255,255,255,0.08)" stroke-width="6" fill="none" />
-                        <circle cx="34" cy="34" r="26" stroke="#fbbf24" stroke-width="6" fill="none"
-                                stroke-dasharray="163.3" stroke-dashoffset="{watch_offset}" stroke-linecap="round"
-                                transform="rotate(-90 34 34)" style="filter:drop-shadow(0 0 8px rgba(251,191,36,0.6));" />
-                    </svg>
+                    <span style="font-size:10.5px; font-weight:700; color:#fbbf24; background:rgba(245,158,11,0.15); border:1px solid rgba(245,158,11,0.35); padding:5px 10px; border-radius:9999px; letter-spacing:0.5px; white-space:nowrap;">WATCH</span>
                 </div>
             </div>
         """, unsafe_allow_html=True)
@@ -2906,18 +2930,7 @@ if menu == "종합 관제":
                     <div style="font-size:12px; color:#94a3b8; margin-top:6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">총 {normal_count}건 사내 인가 트래픽</div>
                 </div>
                 <div style="flex-shrink:0; width:68px; height:68px; display:flex; align-items:center; justify-content:center;">
-                    <svg width="68" height="68" viewBox="0 0 68 68">
-                        <defs>
-                            <linearGradient id="ringGradGreen3" x1="0%" y1="0%" x2="100%" y2="100%">
-                                <stop offset="0%" stop-color="#34d399" />
-                                <stop offset="100%" stop-color="#10b981" />
-                            </linearGradient>
-                        </defs>
-                        <circle cx="34" cy="34" r="26" stroke="rgba(255,255,255,0.08)" stroke-width="6" fill="none" />
-                        <circle cx="34" cy="34" r="26" stroke="url(#ringGradGreen3)" stroke-width="6" fill="none"
-                                stroke-dasharray="163.3" stroke-dashoffset="{normal_offset}" stroke-linecap="round"
-                                transform="rotate(-90 34 34)" style="filter:drop-shadow(0 0 8px rgba(16,185,129,0.6));" />
-                    </svg>
+                    <span style="font-size:10.5px; font-weight:700; color:#34d399; background:rgba(16,185,129,0.15); border:1px solid rgba(16,185,129,0.35); padding:5px 10px; border-radius:9999px; letter-spacing:0.5px; white-space:nowrap;">NORMAL</span>
                 </div>
             </div>
         """, unsafe_allow_html=True)
@@ -3201,24 +3214,24 @@ elif menu == "킬체인 분석":
             Severity.LOW: "inc-summary-low"
         }.get(target_inc.severity, "inc-summary-high")
 
-        badge_label = {
-            Severity.CRITICAL: "🔴 CRITICAL",
-            Severity.HIGH: "🔴 HIGH",
-            Severity.MEDIUM: "🟡 WATCH",
-            Severity.LOW: "🟢 NORMAL"
-        }.get(target_inc.severity, "⚪ UNKNOWN")
+        badge_meta = {
+            Severity.CRITICAL: {"label": "🔴 CRITICAL", "bg": "rgba(220, 38, 38, 0.35)", "border": "#dc2626", "color": "#fecaca"},
+            Severity.HIGH: {"label": "🔴 HIGH", "bg": "rgba(239, 68, 68, 0.35)", "border": "#ef4444", "color": "#fee2e2"},
+            Severity.MEDIUM: {"label": "🟡 WATCH", "bg": "rgba(245, 158, 11, 0.3)", "border": "#f59e0b", "color": "#fef08a"},
+            Severity.LOW: {"label": "🟢 NORMAL", "bg": "rgba(16, 185, 129, 0.3)", "border": "#10b981", "color": "#a7f3d0"}
+        }.get(target_inc.severity, {"label": "⚪ UNKNOWN", "bg": "rgba(100, 116, 139, 0.3)", "border": "#64748b", "color": "#e2e8f0"})
 
         st.markdown(f"""
         <div class="{summary_class}">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
                 <span style="font-size:15px; font-weight:800; color:#ffffff;">
                     [{target_inc.incident_id}] {target_inc.title}
                 </span>
-                <span style="font-size:12px; font-weight:700; padding:2px 8px; border-radius:4px; background:rgba(0,0,0,0.35);">
-                    {badge_label} ({target_inc.score}점)
+                <span style="font-size:12px; font-weight:700; padding:3px 10px; border-radius:6px; background:{badge_meta['bg']}; border:1px solid {badge_meta['border']}; color:{badge_meta['color']}; box-shadow:0 2px 6px rgba(0,0,0,0.25);">
+                    {badge_meta['label']} ({target_inc.score}점)
                 </span>
             </div>
-            <div style="font-size:13px; line-height:1.5;">
+            <div style="font-size:13px; line-height:1.6;">
                 {target_inc.summary}
             </div>
         </div>
@@ -3633,8 +3646,8 @@ elif menu == "중앙 서버 파이프라인":
     # Railway 수집 활성화 여부
     from nexusguard.collectors.team_collector import set_railway_collection_enabled, is_railway_collection_enabled
     if "railway_collection_active" not in st.session_state:
-        st.session_state["railway_collection_active"] = True
-        set_railway_collection_enabled(True)
+        st.session_state["railway_collection_active"] = False
+        set_railway_collection_enabled(False)
     if "sb_railway_toggle" not in st.session_state:
         st.session_state["sb_railway_toggle"] = st.session_state["railway_collection_active"]
     if "view_railway_collection_toggle" not in st.session_state:
@@ -3745,8 +3758,7 @@ elif menu == "중앙 서버 파이프라인":
             </div>
             """, unsafe_allow_html=True)
 
-        st.markdown("<br>", unsafe_allow_html=True)
-
+        st.markdown("---")
         st.markdown("### 🌐 Railway 중앙 서버 수집 이벤트")
         st.caption("각 PC에서 `NexusGuardAgent.exe` 및 Chrome 확장 프로그램(`Upload Detector`)이 사이트 접속(WEB_ACCESS) 및 파일 첨부 시도(FILE_UPLOAD_ATTEMPT)를 실시간 감지하여 중앙 서버에 전송한 실제 데이터입니다.")
 
@@ -3771,12 +3783,13 @@ elif menu == "중앙 서버 파이프라인":
                 if field not in df_rly:
                     df_rly[field] = "unknown"
                 df_rly[field] = df_rly[field].fillna("unknown").astype(str)
-            st.markdown("#### 🖥️ PC·IP별 수집 내역")
-            summary = df_rly.groupby(["pc_name", "local_ip"], dropna=False).agg(
-                log_count=("event_time", "size"), last_event=("event_time", "max")
-            ).reset_index().rename(columns={"pc_name":"PC 이름", "local_ip":"로컬 IP", "log_count":"조회된 건수", "last_event":"마지막 발생 시각 (한국)"})
-            st.dataframe(summary, hide_index=True, use_container_width=True)
-            st.caption("PC 이름이 같을 수 있으므로 IP도 함께 확인하세요. 내부 IP도 네트워크마다 중복될 수 있습니다.")
+            with st.container(border=True):
+                st.markdown("<div style='font-size:15px; font-weight:700; color:#f8fafc; margin-bottom:8px;'>🖥️ PC·IP별 수집 내역</div>", unsafe_allow_html=True)
+                summary = df_rly.groupby(["pc_name", "local_ip"], dropna=False).agg(
+                    log_count=("event_time", "size"), last_event=("event_time", "max")
+                ).reset_index().rename(columns={"pc_name":"PC 이름", "local_ip":"로컬 IP", "log_count":"조회된 건수", "last_event":"마지막 발생 시각 (한국)"})
+                st.dataframe(summary, hide_index=True, use_container_width=True)
+                st.caption("PC 이름이 같을 수 있으므로 IP도 함께 확인하세요. 내부 IP도 네트워크마다 중복될 수 있습니다.")
             ip_options = ["전체"] + sorted(df_rly["local_ip"].unique().tolist())
             if st.session_state.get("pipeline_ip_filter") not in ip_options:
                 st.session_state["pipeline_ip_filter"] = "전체"
