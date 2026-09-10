@@ -1333,33 +1333,71 @@ st.markdown("""
         display: flex !important;
         align-items: flex-end !important;
         justify-content: space-between !important;
-        height: 90px !important;
-        padding: 10px 6px 0 6px !important;
-        gap: 8px !important;
+        height: 135px !important;
+        padding: 10px 30px 10px 30px !important;
+        gap: 12px !important;
     }
     .bento-bar-col {
         display: flex !important;
         flex-direction: column !important;
         align-items: center !important;
-        gap: 8px !important;
+        justify-content: flex-end !important;
+        height: 100% !important;
         flex: 1 !important;
+        position: relative !important;
+        cursor: pointer !important;
+        padding-bottom: 2px !important;
+    }
+    .bento-bar-badge {
+        font-size: 11px !important;
+        font-weight: 800 !important;
+        color: #38bdf8 !important;
+        background: rgba(14, 165, 233, 0.22) !important;
+        border: 1px solid rgba(56, 189, 248, 0.55) !important;
+        padding: 3px 8px !important;
+        border-radius: 6px !important;
+        margin-bottom: 8px !important;
+        white-space: nowrap !important;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5) !important;
+        opacity: 0 !important;
+        visibility: hidden !important;
+        transform: translateY(6px) !important;
+        transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
+        pointer-events: none !important;
+    }
+    /* 🌟 마우스 호버 시 건수 팝업 뱃지 즉시 표출 및 부드러운 플로팅 애니메이션 */
+    .bento-bar-col:hover .bento-bar-badge {
+        opacity: 1 !important;
+        visibility: visible !important;
+        transform: translateY(0) !important;
     }
     .bento-bar-capsule {
         width: 14px !important;
         border-radius: 9999px !important;
         background: linear-gradient(180deg, #38bdf8 0%, #1e40af 100%) !important;
-        box-shadow: 0 0 10px rgba(56, 189, 248, 0.4) !important;
-        transition: all 0.3s ease !important;
+        box-shadow: 0 0 10px rgba(56, 189, 248, 0.35) !important;
+        transition: all 0.25s ease !important;
     }
     .bento-bar-capsule.active {
         background: linear-gradient(180deg, #60a5fa 0%, #3b82f6 100%) !important;
         box-shadow: 0 0 16px rgba(96, 165, 250, 0.7) !important;
-        position: relative !important;
+    }
+    .bento-bar-col:hover .bento-bar-capsule {
+        background: linear-gradient(180deg, #67e8f9 0%, #38bdf8 50%, #2563eb 100%) !important;
+        box-shadow: 0 0 20px rgba(56, 189, 248, 0.85), 0 0 8px #ffffff !important;
+        transform: scaleY(1.06) !important;
+        transform-origin: bottom !important;
     }
     .bento-bar-label {
-        font-size: 11px !important;
-        color: #64748b !important;
+        font-size: 11.5px !important;
+        color: #94a3b8 !important;
         font-weight: 600 !important;
+        margin-top: 8px !important;
+        transition: color 0.2s ease !important;
+    }
+    .bento-bar-col:hover .bento-bar-label {
+        color: #38bdf8 !important;
+        font-weight: 800 !important;
     }
 
     /* 단축키 / 거버넌스 퀵 액션 타일 그리드 */
@@ -2884,25 +2922,27 @@ if menu == "종합 관제":
 
     # 1. 실제 수집 이벤트 기반 요일별 통계 계산
     days_order = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
-    counts_by_day = {d: 1 for d in days_order}
-    for ev in ctx.correlation_engine.event_buffer:
+    all_events = ctx.initial_events if hasattr(ctx, "initial_events") and ctx.initial_events else ctx.correlation_engine.event_buffer
+    counts_by_day = {d: 0 for d in days_order}
+    for ev in all_events:
         d_name = ev.timestamp.strftime("%a")
         if d_name in counts_by_day:
             counts_by_day[d_name] += 1
-    max_day = max(counts_by_day, key=counts_by_day.get)
-    max_count = counts_by_day[max_day]
+    max_day = max(counts_by_day, key=counts_by_day.get) if counts_by_day else "Wed"
+    max_count = max(counts_by_day.values()) if counts_by_day else 1
+    if max_count == 0:
+        max_count = 1
 
     bars_html = []
     for d in days_order:
         c = counts_by_day[d]
-        h_px = max(24, min(86, int((c / max(1, max_count)) * 82)))
-        is_active = (d == max_day)
+        h_px = 16 if c == 0 else max(24, min(86, int((c / max_count) * 82)))
+        is_active = (d == max_day and c > 0)
         active_cls = " active" if is_active else ""
-        badge_html = f"<div style='font-size:11.5px; font-weight:800; color:#38bdf8; background:rgba(56,189,248,0.18); border:1px solid rgba(56,189,248,0.4); padding:3px 10px; border-radius:6px; margin-bottom:10px; white-space:nowrap;'>{c}건</div>" if is_active else "<div style='height:28px;'></div>"
-        label_style = "color:#38bdf8; font-weight:800; font-size:12.5px; margin-top:10px;" if is_active else "color:#94a3b8; font-weight:600; font-size:12px; margin-top:10px;"
+        label_style = "color:#38bdf8; font-weight:800;" if is_active else ""
         bars_html.append(
-            f'<div class="bento-bar-col">'
-            f'{badge_html}'
+            f'<div class="bento-bar-col{active_cls}" title="{d}요일: {c}건의 보안 이벤트">'
+            f'<div class="bento-bar-badge">{c}건</div>'
             f'<div class="bento-bar-capsule{active_cls}" style="height:{h_px}px;"></div>'
             f'<span class="bento-bar-label" style="{label_style}">{d}</span>'
             f'</div>'
@@ -2914,7 +2954,7 @@ if menu == "종합 관제":
         f'<span style="font-size:15px; font-weight:700; color:#f1f5f9; display:flex; align-items:center; gap:8px;"><span>📊</span> 주간 보안 이벤트 추이 (Weekly Activity)</span>'
         f'<span style="font-size:12px; color:#38bdf8; background:rgba(56,189,248,0.12); padding:4px 14px; border-radius:14px; border:1px solid rgba(56,189,248,0.3); font-weight:600;">총 {sum(counts_by_day.values())}건 수집</span>'
         f'</div>'
-        f'<div class="bento-capsule-chart" style="padding:10px 40px 10px 40px; height:140px; display:flex; align-items:flex-end; justify-content:space-between;">'
+        f'<div class="bento-capsule-chart">'
         f'{"".join(bars_html)}'
         f'</div>'
         f'</div>',
