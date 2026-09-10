@@ -421,18 +421,20 @@ st.markdown("""
 
     /* 뱃지 */
     .badge {
-        padding: 3px 8px !important;
+        padding: 2px 8px !important;
         border-radius: 6px !important;
-        font-size: 11.5px !important;
+        font-size: 11px !important;
         font-weight: 700 !important;
         display: inline-flex !important;
         align-items: center !important;
         justify-content: center !important;
         white-space: nowrap !important;
         letter-spacing: -0.2px !important;
-        line-height: 1.35 !important;
+        line-height: 1.2 !important;
         box-sizing: border-box !important;
         max-width: 100% !important;
+        height: 24px !important;
+        min-height: 24px !important;
     }
     .badge-critical { background: #5b2028; color: #ff9aa4; border: 1px solid #ff5b6b; }
     .badge-high { background: #4d232a; color: #ff8591; border: 1px solid #ff7b88; }
@@ -863,18 +865,30 @@ st.markdown("""
         color: #93c5fd !important;
         border: 1px solid #233857 !important;
         white-space: nowrap !important;
+        height: 24px !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
     }
     .badge-status-approved {
         background: #064e3b !important;
         color: #6ee7b7 !important;
         border: 1px solid #059669 !important;
         white-space: nowrap !important;
+        height: 24px !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
     }
     .badge-status-blocked {
         background: #3f1519 !important;
         color: #fca5a5 !important;
         border: 1px solid #7f1d1d !important;
         white-space: nowrap !important;
+        height: 24px !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
     }
 
     /* 🌟 거버넌스 테이블 - 중앙 서버 파이프라인 스타일 데이터프레임 박스 & 고정 헤더 */
@@ -885,7 +899,7 @@ st.markdown("""
         box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35) !important;
         overflow-x: auto !important;
         overflow-y: auto !important;
-        max-height: 560px !important;
+        max-height: 640px !important;
         margin-top: 8px !important;
         padding: 0 !important;
     }
@@ -905,9 +919,14 @@ st.markdown("""
     }
 
     div[class*="st-key-gov_table_box"] div[data-testid="stHorizontalBlock"] {
-        min-width: 950px !important;
-        gap: 6px !important;
+        min-width: 1020px !important;
+        gap: 8px !important;
         align-items: center !important;
+    }
+
+    div[class*="st-key-gov_table_box"] div[data-testid="stHorizontalBlock"] > div {
+        min-width: 0 !important;
+        box-sizing: border-box !important;
     }
 
     /* 상단 고정 헤더 (스크롤 시에도 상단 고정) */
@@ -972,16 +991,31 @@ st.markdown("""
         background-color: rgba(30, 41, 59, 0.45) !important;
     }
 
-    /* 컬럼 최소 너비 보장 가드 */
+    /* 컬럼별 최소 너비 보장 가드 (좁은 화면에서도 텍스트 찌그러짐 방지) */
+    div[class*="st-key-gov_table_box"] div[data-testid="stHorizontalBlock"] > div:nth-child(1) {
+        min-width: 160px !important;
+    }
     div[class*="st-key-gov_table_box"] div[data-testid="stHorizontalBlock"] > div:nth-child(2) {
         min-width: 75px !important;
     }
     div[class*="st-key-gov_table_box"] div[data-testid="stHorizontalBlock"] > div:nth-child(3) {
         min-width: 105px !important;
     }
+    div[class*="st-key-gov_table_box"] div[data-testid="stHorizontalBlock"] > div:nth-child(4) {
+        min-width: 85px !important;
+    }
+    div[class*="st-key-gov_table_box"] div[data-testid="stHorizontalBlock"] > div:nth-child(5) {
+        min-width: 60px !important;
+    }
+    div[class*="st-key-gov_table_box"] div[data-testid="stHorizontalBlock"] > div:nth-child(6) {
+        min-width: 100px !important;
+    }
+    div[class*="st-key-gov_table_box"] div[data-testid="stHorizontalBlock"] > div:nth-child(7) {
+        min-width: 270px !important;
+    }
     div[class*="st-key-gov_table_box"] div[data-testid="stHorizontalBlock"] > div:nth-child(8),
     div[class*="st-key-gov_table_box"] div[data-testid="stHorizontalBlock"] > div:nth-child(9) {
-        min-width: 60px !important;
+        min-width: 58px !important;
     }
 
     /* 🌟 승인 버튼 - 선명하고 품격 있는 에메랄드 그린 강조 */
@@ -3369,16 +3403,30 @@ elif menu == "AI·IT 거버넌스":
 
     sorted_assets = sorted(shadow_assets, key=get_gov_sort_val, reverse=is_desc)
 
-    # 🌟 상단 요약 바 & 길이 조절 & 빠른 검색
-    col_top_l, col_top_m, col_top_r = st.columns([2.8, 0.9, 1.3], vertical_alignment="center")
+    # 🌟 상단 요약 바 & 행 길이 조절 & 열/문구 맞춤 모드 & 빠른 검색
+    col_top_l, col_top_m, col_top_v, col_top_r = st.columns([2.0, 1.1, 1.3, 1.3], vertical_alignment="center")
     with col_top_l:
         st.markdown(f"""
         <div style="font-size: 13px; color: #94a3b8; padding: 4px 0;">
-            총 <b style="color: #38bdf8;">{len(sorted_assets)}개</b> 감지된 외부 클라우드 / AI 서비스 · <span style="color: #cbd5e1;">각 열 헤더 클릭으로 정렬</span>
+            총 <b style="color: #38bdf8;">{len(shadow_assets)}개</b> 감지된 외부 클라우드 / AI 서비스 · <span style="color: #cbd5e1;">각 열 헤더 클릭으로 정렬</span>
         </div>
         """, unsafe_allow_html=True)
     with col_top_m:
-        gov_page_limit = st.selectbox("표시 길이", [10, 20, 50, "전체"], index=1, key="gov_page_limit", label_visibility="collapsed", help="테이블에 표시할 행 개수(길이)를 조절합니다.")
+        gov_page_limit = st.selectbox(
+            "행 길이 (표시 개수)", 
+            [5, 10, 20, 30, "전체"], 
+            index=2, 
+            key="gov_page_limit", 
+            help="테이블에 한 번에 표시할 행의 길이(개수)를 조절합니다."
+        )
+    with col_top_v:
+        gov_view_mode = st.selectbox(
+            "열/문구 맞춤 모드",
+            ["표준 맞춤 (자동 줄바꿈)", "컴팩트 (1줄 요약)", "AI 소견 와이드 (상세)"],
+            index=0,
+            key="gov_view_mode",
+            help="열 넓이에 따라 문구가 자동으로 맞춰지며, 텍스트와 도형의 겹침을 방지합니다."
+        )
     with col_top_r:
         search_gov = st.text_input("🔍 도메인 검색", placeholder="도메인/서비스 검색...", label_visibility="collapsed", key="gov_quick_search")
 
@@ -3388,8 +3436,13 @@ elif menu == "AI·IT 거버넌스":
     if gov_page_limit != "전체":
         sorted_assets = sorted_assets[:int(gov_page_limit)]
 
-    # 🌟 테이블 렌더링 (글자 잘림/겹침 방지 및 반응형 너비 최적화)
-    col_widths = [1.85, 0.75, 1.05, 0.95, 0.65, 1.0, 2.35, 0.7, 0.7]
+    # 🌟 뷰 모드에 따른 열 너비 비율 최적화 (글자 잘림/도형 겹침 원천 방지)
+    if gov_view_mode == "AI 소견 와이드 (상세)":
+        col_widths = [1.6, 0.8, 1.15, 0.85, 0.55, 1.0, 3.3, 0.65, 0.65]
+    elif gov_view_mode == "컴팩트 (1줄 요약)":
+        col_widths = [1.8, 0.8, 1.15, 0.9, 0.6, 1.05, 2.7, 0.65, 0.65]
+    else:  # 표준 맞춤 (2줄 자동 줄바꿈)
+        col_widths = [1.7, 0.8, 1.15, 0.9, 0.6, 1.05, 2.95, 0.65, 0.65]
 
     with st.container(key="gov_table_box"):
         # 상단 고정 헤더 행 (Sticky Header)
@@ -3426,11 +3479,11 @@ elif menu == "AI·IT 거버넌스":
                     toggle_gov_sort("frequency")
                     st.rerun()
             with h7:
-                st.markdown("<div style='text-align: center; color: #94a3b8; font-size: 12px; font-weight: 700; padding: 6px 0;'>Gemini AI 진단 소견</div>", unsafe_allow_html=True)
+                st.markdown("<div style='text-align: center; color: #94a3b8; font-size: 12px; font-weight: 700; height: 36px; display: flex; align-items: center; justify-content: center;'>Gemini AI 진단 소견</div>", unsafe_allow_html=True)
             with h8:
-                st.markdown("<div style='text-align: center; color: #10b981; font-size: 12px; font-weight: 700; padding: 6px 0;'>승인</div>", unsafe_allow_html=True)
+                st.markdown("<div style='text-align: center; color: #10b981; font-size: 12px; font-weight: 700; height: 36px; display: flex; align-items: center; justify-content: center;'>승인</div>", unsafe_allow_html=True)
             with h9:
-                st.markdown("<div style='text-align: center; color: #ef4444; font-size: 12px; font-weight: 700; padding: 6px 0;'>차단</div>", unsafe_allow_html=True)
+                st.markdown("<div style='text-align: center; color: #ef4444; font-size: 12px; font-weight: 700; height: 36px; display: flex; align-items: center; justify-content: center;'>차단</div>", unsafe_allow_html=True)
 
         # 데이터 행 렌더링
         if not sorted_assets:
@@ -3456,64 +3509,102 @@ elif menu == "AI·IT 거버넌스":
 
                 with c1:
                     st.markdown(f"""
-                    <div style="line-height: 1.35; padding: 2px 0; word-break: break-word;">
-                        <b style="color: #ffffff; font-size: 14px;">{asset.domain}</b><br>
-                        <span style="color: #94a3b8; font-size: 11.5px; word-break: keep-all;">{asset.service_name} · {asset.category}</span>
+                    <div style="line-height: 1.35; padding: 2px 0; min-width: 0; overflow: hidden; word-break: break-all;">
+                        <b style="color: #ffffff; font-size: 13.5px; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{asset.domain}">{asset.domain}</b>
+                        <span style="color: #94a3b8; font-size: 11px; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 2px;" title="{asset.service_name} · {asset.category}">{asset.service_name} · {asset.category}</span>
                     </div>
                     """, unsafe_allow_html=True)
 
                 with c2:
                     st.markdown(f"""
-                    <div style="display: flex; justify-content: center; align-items: center; width: 100%;">
-                        <span class="badge {badge_style}" style="white-space: nowrap; font-size: 11.5px; padding: 4px 8px;">{asset.risk_level.value}</span>
+                    <div style="display: flex; justify-content: center; align-items: center; width: 100%; min-width: 0;">
+                        <span class="badge {badge_style}" style="white-space: nowrap; font-size: 11px; padding: 3px 6px; letter-spacing: 0.5px;">{asset.risk_level.value}</span>
                     </div>
                     """, unsafe_allow_html=True)
 
                 with c3:
                     st.markdown(f"""
-                    <div style="display: flex; justify-content: center; align-items: center; width: 100%;">
-                        <span class="badge {status_style}" style="white-space: nowrap; font-size: 11.5px; padding: 4px 8px;">{status_text}</span>
+                    <div style="display: flex; justify-content: center; align-items: center; width: 100%; min-width: 0;">
+                        <span class="badge {status_style}" style="white-space: nowrap; font-size: 11px; padding: 3px 6px;">{status_text}</span>
                     </div>
                     """, unsafe_allow_html=True)
 
                 with c4:
                     st.markdown(f"""
-                    <div style="line-height: 1.3; white-space: nowrap;">
-                        <b style="color: #38bdf8; font-size: 13.5px;">{conn_count}건</b> <span style="color: #94a3b8; font-size: 11.5px;">({device_count}개 기기)</span>
+                    <div style="line-height: 1.25; min-width: 0; overflow: hidden; text-align: center;">
+                        <b style="color: #38bdf8; font-size: 13px;">{conn_count}건</b>
+                        <div style="color: #94a3b8; font-size: 10.5px; white-space: nowrap;">({device_count}개 기기)</div>
                     </div>
                     """, unsafe_allow_html=True)
 
                 with c5:
                     st.markdown(f"""
-                    <div style="line-height: 1.2; white-space: nowrap;">
-                        <b style="color: #f8fafc; font-size: 13.5px;">{asset.user_count}명</b><br>
-                        <span style="color: #94a3b8; font-size: 10.5px;">(User)</span>
+                    <div style="line-height: 1.2; min-width: 0; overflow: hidden; text-align: center;">
+                        <b style="color: #f8fafc; font-size: 13px;">{asset.user_count}명</b>
+                        <div style="color: #94a3b8; font-size: 10px;">(User)</div>
                     </div>
                     """, unsafe_allow_html=True)
 
                 with c6:
                     raw_freq = asset.usage_frequency or ""
-                    # "실시간" 문구 완전 제거하고 빈도만 표시
-                    clean_freq = raw_freq.replace("신규 실시간 분석", "분석").replace("실시간 ", "").replace("실시간", "").strip()
-                    if not clean_freq or clean_freq in ["감지", "빈번", "급증"]:
-                        if "급증" in raw_freq:
-                            freq_str = f"급증 (누적 {conn_count}건)"
-                        elif "빈번" in raw_freq:
-                            freq_str = f"빈번 (누적 {conn_count}건)"
-                        else:
-                            freq_str = f"누적 {conn_count}건"
+                    # 빈도 태그 추출
+                    if "급증" in raw_freq:
+                        tag_label = "급증"
+                        tag_color = "#fb923c"
+                        tag_bg = "rgba(249, 115, 22, 0.18)"
+                        tag_border = "rgba(249, 115, 22, 0.45)"
+                    elif "빈번" in raw_freq:
+                        tag_label = "빈번"
+                        tag_color = "#f59e0b"
+                        tag_bg = "rgba(245, 158, 11, 0.18)"
+                        tag_border = "rgba(245, 158, 11, 0.45)"
+                    elif "분석" in raw_freq:
+                        tag_label = "분석"
+                        tag_color = "#a855f7"
+                        tag_bg = "rgba(168, 85, 247, 0.18)"
+                        tag_border = "rgba(168, 85, 247, 0.45)"
                     else:
-                        freq_str = clean_freq
+                        tag_label = "감지"
+                        tag_color = "#38bdf8"
+                        tag_bg = "rgba(56, 189, 248, 0.18)"
+                        tag_border = "rgba(56, 189, 248, 0.45)"
+
+                    # 전송 시도 여부 파악
+                    upload_info = ""
+                    if "전송시도" in raw_freq:
+                        import re
+                        m = re.search(r"전송시도\s*(\d+)건", raw_freq)
+                        if m:
+                            upload_info = f"전송 {m.group(1)}건"
+                        else:
+                            upload_info = "전송 감지"
+
+                    sub_detail = f"누적 {conn_count}건" + (f" · <span style='color:#f87171; font-weight:700;'>{upload_info}</span>" if upload_info else "")
+
                     st.markdown(f"""
-                    <div style="white-space: nowrap;">
-                        <span style="color: #fb923c; font-weight: 700; font-size: 12.5px;">{freq_str}</span>
+                    <div style="line-height: 1.25; min-width: 0; overflow: hidden; text-align: center;">
+                        <span style="background: {tag_bg}; color: {tag_color}; border: 1px solid {tag_border}; border-radius: 4px; padding: 2px 7px; font-weight: 700; font-size: 11px; display: inline-block;">{tag_label}</span>
+                        <div style="color: #94a3b8; font-size: 10.5px; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="누적 {conn_count}건{' / ' + upload_info if upload_info else ''}">
+                            {sub_detail}
+                        </div>
                     </div>
                     """, unsafe_allow_html=True)
 
                 with c7:
+                    # 열 넓이에 따라 자동 조절되는 텍스트 클램프 스타일
+                    if gov_view_mode == "컴팩트 (1줄 요약)":
+                        diag_clamp = "white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"
+                    elif gov_view_mode == "AI 소견 와이드 (상세)":
+                        diag_clamp = "word-break: break-word; overflow-wrap: anywhere; line-height: 1.45;"
+                    else:  # 표준 맞춤 (2줄 자동 줄바꿈)
+                        diag_clamp = "display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; word-break: break-word; overflow-wrap: anywhere; line-height: 1.4;"
+
                     st.markdown(f"""
-                    <div style="color: #fef08a; font-size: 11.5px; line-height: 1.45; padding-right: 6px; word-break: keep-all;">
-                        💡 {asset.ai_diagnosis}
+                    <div style="display: flex; align-items: flex-start; gap: 6px; width: 100%; min-width: 0; overflow: hidden; padding-right: 4px;" title="{asset.ai_diagnosis}">
+                        <span style="flex-shrink: 0; font-size: 13px; line-height: 1.35; user-select: none;">💡</span>
+                        <div style="color: #fef08a; font-size: 11.5px; flex: 1; min-width: 0; {diag_clamp}">
+                            {asset.ai_diagnosis}
+                        </div>
                     </div>
                     """, unsafe_allow_html=True)
 
