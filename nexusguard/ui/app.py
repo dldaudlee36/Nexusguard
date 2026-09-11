@@ -3760,7 +3760,7 @@ elif menu == "중앙 서버 파이프라인":
 
         st.markdown("---")
         st.markdown("### 🌐 Railway 중앙 서버 수집 이벤트")
-        st.caption("각 PC에서 `NexusGuardAgent.exe` 및 Chrome 확장 프로그램(`Upload Detector`)이 사이트 접속(WEB_ACCESS) 및 파일 첨부 시도(FILE_UPLOAD_ATTEMPT)를 실시간 감지하여 중앙 서버에 전송한 실제 데이터입니다.")
+        st.caption("각 PC에서 `NexusGuardAgent.exe` 및 Chrome 확장 프로그램(`Upload Detector`)이 사이트 접속(WEB_ACCESS), 파일 첨부 시도(FILE_UPLOAD_ATTEMPT), 텍스트 붙여넣기(PASTE_ATTEMPT)를 실시간 감지하여 중앙 서버에 전송한 실제 데이터입니다.")
 
         col_btn_ref, _ = st.columns([1, 6])
         with col_btn_ref:
@@ -3776,6 +3776,8 @@ elif menu == "중앙 서버 파이프라인":
             st.error("Railway 조회에 실패했습니다. 아래 로그는 마지막 조회에 성공했을 때의 기록입니다. 인터넷 연결과 API 설정을 확인하세요.")
 
         if r_events:
+            paste_count = sum(1 for event in r_events if event.get("event_type") == "PASTE_ATTEMPT")
+            st.caption(f"텍스트 붙여넣기 {paste_count}건 · 본문은 수집하지 않습니다. 붙여넣기는 전송 완료 또는 유출 확정을 뜻하지 않습니다.")
             df_rly = pd.DataFrame(r_events)
             event_times = pd.to_datetime(df_rly["event_time"], format="mixed", utc=True, errors="coerce")
             df_rly["event_time"] = event_times.dt.tz_convert("Asia/Seoul").dt.strftime("%Y-%m-%d %H:%M:%S").fillna("시각 확인 불가")
@@ -3790,14 +3792,25 @@ elif menu == "중앙 서버 파이프라인":
                 ).reset_index().rename(columns={"pc_name":"PC 이름", "local_ip":"로컬 IP", "log_count":"조회된 건수", "last_event":"마지막 발생 시각 (한국)"})
                 st.dataframe(summary, hide_index=True, use_container_width=True)
                 st.caption("PC 이름이 같을 수 있으므로 IP도 함께 확인하세요. 내부 IP도 네트워크마다 중복될 수 있습니다.")
-            ip_options = ["전체"] + sorted(df_rly["local_ip"].unique().tolist())
-            if st.session_state.get("pipeline_ip_filter") not in ip_options:
-                st.session_state["pipeline_ip_filter"] = "전체"
-            selected_ip = st.selectbox("로컬 IP로 로그 골라 보기", ip_options, key="pipeline_ip_filter")
-            if selected_ip != "전체":
-                df_rly = df_rly[df_rly["local_ip"] == selected_ip]
 
-            cols_order = [c for c in ["id", "event_time", "user_name", "pc_name", "local_ip", "event_type", "target", "file_name", "file_size_formatted", "source", "risk_score"] if c in df_rly.columns]
+            col_filter1, col_filter2 = st.columns(2)
+            with col_filter1:
+                ip_options = ["전체"] + sorted(df_rly["local_ip"].unique().tolist())
+                if st.session_state.get("pipeline_ip_filter") not in ip_options:
+                    st.session_state["pipeline_ip_filter"] = "전체"
+                selected_ip = st.selectbox("로컬 IP로 로그 골라 보기", ip_options, key="pipeline_ip_filter")
+                if selected_ip != "전체":
+                    df_rly = df_rly[df_rly["local_ip"] == selected_ip]
+
+            with col_filter2:
+                event_options = ["전체"] + sorted(df_rly["event_type"].unique().tolist())
+                if st.session_state.get("pipeline_event_filter") not in event_options:
+                    st.session_state["pipeline_event_filter"] = "전체"
+                selected_event = st.selectbox("이벤트 종류로 로그 골라 보기", event_options, key="pipeline_event_filter")
+                if selected_event != "전체":
+                    df_rly = df_rly[df_rly["event_type"] == selected_event]
+
+            cols_order = [c for c in ["id", "event_time", "user_name", "pc_name", "local_ip", "event_type", "target", "file_name", "file_size_formatted", "text_length", "client_event_time", "source", "risk_score"] if c in df_rly.columns]
             df_display = df_rly[cols_order].rename(columns={
                 "id": "ID",
                 "event_time": "발생 시각 (한국)",
@@ -3808,6 +3821,8 @@ elif menu == "중앙 서버 파이프라인":
                 "target": "대상 사이트",
                 "file_name": "첨부 파일명",
                 "file_size_formatted": "파일 크기",
+                "text_length": "붙여넣기 글자 수",
+                "client_event_time": "브라우저 발생 시각 (UTC)",
                 "source": "수집 소스",
                 "risk_score": "위험 점수"
             })

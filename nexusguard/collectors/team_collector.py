@@ -314,6 +314,8 @@ def fetch_railway_events(timeout: int = 5, force: bool = False) -> List[Dict[str
                 if not source:
                     source = "chrome-extension" if ev_type in ("FILE_UPLOAD_ATTEMPT", "PASTE_ATTEMPT") else "windows-agent"
 
+                client_event_time = item.get("client_event_time") or raw_info.get("client_event_time")
+                item["client_event_time"] = client_event_time
                 item["text_length"] = text_length
                 item["pattern_hits"] = pattern_hits
                 item["file_name"] = file_name
@@ -476,6 +478,7 @@ def get_team_security_events() -> List[SecurityEvent]:
                             "source": source,
                             "text_length": text_length,
                             "pattern_hits": pattern_hits,
+                            "client_event_time": item.get("client_event_time"),
                             "risk_score": item.get("risk_score", 0)
                         }
                     ),

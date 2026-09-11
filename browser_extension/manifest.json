@@ -1,14 +1,18 @@
 {
   "manifest_version": 3,
   "name": "NexusGuard Upload Detector",
-  "version": "1.0",
-  "description": "Detects file selection attempts in the browser.",
-  "permissions": [],
+  "version": "3.1.0",
+  "description": "Sends file selection and text paste metadata through NexusGuard Agent.",
+  "permissions": ["storage"],
+  "host_permissions": ["http://127.0.0.1/*"],
+  "background": {"service_worker": "background.js"},
+  "action": {"default_title": "NexusGuard 연결 상태", "default_popup": "popup.html"},
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
       "js": ["content.js"],
-      "run_at": "document_idle"
+      "run_at": "document_start",
+      "all_frames": true
     }
   ]
 }

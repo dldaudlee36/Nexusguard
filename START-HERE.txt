@@ -1,0 +1,17 @@
+NexusGuard 실행 방법
+
+1. 폴더를 압축 해제합니다.
+2. start-all.bat 을 더블클릭합니다.
+3. Dashboard와 NexusGuardAgent가 함께 실행됩니다.
+4. 브라우저에서 http://127.0.0.1:8501 이 자동으로 열립니다.
+
+Gemini 사용
+- API Key는 소스코드에 넣지 않습니다.
+- dashboard\.env 파일에 아래 한 줄을 추가하세요.
+  GEMINI_API_KEY=본인_키
+- 기존 RAILWAY_API_KEY 줄은 그대로 유지하세요.
+
+오류가 나면
+- launcher-logs\dashboard-error.log
+- launcher-logs\launcher-error.log
+을 확인하세요.
