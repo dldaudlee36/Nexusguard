@@ -1,13 +1,13 @@
-# 🛡️ NexusGuard DB 감사 로그(`mysql.general_log`) 테스트 가이드 & 연동 규격
+# 🛡️ GIGANG DB 감사 로그(`mysql.general_log`) 테스트 가이드 & 연동 규격
 
-> 💡 **문서 개요**: 본 문서는 MySQL Workbench의 `mysql.general_log`를 활용하여 NexusGuard의 **DB 조회 탐지 메커니즘** 및 **2단계 위험 상태 기계(Risk State Machine)**를 테스트하기 위한 실전 가이드입니다. 쿼리 추출 시 발생하는 `BLOB` 문제 해결법, 필수 필드 요건, 권장 파일 포맷(`.csv`)을 상세히 정리했습니다.
+> 💡 **문서 개요**: 본 문서는 MySQL Workbench의 `mysql.general_log`를 활용하여 GIGANG의 **DB 조회 탐지 메커니즘** 및 **2단계 위험 상태 기계(Risk State Machine)**를 테스트하기 위한 실전 가이드입니다. 쿼리 추출 시 발생하는 `BLOB` 문제 해결법, 필수 필드 요건, 권장 파일 포맷(`.csv`)을 상세히 정리했습니다.
 
 ---
 
 ## 📑 목차
 1. [현황 분석: MySQL Workbench 화면 진단과 3대 문제점](#1-현황-분석-mysql-workbench-화면-진단과-3대-문제점)
 2. [테스트용 파일 포맷 비교 및 권장안 (.csv vs .xlsx vs .log)](#2-테스트용-파일-포맷-비교-및-권장안-csv-vs-xlsx-vs-log)
-3. [NexusGuard DB 조회 탐지 및 상관분석 메커니즘](#3-nexusguard-db-조회-탐지-및-상관분석-메커니즘)
+3. [GIGANG DB 조회 탐지 및 상관분석 메커니즘](#3-nexusguard-db-조회-탐지-및-상관분석-메커니즘)
 4. [실전 튜토리얼: 올바른 SQL 쿼리 및 CSV 추출 3단계](#4-실전-튜토리얼-올바른-sql-쿼리-및-csv-추출-3단계)
 5. [테스트 데이터 검증 및 시스템 연동 확인](#5-테스트-데이터-검증-및-시스템-연동-확인)
 
@@ -33,7 +33,7 @@ MySQL의 `mysql.general_log`는 서버에서 실행된 모든 SQL 문장을 실�
 | :--- | :--- | :--- | :--- |
 | **`argument`** | `BLOB` 버튼 표시 | MySQL Workbench가 `mediumtext`/`blob`을 바이너리로 취급하여 쿼리 본문이 감춰짐. Export 시 `SELECT * FROM...` 텍스트가 유실됨 | SQL 조회 시 `CONVERT(argument USING utf8)` 적용 필수 |
 | **조회 대상 테이블** | 불명확 (일반 쿼리) | 탐지 엔진은 `customer_vault`, `corp_strategic_plan` 등 사내 핵심 자산이 조회될 때만 위험도를 승격함 | 테스트용 계정으로 실제 민감 테이블 `SELECT` 쿼리 실행 |
-| **`user_host`** | `test_user @ localhost` | 실제 Windows 에이전트(`NexusGuardAgent.exe`)가 수집하는 계정명(`User` 또는 사내 계정)과 불일치할 경우 상관분석 불가 | 에이전트 단말의 계정명 및 IP와 일치시키거나 매핑 규칙 정의 |
+| **`user_host`** | `test_user @ localhost` | 실제 Windows 에이전트(`GIGANGAgent.exe`)가 수집하는 계정명(`User` 또는 사내 계정)과 불일치할 경우 상관분석 불가 | 에이전트 단말의 계정명 및 IP와 일치시키거나 매핑 규칙 정의 |
 
 ---
 
@@ -41,7 +41,7 @@ MySQL의 `mysql.general_log`는 서버에서 실행된 모든 SQL 문장을 실�
 
 보안 관제 파이프라인 및 테스트 자동화 관점에서 파일 확장자별 장단점은 다음과 같습니다.
 
-| 파일 형식 | 추천도 | 특징 및 장단점 | NexusGuard 적합성 |
+| 파일 형식 | 추천도 | 특징 및 장단점 | GIGANG 적합성 |
 | :---: | :---: | :--- | :--- |
 | **`.csv` (UTF-8)** | ⭐⭐⭐⭐⭐<br>**(최우선 권장)** | • Workbench에서 **[Export] ➔ CSV**로 1초 만에 생성 가능<br>• Python (`pandas`, `csv`)에서 1줄 코드로 고속 파싱 가능<br>• 텍스트 기반이라 Git 버전 관리 및 육안 검증이 매우 용이함 | **적합도 최상 (적극 권장)** |
 | **`.log` (Text Log)** | ⭐⭐⭐⭐<br>**(기본 내장)** | • 현재 `team_collector.py`가 지원하는 `data/activity.log` 형식<br>• `Key=Value` 형태로 SIEM/Syslog 표준과 동일하여 시연 시 리얼리티 우수 | **적합도 우수 (실환경 시연용)** |
@@ -52,9 +52,9 @@ MySQL의 `mysql.general_log`는 서버에서 실행된 모든 SQL 문장을 실�
 
 ---
 
-## 3. NexusGuard DB 조회 탐지 및 상관분석 메커니즘
+## 3. GIGANG DB 조회 탐지 및 상관분석 메커니즘
 
-NexusGuard 상관분석 엔진(`nexusguard/engine/correlation.py`)은 다음 로직에 따라 DB 이벤트를 처리합니다.
+GIGANG 상관분석 엔진(`nexusguard/engine/correlation.py`)은 다음 로직에 따라 DB 이벤트를 처리합니다.
 
 ```mermaid
 flowchart TD
@@ -148,7 +148,7 @@ event_time,user_name,src_ip,action,target_table,query_string,rows_affected
 
 ## 5. 테스트 데이터 검증 및 시스템 연동 확인
 
-생성된 DB 로그가 NexusGuard에서 정상적으로 동작하는지 확인하는 체크리스트입니다.
+생성된 DB 로그가 GIGANG에서 정상적으로 동작하는지 확인하는 체크리스트입니다.
 
 ### ✅ 연동 체크리스트
 - [ ] **쿼리 평문 확인**: 추출된 CSV의 `query_string` 컬럼에 `BLOB` 대신 실제 `SELECT * FROM...` 텍스트가 적혀 있는가?

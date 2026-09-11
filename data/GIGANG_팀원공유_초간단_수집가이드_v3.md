@@ -1,4 +1,4 @@
-# NexusGuard 초간단 사용 가이드
+# GIGANG 초간단 사용 가이드
 
 ## 1. 지금 잡는 로그
 
@@ -49,7 +49,7 @@ event_time
 팀원이 받아야 하는 것은 2개임.
 
 ```text
-NexusGuardAgent.exe
+GIGANGAgent.exe
 browser_extension 폴더
 ```
 
@@ -62,12 +62,12 @@ content.js
 
 ### 4-2. Agent 실행
 
-1. `NexusGuardAgent.exe`를 더블클릭
+1. `GIGANGAgent.exe`를 더블클릭
 2. 검은 창이 열리면 끄지 말고 그대로 켜둠
 3. 정상 실행되면 대략 아래처럼 보임
 
 ```text
-NexusGuard Agent 시작
+GIGANG Agent 시작
 사용자: User
 PC 이름: DESKTOP-XXXX
 로컬 IP: 192.168.x.x
@@ -95,7 +95,7 @@ chrome://extensions/
 4. **압축해제된 확장 프로그램을 로드** 클릭
 5. 전달받은 `browser_extension` 폴더 선택  
    경로 예시: `C:\Users\User\Desktop\guard\browser_extension`
-6. `NexusGuard Upload Detector`가 보이면 설치 완료
+6. `GIGANG Upload Detector`가 보이면 설치 완료
 7. 기존에 열어둔 ChatGPT / Gmail / Gemini 페이지는 **F5 새로고침**
 
 ### 4-4. 파일 첨부 시도 테스트

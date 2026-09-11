@@ -1,5 +1,5 @@
 """
-NexusGuard - Unified Security Operations & Governance Dashboard
+GIGANG - Unified Security Operations & Governance Dashboard
 Zero Trust 기반 다기종 로그 상관분석 & 섀도우 AI 거버넌스 통합 웹 대시보드
 """
 
@@ -46,7 +46,7 @@ _ensure_vivid_search_highlight()
 
 # 1. 페이지 기본 설정
 st.set_page_config(
-    page_title="NexusGuard | 통합 보안 관제",
+    page_title="GIGANG | 통합 보안 관제",
     page_icon="🛡️",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -256,7 +256,7 @@ st.markdown("""
         justify-content: center;
     }
     section[data-testid="stSidebar"] [data-testid="stExpanderIcon"]::after {
-        content: "💡 사내 Shadow AI 기밀 유출 킬체인을 단계별로 실시간 시뮬레이션합니다.\\A👥 팀원 실제 로그 연동 모드 (NexusGuardAgent.exe & activity.log)";
+        content: "💡 사내 Shadow AI 기밀 유출 킬체인을 단계별로 실시간 시뮬레이션합니다.\\A👥 팀원 실제 로그 연동 모드 (GIGANGAgent.exe & activity.log)";
         position: absolute;
         left: 32px;
         top: 50%;
@@ -1721,7 +1721,7 @@ with st.sidebar:
     st.markdown(f"""
     <div style="padding: 10px 0 10px 0;">
         <h2 style="color: #f5f7fb; margin:0; font-size:22px; font-weight:700;">
-            {text_tooltip("NexusGuard", "NexusGuard XDR Platform", "이기종 다차원 로그 상관분석 & 섀도우 AI 거버넌스 자동화 시스템")}
+            {text_tooltip("GIGANG", "GIGANG XDR Platform", "이기종 다차원 로그 상관분석 & 섀도우 AI 거버넌스 자동화 시스템")}
         </h2>
     </div>
     """, unsafe_allow_html=True)
@@ -1763,7 +1763,7 @@ with st.sidebar:
                 const pDoc = window.parent.document;
                 const icon = pDoc.querySelector('[data-testid="stExpanderIcon"]');
                 const summary = icon ? icon.closest('summary') : null;
-                const tip = "사내 Shadow AI 기밀 유출 킬체인을 단계별로 실시간 시뮬레이션합니다. (팀원 실제 로그 연동 모드: NexusGuardAgent.exe & activity.log)";
+                const tip = "사내 Shadow AI 기밀 유출 킬체인을 단계별로 실시간 시뮬레이션합니다. (팀원 실제 로그 연동 모드: GIGANGAgent.exe & activity.log)";
                 if (icon) {
                     icon.setAttribute('title', tip);
                     icon.style.cursor = 'help';
@@ -2060,7 +2060,7 @@ with st.sidebar:
     </div>
     """, unsafe_allow_html=True)
     
-    st.markdown("<br><div style='color:#566981; font-size:11px; text-align:center;'>SKT ALEPH 캡스톤 4조 NexusGuard v1.0</div>", unsafe_allow_html=True)
+    st.markdown("<br><div style='color:#566981; font-size:11px; text-align:center;'>SKT ALEPH 캡스톤 4조 GIGANG v1.0</div>", unsafe_allow_html=True)
 
 
 # ==========================================
@@ -2840,7 +2840,7 @@ if menu == "종합 관제":
     <div class="bento-desktop-banner">
         <div class="bento-banner-left">
             <h2>{greeting_text}</h2>
-            <p>NexusGuard XDR Platform — 실시간 이기종 로그 상관분석 & 섀도우 AI 선제 방어 가동 중</p>
+            <p>GIGANG XDR Platform — 실시간 이기종 로그 상관분석 & 섀도우 AI 선제 방어 가동 중</p>
         </div>
         <div class="bento-banner-right">
             <div class="bento-clock-box" id="nexus-live-clock">
@@ -3640,7 +3640,7 @@ elif menu == "중앙 서버 파이프라인":
     )
 
     st.markdown(f"""
-    <div class="nexus-page-title-box"><div class="nexus-page-title" role="heading" aria-level="1">{text_tooltip("중앙 서버 파이프라인", "중앙 서버 파이프라인", "Windows 에이전트(NexusGuardAgent.exe)와 Railway 중앙 서버(Flask + PostgreSQL)의 실시간 로그 수집 및 연동 상태를 확인하는 화면입니다.")}</div></div>
+    <div class="nexus-page-title-box"><div class="nexus-page-title" role="heading" aria-level="1">{text_tooltip("중앙 서버 파이프라인", "중앙 서버 파이프라인", "Windows 에이전트(GIGANGAgent.exe)와 Railway 중앙 서버(Flask + PostgreSQL)의 실시간 로그 수집 및 연동 상태를 확인하는 화면입니다.")}</div></div>
     """, unsafe_allow_html=True)
 
     # Railway 수집 활성화 여부
@@ -3760,7 +3760,7 @@ elif menu == "중앙 서버 파이프라인":
 
         st.markdown("---")
         st.markdown("### 🌐 Railway 중앙 서버 수집 이벤트")
-        st.caption("각 PC에서 `NexusGuardAgent.exe` 및 Chrome 확장 프로그램(`Upload Detector`)이 사이트 접속(WEB_ACCESS), 파일 첨부 시도(FILE_UPLOAD_ATTEMPT), 텍스트 붙여넣기(PASTE_ATTEMPT)를 실시간 감지하여 중앙 서버에 전송한 실제 데이터입니다.")
+        st.caption("각 PC에서 `GIGANGAgent.exe` 및 Chrome 확장 프로그램(`Upload Detector`)이 사이트 접속(WEB_ACCESS), 파일 첨부 시도(FILE_UPLOAD_ATTEMPT), 텍스트 붙여넣기(PASTE_ATTEMPT)를 실시간 감지하여 중앙 서버에 전송한 실제 데이터입니다.")
 
         col_btn_ref, _ = st.columns([1, 6])
         with col_btn_ref:

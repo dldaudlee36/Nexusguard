@@ -1,10 +1,10 @@
 ﻿이번 배포는 v3.1입니다. Agent는 3.0.0, Chrome 확장은 3.1.0입니다.
 ChatGPT에서 감지한 기록은 확장 백그라운드에서 로컬 Agent로 전송합니다.
-기존 확장 폴더를 업데이트했다면 chrome://extensions → NexusGuard 새로고침(↻) → ChatGPT 탭 F5가 필요합니다.
-Chrome 퍼즐 아이콘 → NexusGuard Upload Detector를 누르면 Agent 연결 상태와 마지막 붙여넣기 저장 결과를 볼 수 있습니다.
+기존 확장 폴더를 업데이트했다면 chrome://extensions → GIGANG 새로고침(↻) → ChatGPT 탭 F5가 필요합니다.
+Chrome 퍼즐 아이콘 → GIGANG Upload Detector를 누르면 Agent 연결 상태와 마지막 붙여넣기 저장 결과를 볼 수 있습니다.
 저장 완료인데 대시보드에 없으면 수집 ON, IP 필터 전체, 이벤트 필터 PASTE_ATTEMPT를 확인하세요. 최신 100건 밖으로 밀려난 기록은 현재 API 조회에 보이지 않습니다.
 
-# NexusGuard v3 사용 방법
+# GIGANG v3 사용 방법
 
 Windows 10/11 64비트용입니다. 실행 환경과 기존 Railway API 설정을 포함하여 Python을 따로 설치할 필요가 없습니다. 인터넷 연결은 필요합니다. ZIP을 새 폴더에 전체 압축 해제하세요.
 
@@ -22,7 +22,7 @@ Windows 10/11 64비트용입니다. 실행 환경과 기존 Railway API 설정�
 
 1. 기존 Agent를 종료하고 이번 폴더의 Agent를 실행합니다.
 2. Chrome 주소창에 `chrome://extensions`를 입력하고 개발자 모드를 켭니다.
-3. 이전 폴더를 쓰는 NexusGuard 확장을 제거하고, **압축해제된 확장 프로그램을 로드**에서 이번 폴더의 `browser_extension`을 선택합니다.
+3. 이전 폴더를 쓰는 GIGANG 확장을 제거하고, **압축해제된 확장 프로그램을 로드**에서 이번 폴더의 `browser_extension`을 선택합니다.
 4. 확장 버전 **3.1.0**을 확인하고, 이미 열린 테스트 사이트를 새로고침합니다.
 5. 일반 입력창에 테스트 문장을 붙여넣습니다. 암호 입력창은 제외합니다.
 

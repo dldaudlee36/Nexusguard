@@ -1,7 +1,7 @@
-# NexusGuard 팀원 공유용 초간단 가이드
+# GIGANG 팀원 공유용 초간단 가이드
 
 > **한 줄 요약:**  
-> 각 PC에서 `NexusGuardAgent.exe`를 켜두면 사이트 접속 기록이 자동으로 중앙 서버에 쌓이고,  
+> 각 PC에서 `GIGANGAgent.exe`를 켜두면 사이트 접속 기록이 자동으로 중앙 서버에 쌓이고,  
 > 팀원이 만든 Streamlit UI는 그 기록을 받아서 화면에 보여주면 됩니다.
 
 ---
@@ -13,7 +13,7 @@
 ```text
 사용자 PC
   ↓
-NexusGuardAgent.exe 실행
+GIGANGAgent.exe 실행
   ↓
 사이트 접속 자동 감지
   ↓
@@ -26,7 +26,7 @@ PostgreSQL의 events 테이블에 저장
 
 즉, **로그 파일을 직접 업로드하거나 서로 파일을 주고받을 필요가 없습니다.**
 
-다른 PC에서도 `NexusGuardAgent.exe`를 실행하면 그 PC의 접속 기록이 같은 중앙 서버에 쌓이는 것까지 테스트했습니다.
+다른 PC에서도 `GIGANGAgent.exe`를 실행하면 그 PC의 접속 기록이 같은 중앙 서버에 쌓이는 것까지 테스트했습니다.
 
 ---
 
@@ -149,7 +149,7 @@ https://bountiful-nature-production-22ec.up.railway.app/events
 ### 로그 수집 테스트만 하는 사람에게
 
 ```text
-NexusGuardAgent.exe
+GIGANGAgent.exe
 ```
 
 이 파일만 주면 됩니다.
@@ -171,7 +171,7 @@ Railway가 사이트를 감지하는 것은 아닙니다.
 역할은 이렇게 나뉩니다.
 
 ```text
-NexusGuardAgent.exe
+GIGANGAgent.exe
 = 각 PC에서 사이트 접속 감지
 
 Flask
@@ -195,7 +195,7 @@ Streamlit UI
 [사용자 PC]
 크롬으로 사이트 접속
       ↓
-NexusGuardAgent.exe
+GIGANGAgent.exe
 "chatgpt.com 접속했음"
       ↓
       ↓ 인터넷
@@ -233,7 +233,7 @@ UI 담당자는 서버를 새로 만들 필요 없습니다.
 | 용어 | 쉽게 말하면 |
 |---|---|
 | **Agent** | 사용자 PC에서 사이트 접속을 감지하는 프로그램 |
-| **NexusGuardAgent.exe** | 우리가 배포할 로그 수집 프로그램 |
+| **GIGANGAgent.exe** | 우리가 배포할 로그 수집 프로그램 |
 | **Railway** | 우리 서버를 인터넷에서 계속 켜두는 곳 |
 | **Flask** | Agent가 보낸 로그를 받아주는 프로그램 |
 | **PostgreSQL** | 로그를 저장하는 데이터베이스 |
@@ -248,6 +248,6 @@ UI 담당자는 서버를 새로 만들 필요 없습니다.
 
 ## 팀원에게 그대로 보내도 되는 설명
 
-> **지금 각 PC에서 NexusGuardAgent.exe를 실행하면 사이트 접속 기록이 Railway 중앙 서버에 자동으로 저장돼요.  
+> **지금 각 PC에서 GIGANGAgent.exe를 실행하면 사이트 접속 기록이 Railway 중앙 서버에 자동으로 저장돼요.  
 > UI 쪽에서는 기존 더미로그 대신 `GET /events`로 실제 로그를 받아서 화면에 연결하면 됩니다.  
 > Railway를 직접 만질 필요는 없고, API 주소와 API Key는 .env 파일(`RAILWAY_API_KEY`)에 안전하게 보관되어 자동 인증됩니다.**

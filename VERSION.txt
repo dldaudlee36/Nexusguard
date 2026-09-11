@@ -1,4 +1,4 @@
-﻿NexusGuard Team v3.1
+﻿GIGANG Team v3.1
 Agent 3.0.0 / Chrome Extension 3.1.0
 2026-09-09
 Upstream: dldaudlee36/Nexusguard main 64b6a908e21ec1233ce055112455be7e428348f3
